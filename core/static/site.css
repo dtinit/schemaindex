@@ -1,0 +1,45 @@
+html {
+  background: #222;
+  --text-primary: #fff;
+  --text-secondary: #ccc;
+  color: var(--text-primary);
+}
+
+
+h1 {
+  font-size: 24px;
+}
+
+a {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.homepage {
+  margin: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.homepage .overview {
+  width: 100%;
+  max-width: 60rem;
+  background: #333;
+  padding: 1rem;
+  border-radius: 8px;
+  color: var(--text-secondary);
+}
+
+.homepage .schema-list {
+  line-height: 2;
+}

@@ -1,0 +1,21 @@
+{% extends "core/layouts/base.html" %}
+{% block head_title %}
+Schema Index
+{% endblock %}
+
+{% block content %}
+<main class="homepage">
+  <h1>The Schema Index</h1>
+  <h2 class="text-secondary">An open source index for schema files</h2>
+  <section class="overview">
+    <p>
+      There are currently {{ schemas | length }} schema{{ schemas|pluralize }} in the database.
+    </p>
+    <ul class="schema-list">
+      {% for schema in schemas %}
+      <li><a href="{{ schema.schemaref_set.last.url }}">{{ schema.name }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+</main>
+{% endblock %}
