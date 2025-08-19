@@ -5,15 +5,34 @@ Schema Index
 
 {% block content %}
 <main class="homepage">
-  <h1>The Schema Index</h1>
-  <h2 class="text-secondary">An open source index for schema files</h2>
+  <h1>Schema Index</h1>
+  <h2 class="text-secondary">An open source registry for schema files</h2>
   <section class="overview">
+    <form action="" method="GET">
+      <input
+        name="search_query"
+        type="text"
+        placeholder="Search for a schema"
+        value="{{ request.GET.search_query }}" 
+        class="js-autosubmit-input"
+        {% if 'search_query' in request.GET %}autofocus{% endif %}
+      />
+    </form>
     <p>
-      There are currently {{ schemas | length }} schema{{ schemas|pluralize }} in the database.
+      {% if schemas|length > 0 %}
+        Showing {{ schemas | length }}
+        {% if request.GET.search_query %} matching
+        {% else %}
+        of {{ total_schema_count }}
+        {% endif %}
+        schema{{ schemas | pluralize }}:
+      {% else %}
+      No {% if request.GET.search_query %} matching {% endif %} schemas.
+      {% endif %}
     </p>
     <ul class="schema-list">
       {% for schema in schemas %}
-      <li><a href="{{ schema.schemaref_set.last.url }}">{{ schema.name }}</li>
+      <li><a href="{{ schema.schemaref_set.last.url }}">{{ schema.name }}</a></li>
       {% endfor %}
     </ul>
   </section>

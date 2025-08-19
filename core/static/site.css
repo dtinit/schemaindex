@@ -15,6 +15,13 @@ a {
   text-decoration: underline;
 }
 
+input {
+  border-radius: 8px;
+  padding: 0.5rem;
+  background: #444;
+  color: var(--text-primary)
+}
+
 .text-primary {
   color: var(--text-primary);
 }
@@ -38,6 +45,9 @@ a {
   padding: 1rem;
   border-radius: 8px;
   color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .homepage .schema-list {
