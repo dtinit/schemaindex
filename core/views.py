@@ -1,11 +1,10 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.db.models import Count
 from .models import Schema
 
 MAX_SCHEMA_RESULT_COUNT = 30
 
 def index(request):
-
     defined_schemas = (
         Schema.objects
         .prefetch_related("schemaref_set")
@@ -19,3 +18,15 @@ def index(request):
         "total_schema_count": defined_schemas.count(),
         "schemas": results.order_by("name")[:MAX_SCHEMA_RESULT_COUNT]
     })
+
+
+def schema_detail(request, schema_id):
+    schema = get_object_or_404(
+        Schema.objects.prefetch_related("schemaref_set").prefetch_related("documentationitem_set"),
+        pk=schema_id
+    )
+
+    return render(request, "core/schemas/detail.html", {
+        "schema": schema
+    })
+
