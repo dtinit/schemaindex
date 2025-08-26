@@ -1,8 +1,11 @@
+/* Shared styles and utilities */
+
 html {
   background: #222;
   --text-primary: #fff;
   --text-secondary: #bbb;
   color: var(--text-primary);
+  font-family: sans-serif;
 }
 
 
@@ -29,9 +32,53 @@ input {
   color: var(--text-primary)
 }
 
-.icon {
+.nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  padding: 1rem;
+}
+
+.nav-header--with-home-link {
+  justify-content: space-between;
+}
+
+.nav-header a {
+  text-decoration: none;
+}
+
+.nav-header .home-link {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.nav-header a:hover {
+  text-decoration: underline;
+}
+
+.icon--sm {
   width: 1rem;
   height: 1rem;
+}
+
+.icon--md {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.messages__message {
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #0c4a6e;
+  margin: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+  font-weight: 500;
 }
 
 .text-primary {
@@ -41,6 +88,26 @@ input {
 .text-secondary {
   color: var(--text-secondary);
 }
+
+.button-link {
+  background: #3730a3;
+  padding: 0.25rem 1.25rem;
+  border-radius: 1rem;
+  text-decoration: none;
+  font-weight: 500;
+  box-shadow: 0 4px 4px 0 rgba(0,0,0,0.1);
+}
+
+a.button-link:hover {
+  background: #4338ca;
+  text-decoration: none;
+}
+
+.button-link:active {
+  box-shadow: none;
+}
+
+/* Page styles */
 
 .main-content {
   width: 100%;
@@ -74,14 +141,4 @@ input {
   gap: 1rem;
 }
 
-.schema-detail .back-link {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  align-self: flex-start;
-  text-decoration: none;
-}
 
-.schema-detail .back-link:hover {
-  text-decoration: underline;
-}
