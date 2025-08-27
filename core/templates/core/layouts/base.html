@@ -22,13 +22,14 @@
                 {% endif %}"
             >
             {% if request.path != '/' %}
-            <a class="home-link" href="{% url 'index' %}">
+            <a class="home-link button-link" href="{% url 'index' %}">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--sm">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
                 </svg>
                 Schema Index
             </a>
             {% endif %}
+            {% if request.path|slice:"9" != '/account/'  %}
             {% if request.user.is_authenticated %}
             <!-- TODO: Don't just link to sign out. Maybe use a dropdown or something -->
             <a href="{% url 'account_logout' %}">
@@ -37,7 +38,11 @@
                 </svg>
             </a>
             {% else %}
-            <a href="{% url 'account_login' %}" class="button-link">Sign in</a> 
+            <div class="nav-header__auth-actions">
+                <a href="{% url 'account_signup' %}" class="button-link">Sign up</a> 
+                <a href="{% url 'account_login' %}" class="button-link button-link--primary">Sign in</a>
+            </div>
+            {% endif %}
             {% endif %}
         </header>
         {% block body %}
@@ -55,8 +60,8 @@
                     </ul>
                 </div>
             {% endif %}
-            {% block content %}
-            {% endblock content %}
+        {% block page_content %}
+        {% endblock page_content %}
         {% endblock body %}
         {% block extra_body %}
         {% endblock extra_body %}

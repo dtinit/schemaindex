@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Count
 from .models import Schema
 
@@ -29,4 +29,3 @@ def schema_detail(request, schema_id):
     return render(request, "core/schemas/detail.html", {
         "schema": schema
     })
-

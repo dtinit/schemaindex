@@ -1,0 +1,16 @@
+{# adapted from https://github.com/pennersr/django-allauth/blob/e7ff7996cb1aef18a01a694d4e76857289991708/allauth/templates/allauth/elements/button.html #}
+
+{% load allauth %}
+{% comment %} djlint:off {% endcomment %}
+<{% if attrs.href %}a href="{{ attrs.href }}"{% else %}button{% endif %}
+{% if attrs.form %}form="{{ attrs.form }}"{% endif %}
+{% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+{% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+{% if attrs.value %}value="{{ attrs.value }}"{% endif %}
+{% if attrs.type %}type="{{ attrs.type }}"{% endif %}
+class="button{% for tag in attrs.tags %} button--{{tag}}{% endfor %}"
+>
+{% slot %}
+{% endslot %}
+</{% if attrs.href %}a{% else %}button{% endif %}>
+

@@ -1,9 +1,11 @@
-/* Shared styles and utilities */
+/* Shared styles, layouts, and utilities */
 
 html {
-  background: #222;
   --text-primary: #fff;
   --text-secondary: #bbb;
+  --primary-color: #4338ca;
+  --primary-color-highlight: #4f46e5;
+  background: #222;
   color: var(--text-primary);
   font-family: sans-serif;
 }
@@ -20,17 +22,24 @@ h2 {
 }
 
 a {
-  color: var(--text-primary);
-  text-decoration: underline;
+  color: #818cf8;
   cursor: pointer;
+  font-weight: 500;
 }
+
+a:hover {
+  color: #a5b4fc;
+}
+
 
 input {
   border-radius: 8px;
   padding: 0.5rem;
   background: #444;
-  color: var(--text-primary)
+  color: var(--text-primary);
+  width: 100%;
 }
+
 
 .nav-header {
   display: flex;
@@ -54,8 +63,14 @@ input {
   align-items: center;
 }
 
+.nav-header__auth-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
 .nav-header a:hover {
-  text-decoration: underline;
+  color: var(--text-secondary);
 }
 
 .icon--sm {
@@ -66,6 +81,10 @@ input {
 .icon--md {
   width: 1.5rem;
   height: 1.5rem;
+}
+
+.messages {
+  margin-bottom: 1rem;
 }
 
 .messages__message {
@@ -90,21 +109,131 @@ input {
 }
 
 .button-link {
-  background: #3730a3;
-  padding: 0.25rem 1.25rem;
-  border-radius: 1rem;
-  text-decoration: none;
   font-weight: 500;
-  box-shadow: 0 4px 4px 0 rgba(0,0,0,0.1);
+  color: var(--text-primary);
 }
 
-a.button-link:hover {
-  background: #4338ca;
+.button-link--primary {
+  background: var(--primary-color);
+  text-decoration: none;
+  border-radius: 1rem;
+  padding: 0.25rem 1.25rem;
+  box-shadow: 0 4px 4px -1px rgba(0,0,0,0.1);
+}
+
+a.button-link--primary:hover {
+  color: var(--text-primary);
+  background: var(--primary-color-highlight);
   text-decoration: none;
 }
 
-.button-link:active {
+.button-link--primary:active {
   box-shadow: none;
+}
+
+.account-page {
+  max-width: 30rem;
+  margin: 0 auto;
+  background: #333;
+  padding: 1rem;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.account-page form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  width: 100%;
+}
+
+.account-page form ~ * {
+  align-self: flex-end;
+}
+
+.button {
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.button:hover {
+  color: var(--text-secondary);
+}
+
+.button--prominent,
+.button--confirm,
+.account-page button[type="submit"] {
+  background: var(--primary-color);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  box-shadow: 0 4px 4px -1px rgba(0,0,0,0.1);
+}
+
+.button--prominent:hover,
+.button--confirm:hover,
+.account-page button[type="submit"]:hover { 
+  background: var(--primary-color-highlight);
+  color: var(--text-primary);
+}
+
+.button--prominent:active,
+.button--confirm:active,
+.account-page button[type="submit"]:active {
+  box-shadow: none;
+}
+
+.account-page .button-group {
+  align-self: flex-end;
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 1rem;
+}
+
+.account-page form > button:last-child{
+  align-self: flex-end;
+  width: 100%;
+}
+
+.account-page p {
+  color: var(--text-secondary);
+  text-align: center;
+  width: 100%;
+}
+
+/* These forms only have hidden fields
+ * but cause layout issues as flex children */
+.account-page #resend,
+.account-page #logout-from-stage {
+  display: none; 
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.field label {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.field--checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.field--checkbox input {
+  width: auto;
 }
 
 /* Page styles */
