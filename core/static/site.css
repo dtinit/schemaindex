@@ -93,11 +93,14 @@ input {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: #0c4a6e;
-  margin: 0.5rem;
+  background: rgba(23, 37, 84, 0.5);
+  color: #93c5fd;
+  border: 1px solid #1e3a8a;
+  margin: 0.5rem auto;
   padding: 0.25rem 0.5rem;
   border-radius: 1rem;
   font-weight: 500;
+  max-width: 40rem;
 }
 
 .text-primary {
@@ -166,8 +169,7 @@ a.button-link--primary:hover {
 }
 
 .button--prominent,
-.button--confirm,
-.account-page button[type="submit"] {
+.button--confirm {
   background: var(--primary-color);
   padding: 0.5rem 1rem;
   border-radius: 6px;
@@ -175,15 +177,13 @@ a.button-link--primary:hover {
 }
 
 .button--prominent:hover,
-.button--confirm:hover,
-.account-page button[type="submit"]:hover { 
+.button--confirm:hover { 
   background: var(--primary-color-highlight);
   color: var(--text-primary);
 }
 
 .button--prominent:active,
-.button--confirm:active,
-.account-page button[type="submit"]:active {
+.button--confirm:active {
   box-shadow: none;
 }
 
@@ -234,7 +234,13 @@ a.button-link--primary:hover {
 
 .field--checkbox input {
   width: auto;
+  cursor: pointer;
 }
+
+.field--checkbox label {
+  cursor: pointer;
+}
+
 
 /* Page styles */
 
