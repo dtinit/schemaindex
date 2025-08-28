@@ -29,4 +29,3 @@ def schema_detail(request, schema_id):
     return render(request, "core/schemas/detail.html", {
         "schema": schema
     })
-

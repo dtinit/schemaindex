@@ -3,14 +3,8 @@
 {{ schema.name }} - Schema Index
 {% endblock %}
 
-{% block content %}
+{% block page_content %}
 <main class="schema-detail">
-  <a class="back-link" href="{% url 'index' %}">
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-    </svg>
-    Schema Index
-  </a>
   <h1>{{ schema.name }}</h1>
   <section class="main-content">
     {% if schema.schemaref_set.exists %}

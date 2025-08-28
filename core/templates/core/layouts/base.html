@@ -15,17 +15,53 @@
         {% endblock extra_head %}
     </head>
     <body>
+        <header
+            class="nav-header
+                {% if request.path != '/' %}
+                nav-header--with-home-link
+                {% endif %}"
+            >
+            {% if request.path != '/' %}
+            <a class="home-link button-link" href="{% url 'index' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--sm">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                </svg>
+                Schema Index
+            </a>
+            {% endif %}
+            {% if request.path|slice:"9" != '/account/'  %}
+            {% if request.user.is_authenticated %}
+            <!-- TODO: Don't just link to sign out. Maybe use a dropdown or something -->
+            <a href="{% url 'account_logout' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--md">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+            </a>
+            {% else %}
+            <div class="nav-header__auth-actions">
+                <a href="{% url 'account_signup' %}" class="button-link">Sign up</a> 
+                <a href="{% url 'account_login' %}" class="button-link button-link--primary">Sign in</a>
+            </div>
+            {% endif %}
+            {% endif %}
+        </header>
         {% block body %}
             {% if messages %}
-                <div>
-                    <strong>Messages:</strong>
+                <div class="messages">
                     <ul>
-                        {% for message in messages %}<li>{{ message }}</li>{% endfor %}
+                        {% for message in messages %}
+                        <li class="messages__message">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="icon--md">
+                                <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 0 1 .67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 1 1-.671-1.34l.041-.022ZM12 9a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" />
+                            </svg>
+                            {{ message }}
+                        </li>
+                        {% endfor %}
                     </ul>
                 </div>
             {% endif %}
-            {% block content %}
-            {% endblock content %}
+        {% block page_content %}
+        {% endblock page_content %}
         {% endblock body %}
         {% block extra_body %}
         {% endblock extra_body %}
