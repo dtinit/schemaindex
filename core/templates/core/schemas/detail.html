@@ -1,12 +1,20 @@
 {% extends "core/layouts/base.html" %}
+{% load static %}
 {% block head_title %}
 {{ schema.name }} - Schema Index
+{% endblock %}
+{% block extra_head %}
+<script src="{% static 'js/schema-detail.js' %}"></script>
 {% endblock %}
 
 {% block page_content %}
 <main class="schema-detail">
   <h1>{{ schema.name }}</h1>
   <section class="main-content">
+    {% if latest_definition %}
+    <h2>Latest definition:</h2>
+    <pre class="schema-definition"><code>{{ latest_definition }}</code></pre>
+    {% endif %}
     {% if schema.schemaref_set.exists %}
     <h2>Reference links:</h2>
     <ul>

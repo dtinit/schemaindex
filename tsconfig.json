@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "lib": ["es2015", "DOM"]
+  },
+  "include": ["core/static/js/**/*"]
+}
+

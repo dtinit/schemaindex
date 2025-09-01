@@ -9,43 +9,20 @@
             {% endblock head_title %}
         </title>
         <link rel="stylesheet" href="{% static 'css/preflight.css' %}" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/agate.min.css">
         <link rel="stylesheet" href="{% static 'css/site.css' %}" />
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js" async id="hljs-src"></script>
-        <script src="{% static 'js/site.js' %}"></script>
-        {% block extra_head %}
-        {% endblock extra_head %}
+        <script src="{% static 'css/site.js' %}"></script>
+        <!-- Do not include third-party scripts in this template!
+            This template is used by auth pages. -->
     </head>
     <body>
         <header
-            class="nav-header
-                {% if request.path != '/' %}
-                nav-header--with-home-link
-                {% endif %}"
-            >
-            {% if request.path != '/' %}
+            class="nav-header nav-header--with-home-link">
             <a class="home-link button-link" href="{% url 'index' %}">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--sm">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
                 </svg>
                 Schema Index
             </a>
-            {% endif %}
-            {% if request.path|slice:"9" != '/account/'  %}
-            {% if request.user.is_authenticated %}
-            <!-- TODO: Don't just link to sign out. Maybe use a dropdown or something -->
-            <a href="{% url 'account_logout' %}">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--md">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                </svg>
-            </a>
-            {% else %}
-            <div class="nav-header__auth-actions">
-                <a href="{% url 'account_signup' %}" class="button-link">Sign up</a> 
-                <a href="{% url 'account_login' %}" class="button-link button-link--primary">Sign in</a>
-            </div>
-            {% endif %}
-            {% endif %}
         </header>
         {% block body %}
             {% if messages %}
@@ -62,8 +39,9 @@
                     </ul>
                 </div>
             {% endif %}
-        {% block page_content %}
-        {% endblock page_content %}
+        <main class="account-page">
+        {% block content %}{% endblock %}
+        </main>
         {% endblock body %}
         {% block extra_body %}
         {% endblock extra_body %}
