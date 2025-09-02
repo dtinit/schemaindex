@@ -13,7 +13,7 @@
   <section class="main-content">
     {% if latest_definition %}
     <h2>Latest definition:</h2>
-    <pre class="schema-definition"><code>{{ latest_definition }}</code></pre>
+    <pre class="schema-definition"><code>{{ latest_definition|escape }}</code></pre>
     {% endif %}
     {% if schema.schemaref_set.exists %}
     <h2>Reference links:</h2>

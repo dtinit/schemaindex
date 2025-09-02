@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Count
+from django.utils.html import escape
 import requests
 from .models import Schema
 
@@ -34,6 +35,6 @@ def schema_detail(request, schema_id):
        
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
-        "latest_definition": schema_ref_fetch_response.text
+        "latest_definition": escape(schema_ref_fetch_response.text)
     })
    
