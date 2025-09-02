@@ -276,4 +276,11 @@ a.button-link--primary:hover {
   gap: 1rem;
 }
 
+.schema-definition {
+  max-height: 50rem;
+  overflow: auto;
+}
 
+.schema-definition .hljs {
+  background: #222;
+}
