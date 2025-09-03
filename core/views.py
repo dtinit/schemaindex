@@ -3,7 +3,7 @@ from django.db.models import Count
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 import requests
-import pycmarkgfm
+import cmarkgfm
 import bleach
 from .models import Schema, DocumentationItem
 
@@ -62,7 +62,7 @@ def schema_detail(request, schema_id):
     ).order_by('-created_by').first()
     if latest_readme:
         markdown_readme_fetch_response = requests.get(latest_readme.url)
-        unsanitized_html_content = pycmarkgfm.gfm_to_html(markdown_readme_fetch_response.text)
+        unsanitized_html_content = cmarkgfm.github_flavored_markdown_to_html(markdown_readme_fetch_response.text)
         sanitized_html_content = bleach.clean(unsanitized_html_content, MARKDOWN_HTML_TAGS, MARKDOWN_HTML_ATTRIBUTES)
         # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
         latest_readme_content = mark_safe(sanitized_html_content)
