@@ -12,7 +12,10 @@
   <h1>{{ schema.name }}</h1>
   <section class="main-content">
     {% if latest_readme_content %}
-    {{ latest_readme_content }}
+    <h2>Latest README:</h2>
+    <div class="markdown">
+      {{ latest_readme_content }}
+    </div>
     {% endif %}
     {% if latest_definition %}
     <h2>Latest definition:</h2>

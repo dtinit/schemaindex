@@ -50,28 +50,26 @@ def schema_detail(request, schema_id):
     )
 
     latest_schema_ref = schema.schemaref_set.order_by('-created_by').first()
-    schema_ref_fetch_response = None
+    latest_definition = None
     if latest_schema_ref:
         schema_ref_fetch_response = requests.get(latest_schema_ref.url)
-
+        latest_definition = escape(schema_ref_fetch_response.text)
+    
+    latest_readme_content = None
     latest_readme = schema.documentationitem_set.filter(
         role=DocumentationItem.DocumentationItemRole.README,
         format=DocumentationItem.DocumentationItemFormat.Markdown
     ).order_by('-created_by').first()
-    markdown_readme_fetch_response = None
     if latest_readme:
         markdown_readme_fetch_response = requests.get(latest_readme.url)
+        unsanitized_html_content = pycmarkgfm.gfm_to_html(markdown_readme_fetch_response.text)
+        sanitized_html_content = bleach.clean(unsanitized_html_content, MARKDOWN_HTML_TAGS, MARKDOWN_HTML_ATTRIBUTES)
+        # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
+        latest_readme_content = mark_safe(sanitized_html_content)
 
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
-        "latest_definition": schema_ref_fetch_response and escape(schema_ref_fetch_response.text),
-        # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
-        "latest_readme_content": markdown_readme_fetch_response and mark_safe(
-            bleach.clean(
-                pycmarkgfm.gfm_to_html((markdown_readme_fetch_response.text)),
-                MARKDOWN_HTML_TAGS,
-                MARKDOWN_HTML_ATTRIBUTES
-            )
-        )
+        "latest_definition": latest_definition,
+        "latest_readme_content": latest_readme_content
     })
    

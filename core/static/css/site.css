@@ -241,6 +241,29 @@ a.button-link--primary:hover {
   cursor: pointer;
 }
 
+.markdown {
+  background: #222;
+  padding: 0 1rem;
+  max-height: 50rem;
+  overflow: auto;
+}
+
+.markdown p,
+.markdown ul
+.markdown ol {
+  margin: 0.5rem 0;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-size: 18px;
+  color: var(--text-primary);
+  margin: 1rem 0;
+}
 
 /* Page styles */
 
