@@ -37,9 +37,17 @@ class SchemaRef(ReferenceItem):
 
 
 class DocumentationItem(ReferenceItem):
+    class DocumentationItemRole(models.TextChoices):
+        README = 'readme'
+
+    class DocumentationItemFormat(models.TextChoices):
+        Markdown = 'markdown'
+
     name = models.CharField(max_length=300)
     description = models.TextField(blank=True, null=True)
     schema = models.ForeignKey(Schema, on_delete=models.CASCADE)
+    role = models.CharField(max_length=100, choices=DocumentationItemRole, blank=True, null=True)
+    format = models.CharField(max_length=100, choices=DocumentationItemFormat, blank=True, null=True)
 
     def __str__(self):
         return self.name
