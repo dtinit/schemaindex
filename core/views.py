@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.db.models import Count
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
+from django.contrib.auth.decorators import login_required
 import requests
 import cmarkgfm
 import bleach
@@ -72,4 +73,10 @@ def schema_detail(request, schema_id):
         "latest_definition": latest_definition,
         "latest_readme_content": latest_readme_content
     })
-   
+
+@login_required
+def account_profile(request):
+    user_schemas = Schema.objects.filter(created_by=request.user)
+    return render(request, "core/account/profile.html", {
+        'user_schemas': user_schemas
+    })

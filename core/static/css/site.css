@@ -279,6 +279,7 @@ a.button-link--primary:hover {
   gap: 1rem;
 }
 
+/* Homepage */
 .homepage {
   margin: 1rem;
   display: flex;
@@ -291,6 +292,8 @@ a.button-link--primary:hover {
   line-height: 2;
 }
 
+
+/* Schema detail */
 .schema-detail {
   margin: 1rem;
   display: flex;
@@ -306,4 +309,50 @@ a.button-link--primary:hover {
 
 .schema-definition .hljs {
   background: #222;
+}
+
+/* Account profile */
+.account {
+  margin: 1rem auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: flex-start;
+  justify-content: flex-start;
+  max-width: 60rem;
+}
+
+.account section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.account .schema-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.account .schema-list .schema {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: #333;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.account .schema-list .schema .schema__action-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
