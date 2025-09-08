@@ -1,10 +1,31 @@
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Count
 from django.utils.html import escape
+from django.utils.safestring import mark_safe
 import requests
-from .models import Schema
+import cmarkgfm
+import bleach
+from .models import Schema, DocumentationItem
 
 MAX_SCHEMA_RESULT_COUNT = 30
+
+# Pulled these from https://github.com/yourcelf/bleach-allowlist.
+# These are the only tags/attributes we'll allow to be rendered from Markdown sources.
+MARKDOWN_HTML_TAGS = [
+    "h1", "h2", "h3", "h4", "h5", "h6",
+    "b", "i", "strong", "em", "tt",
+    "p", "br",
+    "span", "div", "blockquote", "code", "pre", "hr",
+    "ul", "ol", "li", "dd", "dt",
+    "img",
+    "a",
+    "sub", "sup",
+] 
+MARKDOWN_HTML_ATTRIBUTES = {
+    "*": ["id"],
+    "img": ["src", "alt", "title"],
+    "a": ["href", "alt", "title"],
+}
 
 def index(request):
     defined_schemas = (
@@ -29,12 +50,26 @@ def schema_detail(request, schema_id):
     )
 
     latest_schema_ref = schema.schemaref_set.order_by('-created_by').first()
-
+    latest_definition = None
     if latest_schema_ref:
         schema_ref_fetch_response = requests.get(latest_schema_ref.url)
-       
+        latest_definition = escape(schema_ref_fetch_response.text)
+    
+    latest_readme_content = None
+    latest_readme = schema.documentationitem_set.filter(
+        role=DocumentationItem.DocumentationItemRole.README,
+        format=DocumentationItem.DocumentationItemFormat.Markdown
+    ).order_by('-created_by').first()
+    if latest_readme:
+        markdown_readme_fetch_response = requests.get(latest_readme.url)
+        unsanitized_html_content = cmarkgfm.github_flavored_markdown_to_html(markdown_readme_fetch_response.text)
+        sanitized_html_content = bleach.clean(unsanitized_html_content, MARKDOWN_HTML_TAGS, MARKDOWN_HTML_ATTRIBUTES)
+        # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
+        latest_readme_content = mark_safe(sanitized_html_content)
+
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
-        "latest_definition": escape(schema_ref_fetch_response.text)
+        "latest_definition": latest_definition,
+        "latest_readme_content": latest_readme_content
     })
    
