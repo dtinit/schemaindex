@@ -103,11 +103,11 @@ input {
   max-width: 40rem;
 }
 
-.text-primary {
+.text--primary {
   color: var(--text-primary);
 }
 
-.text-secondary {
+.text--secondary {
   color: var(--text-secondary);
 }
 

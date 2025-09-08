@@ -7,6 +7,7 @@ Account
 <main class="account">
   <section>
     <h1>My Schemas</h1>
+    {% if user_schemas|length > 0 %}
     <ul class="schema-list">
       {% for schema in user_schemas|dictsort:"name" %}
       <li class="schema">
@@ -26,8 +27,14 @@ Account
       </li>
       {% endfor %}
     </ul>
+    {% else %}
+    <p class="text--secondary">
+      You haven't added any schemas yet.
+    </p>
+    {% endif %}
+    <a href="#TODO" class="button button--prominent">Add schema</a>
   </section>
-  <section>
+  <section class="text--secondary">
     <h1>Account</h1>
     Email: {{ request.user.email }}
     <a href="{% url 'account_change_password' %}">Change password</a>
