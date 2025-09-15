@@ -20,6 +20,12 @@ class Schema(BaseModel):
 
     def __str__(self):
         return self.name
+
+    def latest_reference(self):
+        return self.schemaref_set.order_by('-created_at').first()
+    
+    def latest_readme(self):
+        return self.documentationitem_set.filter(role=DocumentationItem.DocumentationItemRole.README).order_by('-created_at').first()
     
 
 class ReferenceItem(BaseModel):
