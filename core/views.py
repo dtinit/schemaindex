@@ -130,9 +130,13 @@ def manage_schema(request, schema_id=None):
     })
 
 @login_required
-def delete_schema(request):
-    #if request.method == 'POST':
+def manage_schema_delete(request, schema_id):
+    schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
+
+    if request.method == 'POST':
+        schema.delete()
+        return redirect('account_profile')
        
     return render(request, "core/manage/delete_schema.html", {
-        
+        'schema': schema
     })
