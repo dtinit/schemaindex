@@ -31,5 +31,13 @@
           input.selectionStart = input.value.length;
         }
     });
+
+    Array.from(document.querySelectorAll('.message-dismissal-trigger')).forEach((element) => {
+      element.addEventListener('click', () => {
+        if (element.parentElement){
+          element.parentElement.remove(); 
+        }
+      })
+    })
   });
  })()

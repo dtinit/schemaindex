@@ -85,22 +85,38 @@ input {
 
 .messages {
   margin-bottom: 1rem;
+  position: fixed;
+  right: 0;
+  top: 0;
+  padding: 1rem;
 }
 
 .messages__message {
   text-align: center;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 0.5rem;
-  background: rgba(23, 37, 84, 0.5);
+  background: #172554;
   color: #93c5fd;
   border: 1px solid #1e3a8a;
   margin: 0.5rem auto;
-  padding: 0.25rem 0.5rem;
-  border-radius: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
   font-weight: 500;
   max-width: 40rem;
+  min-width: 30rem;
+  font-size: 14px;
+}
+
+.messages__message .message-content {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.messages__message .message-dismissal-trigger{
+  cursor: pointer;
 }
 
 .text--primary {
