@@ -1,4 +1,7 @@
 (() => {
+  // This needs to match the animation duration in site.css
+  const MESSAGE_TIMEOUT_MS = 10 * 1000;
+
   /**
    * @param {(...args: any) => any} fn
    * @param {Parameters<typeof setTimeout>[1]} time
@@ -31,5 +34,19 @@
           input.selectionStart = input.value.length;
         }
     });
+
+    Array.from(document.querySelectorAll('.message__dismissal-trigger')).forEach((element) => {
+      element.addEventListener('click', () => {
+        if (element.parentElement){
+          element.parentElement.remove(); 
+        }
+      })
+    });
+    
+    setTimeout(() => {
+      Array.from(document.querySelectorAll('.messages .message')).forEach((element) => {
+        element.remove();
+      });
+    }, MESSAGE_TIMEOUT_MS);
   });
  })()

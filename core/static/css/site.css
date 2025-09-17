@@ -85,22 +85,94 @@ input {
 
 .messages {
   margin-bottom: 1rem;
+  position: fixed;
+  right: 0;
+  top: 0;
+  padding: 1rem;
 }
 
-.messages__message {
+.messages .message {
   text-align: center;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 0.5rem;
-  background: rgba(23, 37, 84, 0.5);
-  color: #93c5fd;
+  background: #172554;
+  color: #bfdbfe;
   border: 1px solid #1e3a8a;
   margin: 0.5rem auto;
-  padding: 0.25rem 0.5rem;
-  border-radius: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
   font-weight: 500;
   max-width: 40rem;
+  min-width: 30rem;
+  font-size: 14px;
+  position: relative;
+  overflow: hidden;
+  animation: appear 100ms;
+}
+
+.messages .message--warning {
+  background: #422006;
+  color: #fef08a;
+  border-color: #713f12;
+}
+
+.messages .message--success {
+  background: #052e16;
+  color: #bbf7d0;
+  border-color: #14532d;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.messages .message .message__content {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.messages .message .message__dismissal-trigger {
+  cursor: pointer;
+}
+
+.messages .message .message__progress-bar {
+  position: absolute; 
+  left: 100%;
+  bottom: 0;
+  right: 0;
+  height: 2px;
+  background: #1e3a8a;
+  /* This duration needs to match MESSAGE_TIMEOUT_MS in site.js */
+  animation: progress-bar-wipe linear 10s;
+}
+
+.messages .message--warning .message__progress-bar {
+  background: #713f12;
+}
+
+.messages .message--success .message__progress-bar {
+  background: #14532d;
+}
+
+@keyframes progress-bar-wipe {
+  from {
+    left: 0;
+  }
+
+  to {
+    left: 100%;
+  }
 }
 
 .text--primary {
