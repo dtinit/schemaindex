@@ -1,0 +1,19 @@
+{% extends "core/layouts/base.html" %}
+{% block head_title %}
+Delete Schema
+{% endblock %}
+{% block page_content %}
+<main>
+  <section class="main-content form-container delete-schema">
+    <h1>Delete Schema?</h1>
+    <p>Are you sure you want to delete "{{ schema.name }}?"</p>
+    <form action="{% url 'manage_schema_delete' schema_id=schema.pk %}" method="POST">
+      {% csrf_token %}
+      <div class="button-group">
+        <a href="{% url 'account_profile' %}" type="cancel" class="button">Cancel</a>
+        <button type="submit" class="button button--danger">Delete schema</button>
+      </div>
+    </form>
+  </section>
+</main>
+{% endblock %}

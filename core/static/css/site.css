@@ -5,6 +5,8 @@ html {
   --text-secondary: #bbb;
   --primary-color: #4338ca;
   --primary-color-highlight: #4f46e5;
+  --danger-color: #b91c1c;
+  --danger-color-highlight: #991b1b;
   background: #222;
   color: var(--text-primary);
   font-family: sans-serif;
@@ -32,7 +34,7 @@ a:hover {
 }
 
 
-input {
+input, select {
   border-radius: 8px;
   padding: 0.5rem;
   background: #444;
@@ -241,11 +243,25 @@ a.button-link--primary:hover {
 }
 
 .button--prominent,
-.button--confirm {
-  background: var(--primary-color);
+.button--confirm,
+.button--danger{
   padding: 0.5rem 1rem;
   border-radius: 6px;
   box-shadow: 0 4px 4px -1px rgba(0,0,0,0.1);
+}
+
+.button--prominent,
+.button--confirm {
+  background: var(--primary-color);
+}
+
+.button--danger {
+  background: var(--danger-color);
+}
+
+.button--danger:hover {
+  background: var(--danger-color-highlight);
+  color: var(--text-primary);
 }
 
 .button--prominent:hover,
@@ -259,12 +275,15 @@ a.button-link--primary:hover {
   box-shadow: none;
 }
 
-.account-page .button-group {
+.button-group {
   align-self: flex-end;
   display: flex;
-  flex-direction: row-reverse;
   align-items: center;
   gap: 1rem;
+}
+
+.account-page .button-group {
+  flex-direction: row-reverse;
 }
 
 .account-page form > button:last-child{
@@ -295,6 +314,11 @@ a.button-link--primary:hover {
 .field label {
   font-size: 16px;
   font-weight: 500;
+}
+
+.field__label--is-required:after {
+  content: '*';
+  color: red;
 }
 
 .field--checkbox {
@@ -337,8 +361,6 @@ a.button-link--primary:hover {
   margin: 1rem 0;
 }
 
-/* Page styles */
-
 .main-content {
   width: 100%;
   max-width: 60rem;
@@ -350,6 +372,35 @@ a.button-link--primary:hover {
   flex-direction: column;
   gap: 1rem;
 }
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.form-container h1 {
+  text-align: center;
+  width: 100%;
+}
+
+.form-container form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-evenly;
+  width: 100%;
+}
+
+.form-container form > div {
+  width: 100%;
+}
+
+/* Page styles */
 
 /* Homepage */
 .homepage {
@@ -381,6 +432,13 @@ a.button-link--primary:hover {
 
 .schema-definition .hljs {
   background: #222;
+}
+
+/* Delete schema */
+.delete-schema,
+.delete-schema .button-group {
+  align-items: center;
+  justify-content: center;
 }
 
 /* Account profile */
