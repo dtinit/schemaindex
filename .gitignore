@@ -209,3 +209,7 @@ __marimo__/
 # System files
 .DS_Store
 personal-development/
+
+# Google Cloud Platform
+# service-account-credentials.json
+# gcp-cors-config.json
