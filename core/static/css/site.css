@@ -7,6 +7,7 @@ html {
   --primary-color-highlight: #4f46e5;
   --danger-color: #b91c1c;
   --danger-color-highlight: #991b1b;
+  --danger-color-text: #f87171;
   background: #222;
   color: var(--text-primary);
   font-family: sans-serif;
@@ -318,7 +319,7 @@ a.button-link--primary:hover {
 
 .field__label--is-required:after {
   content: '*';
-  color: red;
+  color: var(--danger-color-text);
 }
 
 .field--checkbox {
@@ -335,6 +336,10 @@ a.button-link--primary:hover {
 
 .field--checkbox label {
   cursor: pointer;
+}
+
+.field .errorlist {
+  color: var(--danger-color-text);
 }
 
 .markdown {
