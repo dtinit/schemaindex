@@ -25,14 +25,14 @@ GS_BUCKET_NAME = 'schemaindex-stg-storage'
 # Use Cloud Storage for static and media files
 STORAGES = {
     "default": {
-        "BACKEND": "storages.backends.gcp.GoogleCloudStorage",
+        "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
         "OPTIONS": {
             "bucket_name": GS_BUCKET_NAME,
             "location": "logos",
         }
     },
     "staticfiles": {
-        "BACKEND": "storages.backends.gcp.GoogleCloudStorage",
+        "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
         "OPTIONS": {
             "bucket_name": GS_BUCKET_NAME,
             "location": "site-assets",
