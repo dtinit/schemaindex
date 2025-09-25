@@ -1,0 +1,14 @@
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+node_modules
+.env
+.env-*
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+db.sqlite3
+personal-development/
