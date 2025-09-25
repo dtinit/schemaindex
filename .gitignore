@@ -211,5 +211,5 @@ __marimo__/
 personal-development/
 
 # Google Cloud Platform
-# service-account-credentials.json
-# gcp-cors-config.json
+service-account-credentials.json
+gcp-cors-config.json
