@@ -25,14 +25,14 @@ GS_BUCKET_NAME = 'schemaindex-stg-storage'
 # Use Cloud Storage for static and media files
 STORAGES = {
     "default": {
-        "BACKEND": "storages.backends.gcp.GoogleCloudStorage",
+        "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
         "OPTIONS": {
             "bucket_name": GS_BUCKET_NAME,
             "location": "logos",
         }
     },
     "staticfiles": {
-        "BACKEND": "storages.backends.gcp.GoogleCloudStorage",
+        "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
         "OPTIONS": {
             "bucket_name": GS_BUCKET_NAME,
             "location": "site-assets",
@@ -51,9 +51,6 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', SECRET_KEY)
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
-
-# Trust the Cloud Run proxy
-USE_TZ = True
 
 # Logging configuration for Cloud Run
 LOGGING = {
