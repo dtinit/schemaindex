@@ -14,12 +14,28 @@ DEBUG = False
 # Update ALLOWED_HOSTS with actual Cloud Run URL
 ALLOWED_HOSTS = ['schemaindex-stg-run-799626592344.us-central1.run.app']
 
-# Use PostgreSQL if environment variable exists, otherwise inherit SQLite from base.py
+# Debug: Check environment variable
+print("=== STAGING SETTINGS DEBUG ===")
+print(f"DJ_DATABASE_CONN_STRING present: {'DJ_DATABASE_CONN_STRING' in os.environ}")
+if 'DJ_DATABASE_CONN_STRING' in os.environ:
+    print(f"Database URL: {os.environ['DJ_DATABASE_CONN_STRING']}")
+
+# Use PostgreSQL if environment variable exists, otherwise inherit SQLite from base.py  
 if 'DJ_DATABASE_CONN_STRING' in os.environ:
     env = environ.Env()
-    DATABASES = {
-        'default': env.db('DJ_DATABASE_CONN_STRING')
-    }
+    try:
+        DATABASES = {
+            'default': env.db('DJ_DATABASE_CONN_STRING')
+        }
+        print(f"PostgreSQL config loaded: {DATABASES['default']['ENGINE']}")
+    except Exception as e:
+        print(f"Error parsing database URL: {e}")
+        print(f"Falling back to SQLite from base.py")
+else:
+    print("No DJ_DATABASE_CONN_STRING found, using SQLite from base.py")
+
+print(f"Final DATABASES: {DATABASES}")
+print("=== END DEBUG ===")
 
 # CSRF and CORS configuration for staging
 CSRF_TRUSTED_ORIGINS = [
