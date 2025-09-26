@@ -5,13 +5,21 @@ This inherits from base settings and adds Cloud Run specific configuration.
 """
 
 import os
+import environ
 from .base import *
 
 # Override base settings for staging environment
 DEBUG = False
 
-# Temporary - will update with real Cloud Run URL after first deployment
-ALLOWED_HOSTS = ['*']
+# Update ALLOWED_HOSTS with actual Cloud Run URL
+ALLOWED_HOSTS = ['schemaindex-stg-run-799626592344.us-central1.run.app']
+
+# Use PostgreSQL if environment variable exists, otherwise inherit SQLite from base.py
+if 'DJ_DATABASE_CONN_STRING' in os.environ:
+    env = environ.Env()
+    DATABASES = {
+        'default': env.db('DJ_DATABASE_CONN_STRING')
+    }
 
 # CSRF and CORS configuration for staging
 CSRF_TRUSTED_ORIGINS = [
