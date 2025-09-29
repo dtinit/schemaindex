@@ -3,7 +3,8 @@ from django.core.exceptions import ValidationError
 import requests
 from pygments.lexers import get_lexer_for_filename
 from pygments.util import ClassNotFound
-from .models import DocumentationItem
+from urllib.parse import urlparse
+from .models import DocumentationItem, SchemaRef
 
 '''
 This is currently just a list of languages supported
@@ -63,6 +64,12 @@ class SchemaForm(forms.Form):
 
     def clean_reference_url(self):
         [data, matched_language] = self._clean_url('reference_url', language_allowlist=SPECIFICATION_LANGUAGE_ALLOWLIST)
+        schema_refs = SchemaRef.objects.all() 
+        parsed_data = urlparse(data)
+        for schema_ref in schema_refs:
+            parsed_url = urlparse(schema_ref.url)
+            if parsed_url.netloc == parsed_data.netloc and parsed_url.path == parsed_data.path:
+                raise ValidationError("The provided URL is already in use by another Schema")
         return data
 
     def clean_readme_url(self):
