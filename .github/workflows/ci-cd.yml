@@ -117,11 +117,13 @@ jobs:
       - name: Collect static files
         env:
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DJ_DATABASE_CONN_STRING: postgres://${{ secrets.POSTGRES_CREDENTIALS }}@localhost:1234/schemaindex_staging
         run: python3 manage.py collectstatic --no-input
 
       - name: Configure CORS for storage bucket
         env:
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DJ_DATABASE_CONN_STRING: postgres://${{ secrets.POSTGRES_CREDENTIALS }}@localhost:1234/schemaindex_staging
         run: |
           python3 manage.py create_gcp_cors_config
           export GS_BUCKET_NAME=$(python3 -c "from django.conf import settings; print(settings.GS_BUCKET_NAME)")
@@ -129,7 +131,7 @@ jobs:
 
       - name: Build and push Docker image
         run: >
-          gcloud builds submit
+          gcloud builds submit --async
           --region us-central1
           --tag us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/schemaindex-stg-registry/schemaindex:latest
           .
