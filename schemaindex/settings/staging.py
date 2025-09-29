@@ -5,6 +5,7 @@ This inherits from base settings and adds Cloud Run specific configuration.
 """
 
 import os
+import sys
 import environ
 from .base import *
 
@@ -60,17 +61,41 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-# Logging configuration for Cloud Run
+# Logging configuration for Cloud Run (matches Trust Registry pattern)
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'json': {
+            '()': 'django_google_structured_logger.formatter.GoogleFormatter',
+        },
+    },
     'handlers': {
+        'google_cloud': {
+            'class': 'google.cloud.logging_v2.handlers.StructuredLogHandler',
+            'stream': sys.stdout,
+            'formatter': 'json',
+        },
+        # If we need a fallback or for debugging if necessary
         'console': {
             'class': 'logging.StreamHandler',
+            'stream': sys.stderr,
         },
     },
     'root': {
-        'handlers': ['console'],
+        'handlers': ['google_cloud'],
         'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['google_cloud'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['google_cloud'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
