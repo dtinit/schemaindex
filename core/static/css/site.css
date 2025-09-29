@@ -8,11 +8,15 @@ html {
   --danger-color: #b91c1c;
   --danger-color-highlight: #991b1b;
   --danger-color-text: #f87171;
+  --logo-color: #fde047;
   background: #222;
   color: var(--text-primary);
   font-family: sans-serif;
 }
 
+.color-logo {
+  color: var(--logo-color); 
+}
 
 h1 {
   font-size: 24px;

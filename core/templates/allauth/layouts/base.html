@@ -8,6 +8,7 @@
             {% block head_title %}
             {% endblock head_title %}
         </title>
+        <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
         <link rel="stylesheet" href="{% static 'css/preflight.css' %}" />
         <link rel="stylesheet" href="{% static 'css/site.css' %}" />
         <script src="{% static 'js/site.js' %}"></script>
@@ -18,10 +19,9 @@
         <header
             class="nav-header nav-header--with-home-link">
             <a class="home-link button-link" href="{% url 'index' %}">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--sm">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                </svg>
-                Schema Index
+                <span>
+                    <span class="color-logo">{</span>Schemas<span class="color-logo">.</span>Pub<span class="color-logo">}</span>
+                </span>
             </a>
         </header>
         {% block body %}
