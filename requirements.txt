@@ -14,7 +14,7 @@ sqlparse==0.5.3
 urllib3==2.5.0
 webencodings==0.5.1
 gunicorn==23.0.0
-psycopg2-binary==2.9.6
+psycopg2-binary==2.9.10
 django-storages[google]==1.14.4
 google-cloud-storage==2.18.2
 django_environ==0.11.2
