@@ -87,7 +87,7 @@ def manage_schema(request, schema_id=None):
     schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id) if schema_id else None
 
     if request.method == 'POST':
-        form = SchemaForm(request.POST)
+        form = SchemaForm(request.POST, schema=schema)
         if form.is_valid():
             schema = schema if schema else Schema.objects.create(created_by=request.user)
             schema.name = form.cleaned_data['name']
@@ -113,15 +113,7 @@ def manage_schema(request, schema_id=None):
             return redirect('account_profile')
 
     else:
-        latest_reference = schema.latest_reference() if schema else None
-        latest_readme = schema.latest_readme() if schema else None
-        initial = {
-            'name': schema.name,
-            'reference_url': latest_reference.url if latest_reference else None,
-            'readme_url': latest_readme.url if latest_readme else None,
-            'readme_format': latest_readme.format if latest_readme else None,
-        } if schema else None
-        form = SchemaForm(initial)
+        form = SchemaForm(schema=schema)
 
     return render(request, "core/manage/schema.html", {
         'schema': schema,
