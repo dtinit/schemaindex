@@ -442,6 +442,23 @@ a.button-link--primary:hover {
   gap: 1rem;
 }
 
+.schema-detail .content {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.schema-detail .sidebar {
+  width: 15rem;
+  background: #333;
+  padding: 1rem;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .schema-definition {
   max-height: 50rem;
   overflow: auto;
