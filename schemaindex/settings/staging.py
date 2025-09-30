@@ -38,6 +38,7 @@ STORAGES = {
         "OPTIONS": {
             "bucket_name": GS_BUCKET_NAME,
             "location": "logos",
+            "querystring_auth": False,
         }
     },
     "staticfiles": {
@@ -45,6 +46,7 @@ STORAGES = {
         "OPTIONS": {
             "bucket_name": GS_BUCKET_NAME,
             "location": "site-assets",
+            "querystring_auth": False,
         }
     }
 }
