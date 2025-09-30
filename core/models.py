@@ -45,6 +45,8 @@ class SchemaRef(ReferenceItem):
 class DocumentationItem(ReferenceItem):
     class DocumentationItemRole(models.TextChoices):
         README = 'readme'
+        License = 'license'
+        RFC = 'rfc'
 
     class DocumentationItemFormat(models.TextChoices):
         Markdown = 'markdown'
