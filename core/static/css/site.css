@@ -420,10 +420,18 @@ a.button-link--primary:hover {
   gap: 1rem;
 }
 
+.homepage .logo {
+  display: flex;
+}
+
+.homepage .logo .logo__star {
+  align-self: flex-end;
+  transform: translateY(-2px);
+}
+
 .homepage .schema-list {
   line-height: 2;
 }
-
 
 /* Schema detail */
 .schema-detail {
