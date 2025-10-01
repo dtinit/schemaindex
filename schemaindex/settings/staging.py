@@ -7,6 +7,7 @@ This inherits from base settings and adds Cloud Run specific configuration.
 import os
 import sys
 import environ
+from google.oauth2 import service_account
 from .base import *
 
 # Override base settings for staging environment
@@ -31,6 +32,11 @@ CSRF_TRUSTED_ORIGINS = [
 # Google Cloud Storage configuration
 GS_BUCKET_NAME = 'schemaindex-stg-storage'
 
+# Explicit service account credentials for Google Cloud Storage
+GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
+    "service-account-credentials.json"
+)
+
 # Use Cloud Storage for static and media files
 STORAGES = {
     "default": {
@@ -38,7 +44,6 @@ STORAGES = {
         "OPTIONS": {
             "bucket_name": GS_BUCKET_NAME,
             "location": "logos",
-            "querystring_auth": False,
         }
     },
     "staticfiles": {
@@ -46,7 +51,6 @@ STORAGES = {
         "OPTIONS": {
             "bucket_name": GS_BUCKET_NAME,
             "location": "site-assets",
-            "querystring_auth": False,
         }
     }
 }
