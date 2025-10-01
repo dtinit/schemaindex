@@ -15,6 +15,9 @@
       <h2 class="text--primary">Details</h2>
       <p>Added on {{ schema.created_at | date }}</p>
       <p>Managed by {{ schema.created_by }}</p>
+      {% if latest_license %}
+      <p><a href="{{ latest_license.url }}">License</a></p>
+      {% endif %}
     </section>
     <section class="main-content">
       {% if latest_readme_content %}
