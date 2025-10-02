@@ -72,7 +72,8 @@ def schema_detail(request, schema_id):
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
         "latest_definition": latest_definition,
-        "latest_readme_content": latest_readme_content
+        "latest_readme_content": latest_readme_content,
+        "latest_license": schema.latest_license
     })
 
 @login_required
@@ -110,6 +111,21 @@ def manage_schema(request, schema_id=None):
             latest_readme.url = form.cleaned_data['readme_url']
             latest_readme.format = form.cleaned_data['readme_format']
             latest_readme.save()
+
+            license_url = form.cleaned_data['license_url']
+            if license_url:
+                latest_license = schema.latest_license()
+                if latest_license == None:
+                    latest_license = DocumentationItem.objects.create(
+                        schema=schema,
+                        created_by=request.user,
+                        role=DocumentationItem.DocumentationItemRole.License,
+                        name="License",
+                        format=DocumentationItem.DocumentationItemFormat.PlainText
+                    )
+                latest_license.url = license_url
+                latest_license.save()
+
             return redirect('account_profile')
 
     else:

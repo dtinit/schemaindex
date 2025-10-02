@@ -21,11 +21,17 @@ class Schema(BaseModel):
     def __str__(self):
         return self.name
 
+    def _latest_documentation_item_of_type(self, role):
+        return self.documentationitem_set.filter(role=role).order_by('-created_at').first()
+
     def latest_reference(self):
         return self.schemaref_set.order_by('-created_at').first()
-    
+
     def latest_readme(self):
-        return self.documentationitem_set.filter(role=DocumentationItem.DocumentationItemRole.README).order_by('-created_at').first()
+        return self._latest_documentation_item_of_type(role=DocumentationItem.DocumentationItemRole.README)
+
+    def latest_license(self):
+        return self._latest_documentation_item_of_type(role=DocumentationItem.DocumentationItemRole.License)
     
 
 class ReferenceItem(BaseModel):
@@ -45,6 +51,8 @@ class SchemaRef(ReferenceItem):
 class DocumentationItem(ReferenceItem):
     class DocumentationItemRole(models.TextChoices):
         README = 'readme'
+        License = 'license'
+        RFC = 'rfc'
 
     class DocumentationItemFormat(models.TextChoices):
         Markdown = 'markdown'

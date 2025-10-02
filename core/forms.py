@@ -23,14 +23,15 @@ SPECIFICATION_LANGUAGE_ALLOWLIST = [
 class SchemaForm(forms.Form):
     id = None
 
-    name = forms.CharField(label="Schema name", max_length=200)
-    reference_url = forms.URLField(label="Schema definition URL")
-    readme_url = forms.URLField(label="Schema README URL")
+    name = forms.CharField(label="Name", max_length=200)
+    reference_url = forms.URLField(label="Definition URL")
+    readme_url = forms.URLField(label="README URL")
     readme_format = forms.ChoiceField(
         choices=DocumentationItem.DocumentationItemFormat.choices,
         required=False,
         label="README format"
     )
+    license_url = forms.URLField(label="License URL", required=False)
 
     def __init__(self, *args, schema = None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -39,11 +40,13 @@ class SchemaForm(forms.Form):
 
         latest_reference = schema.latest_reference()
         latest_readme = schema.latest_readme()
+        latest_license = schema.latest_license()
         self.initial = {
             'name': schema.name,
             'reference_url': latest_reference.url if latest_reference else None,
             'readme_url': latest_readme.url if latest_readme else None,
             'readme_format': latest_readme.format if latest_readme else None,
+            'license_url': latest_license.url if latest_license else None
         }
         self.id = schema.id
 
@@ -92,5 +95,11 @@ class SchemaForm(forms.Form):
     def clean_readme_url(self):
         [data, matched_language] = self._clean_url('readme_url', language_allowlist=DocumentationItem.DocumentationItemFormat)
         self.readme_format = matched_language
+        return data
+
+    def clean_license_url(self):
+        if self.cleaned_data['license_url'] == None:
+            return None;
+        [data, matched_language] = self._clean_url('license_url', language_allowlist=[DocumentationItem.DocumentationItemFormat.PlainText])
         return data
 
