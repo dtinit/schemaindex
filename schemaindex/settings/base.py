@@ -11,8 +11,15 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+import environ
 
 from pathlib import Path
+
+PROJECT_NAME = 'SchemaIndex'
+SITE_URL = '[localhost]'
+SUPPORT_EMAIL = 'support@dtinit.org'
+
+env = environ.Env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -73,10 +80,10 @@ WSGI_APPLICATION = 'schemaindex.wsgi.application'
 
 # Database (default SQLite for development)
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    "default": env.db_url(
+        "DJ_DATABASE_CONN_STRING", 
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}'
+    )
 }
 
 # Password validation
