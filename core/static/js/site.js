@@ -42,7 +42,53 @@
         }
       })
     });
-    
+
+    Array.from(document.querySelectorAll('[data-formset-append-to-list-id]')).forEach((appendTriggerElement) => {
+      const formsetListId = appendTriggerElement.getAttribute('data-formset-append-to-list-id');
+      if (!formsetListId){
+        return;
+      }
+      const formsetListElement = document.querySelector(`[data-formset-list-id="${formsetListId}"]`);
+      if (!formsetListElement){
+        return;
+      }
+      const itemUrl = formsetListElement.getAttribute('data-formset-item-url');
+      if (!itemUrl){
+        return;
+      }
+      fetch(itemUrl)
+        .then((response) => {
+          if (response.ok){
+            return response.text();
+          }
+        })
+        .then((formsetItemHtml) => {
+          if (!formsetItemHtml){
+            return;
+          }
+          appendTriggerElement.addEventListener('click', () => {
+            formsetListElement.innerHTML = formsetListElement.innerHTML + formsetItemHtml;
+          });
+        })
+      });
+
+    Array.from(document.querySelectorAll('[data-formset-remove-from-list-id]')).forEach((removeTriggerElement) => {
+       const formsetListId = removeTriggerElement.getAttribute('data-formset-remove-from-list-id');
+      if (!formsetListId){
+        return;
+      }
+      const formsetListElement = document.querySelector(`[data-formset-list-id="${formsetListId}"]`);
+      if (!formsetListElement){
+        return;
+      }
+      removeTriggerElement.addEventListener('click', () => {
+        const formsetElements = Array.from(formsetListElement.getElementsByClassName('formset'));
+        if (formsetElements.length){
+          formsetElements[formsetElements.length - 1].remove();
+        }
+      });
+    });
+   
     setTimeout(() => {
       Array.from(document.querySelectorAll('.messages .message')).forEach((element) => {
         element.remove();

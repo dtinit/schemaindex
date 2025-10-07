@@ -10,7 +10,8 @@ from .models import (Schema,
                      DocumentationItem,
                      SchemaRef,
                      DocumentationItem)
-from .forms import SchemaForm
+from .forms import SchemaForm, DocumentationItemForm
+
 
 MAX_SCHEMA_RESULT_COUNT = 30
 
@@ -83,6 +84,16 @@ def account_profile(request):
         'user_schemas': user_schemas
     })
 
+
+# This shouldn't be used directly; its used as a sub-form
+# of the schema management form
+@login_required
+def manage_schema_documentation_item(request):
+    return render(request, "core/manage/formset_item.html", {
+        'form': DocumentationItemForm()
+    })
+
+
 @login_required
 def manage_schema(request, schema_id=None):
     schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id) if schema_id else None
@@ -136,6 +147,7 @@ def manage_schema(request, schema_id=None):
         'is_new': schema == None,
         'form': form
     })
+
 
 @login_required
 def manage_schema_delete(request, schema_id):

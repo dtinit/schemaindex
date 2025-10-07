@@ -241,6 +241,9 @@ a.button-link--primary:hover {
   font-weight: 500;
   cursor: pointer;
   color: var(--text-primary);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .button:hover {
@@ -409,6 +412,30 @@ a.button-link--primary:hover {
   width: 100%;
 }
 
+.formsets {
+  width: 100%;
+}
+
+.formset {
+  border-bottom: 1px solid #555;
+  padding: 1rem 0;
+}
+
+.formset:first-child{
+  padding-top: 0;
+}
+
+.formset:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.formset-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 /* Page styles */
 
 /* Homepage */
@@ -519,4 +546,9 @@ a.button-link--primary:hover {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+/* Schema management form */
+.manage-schema {
+  margin: 1rem;
 }

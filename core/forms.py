@@ -20,6 +20,18 @@ SPECIFICATION_LANGUAGE_ALLOWLIST = [
 "bash","c","cpp","csharp","css","diff","go","graphql","ini","java","javascript","json","kotlin","less","lua","makefile","markdown","objectivec","perl","php","php-template","python","python-repl","r","ruby","rust","scss","shell","sql","swift","typescript","vbnet","wasm","xml","yaml"
 ]
 
+class DocumentationItemForm(forms.Form):
+    name = forms.CharField(label="Name", max_length=200, required=False)
+    url = forms.URLField(label="URL")
+    format = forms.ChoiceField(
+        choices=[('', 'Other')] + list(DocumentationItem.DocumentationItemFormat.choices),
+        required=False,
+        label="Format",
+        initial=''
+    )
+
+DocumentationItemFormset = forms.formset_factory(DocumentationItemForm)
+
 class SchemaForm(forms.Form):
     id = None
 
@@ -29,9 +41,10 @@ class SchemaForm(forms.Form):
     readme_format = forms.ChoiceField(
         choices=DocumentationItem.DocumentationItemFormat.choices,
         required=False,
-        label="README format"
+        label="README format",
     )
     license_url = forms.URLField(label="License URL", required=False)
+    additional_documentation_items_formset = DocumentationItemFormset()
 
     def __init__(self, *args, schema = None, **kwargs):
         super().__init__(*args, **kwargs)
