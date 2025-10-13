@@ -56,6 +56,10 @@
       if (!itemUrl){
         return;
       }
+      const totalFormCountInput = formsetListElement.querySelector('input[name="form-TOTAL_FORMS"]');
+      if (!(totalFormCountInput instanceof HTMLInputElement)){
+        return;
+      }
       fetch(itemUrl)
         .then((response) => {
           if (response.ok){
@@ -68,6 +72,7 @@
           }
           appendTriggerElement.addEventListener('click', () => {
             formsetListElement.innerHTML = formsetListElement.innerHTML + formsetItemHtml;
+            totalFormCountInput.value = (Number.parseInt(totalFormCountInput.value) + 1).toString();
           });
         })
       });
@@ -81,11 +86,17 @@
       if (!formsetListElement){
         return;
       }
+      const totalFormCountInput = formsetListElement.querySelector('input[name="form-TOTAL_FORMS"]');
+      if (!(totalFormCountInput instanceof HTMLInputElement)){
+        return;
+      }
       removeTriggerElement.addEventListener('click', () => {
         const formsetElements = Array.from(formsetListElement.getElementsByClassName('formset'));
-        if (formsetElements.length){
-          formsetElements[formsetElements.length - 1].remove();
+        if (!formsetElements.length){
+          return;
         }
+        formsetElements[formsetElements.length - 1].remove();
+        totalFormCountInput.value = (Number.parseInt(totalFormCountInput.value) - 1).toString();
       });
     });
    
