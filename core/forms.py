@@ -21,8 +21,16 @@ SPECIFICATION_LANGUAGE_ALLOWLIST = [
 ]
 
 class DocumentationItemForm(forms.Form):
-    name = forms.CharField(label="Name", max_length=200, required=False)
     url = forms.URLField(label="URL")
+    name = forms.CharField(label="Name", max_length=200, required=False)
+    role = forms.ChoiceField(
+        choices=[('', 'Other')] +
+        [role for role in DocumentationItem.DocumentationItemRole.choices
+         if role[0] not in (DocumentationItem.DocumentationItemRole.License, DocumentationItem.DocumentationItemRole.README)],
+        required=False,
+        label="Role",
+        initial=''
+    )
     format = forms.ChoiceField(
         choices=[('', 'Other')] + list(DocumentationItem.DocumentationItemFormat.choices),
         required=False,
@@ -62,7 +70,7 @@ class SchemaForm(forms.Form):
             'url': documentation_item.url,
             'format': documentation_item.format
         } for documentation_item in other_documentation_items]
-        self.additional_documentation_items_formset = DocumentationItemFormsetFactory(initial=initial_formset_data, prefix='additional_documentation_items')
+        self.additional_documentation_items_formset = DocumentationItemFormsetFactory(initial=initial_formset_data)
         self.initial = {
             'name': schema.name,
             'reference_url': latest_reference.url if latest_reference else None,
