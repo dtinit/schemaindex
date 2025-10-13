@@ -18,6 +18,7 @@ Edit Schema
       {% endfor %}
       <h2>Additional documentation</h2>
       <ul class="formsets" data-formset-list-id="documentation-items" data-formset-item-url="{% url 'manage_schema_documentation_item' %}">
+      {{ form.additional_documentation_items_formset.management_form }}
       {% for subform in form.additional_documentation_items_formset %}
         {% include "core/manage/formset_item.html" with form=subform %}
       {% endfor %}

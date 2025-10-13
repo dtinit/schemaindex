@@ -30,7 +30,7 @@ class DocumentationItemForm(forms.Form):
         initial=''
     )
 
-DocumentationItemFormset = forms.formset_factory(DocumentationItemForm)
+DocumentationItemFormsetFactory = forms.formset_factory(DocumentationItemForm)
 
 class SchemaForm(forms.Form):
     id = None
@@ -44,16 +44,25 @@ class SchemaForm(forms.Form):
         label="README format",
     )
     license_url = forms.URLField(label="License URL", required=False)
-    additional_documentation_items_formset = DocumentationItemFormset()
 
     def __init__(self, *args, schema = None, **kwargs):
         super().__init__(*args, **kwargs)
         if schema == None:
+            self.additional_documentation_items_formset = DocumentationItemFormsetFactory()
             return
 
         latest_reference = schema.latest_reference()
         latest_readme = schema.latest_readme()
         latest_license = schema.latest_license()
+        other_documentation_items = schema.documentationitem_set.exclude(
+            id__in=[ref.id for ref in (latest_readme, latest_license) if ref is not None]
+        )
+        initial_formset_data = [{
+            'name': documentation_item.name,
+            'url': documentation_item.url,
+            'format': documentation_item.format
+        } for documentation_item in other_documentation_items]
+        self.additional_documentation_items_formset = DocumentationItemFormsetFactory(initial=initial_formset_data, prefix='additional_documentation_items')
         self.initial = {
             'name': schema.name,
             'reference_url': latest_reference.url if latest_reference else None,
