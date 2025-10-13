@@ -319,6 +319,10 @@ a.button-link--primary:hover {
   width: 100%;
 }
 
+.field--is-hidden {
+  display: none;
+}
+
 .field label {
   font-size: 16px;
   font-weight: 500;
@@ -414,6 +418,10 @@ a.button-link--primary:hover {
 
 .formsets {
   width: 100%;
+}
+
+.empty-form {
+  display: none;
 }
 
 .formset {

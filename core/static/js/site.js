@@ -52,30 +52,20 @@
       if (!formsetListElement){
         return;
       }
-      const itemUrl = formsetListElement.getAttribute('data-formset-item-url');
-      if (!itemUrl){
+      const emptyFormTemplate = document.querySelector(`[data-formset-template-for-id="${formsetListId}"]`);
+      if (!emptyFormTemplate){
         return;
       }
-      const totalFormCountInput = formsetListElement.querySelector('input[name="form-TOTAL_FORMS"]');
-      if (!(totalFormCountInput instanceof HTMLInputElement)){
-        return;
-      }
-      fetch(itemUrl)
-        .then((response) => {
-          if (response.ok){
-            return response.text();
-          }
-        })
-        .then((formsetItemHtml) => {
-          if (!formsetItemHtml){
-            return;
-          }
-          appendTriggerElement.addEventListener('click', () => {
-            formsetListElement.innerHTML = formsetListElement.innerHTML + formsetItemHtml;
-            totalFormCountInput.value = (Number.parseInt(totalFormCountInput.value) + 1).toString();
-          });
-        })
+      appendTriggerElement.addEventListener('click', () => {
+        const currentFormItemCount = formsetListElement.querySelectorAll('.formset').length;
+        const nextFormItemHtml = emptyFormTemplate.innerHTML.replace(/__prefix__/g, currentFormItemCount.toString())
+        formsetListElement.innerHTML = formsetListElement.innerHTML + nextFormItemHtml;
+        const totalFormInput = formsetListElement.querySelector('input[name="form-TOTAL_FORMS"]');
+        if (totalFormInput instanceof HTMLInputElement){
+          totalFormInput.value = (currentFormItemCount + 1).toString();
+        }
       });
+    });
 
     Array.from(document.querySelectorAll('[data-formset-remove-from-list-id]')).forEach((removeTriggerElement) => {
        const formsetListId = removeTriggerElement.getAttribute('data-formset-remove-from-list-id');
@@ -96,7 +86,10 @@
           return;
         }
         formsetElements[formsetElements.length - 1].remove();
-        totalFormCountInput.value = (Number.parseInt(totalFormCountInput.value) - 1).toString();
+        const totalFormInput = formsetListElement.querySelector('input[name="form-TOTAL_FORMS"]');
+        if (totalFormInput instanceof HTMLInputElement){
+          totalFormInput.value = (formsetElements.length - 1).toString();
+        }
       });
     });
    

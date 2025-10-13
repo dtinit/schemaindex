@@ -1,4 +1,4 @@
-<div class="field{% if field.errors %} field--has-errors{% endif %}">
+<div class="field{% if field.errors %} field--has-errors{% endif %} {% if field.is_hidden %} field--is-hidden{% endif %}">
   <label
     for="{{ field.id_for_label }}"
     class="{% if field.field.required %}field__label--is-required{% endif %}">

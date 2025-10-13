@@ -17,7 +17,7 @@ Edit Schema
       {% include "core/manage/field.html" with field=field %}
       {% endfor %}
       <h2>Additional documentation</h2>
-      <ul class="formsets" data-formset-list-id="documentation-items" data-formset-item-url="{% url 'manage_schema_documentation_item' %}">
+      <ul class="formsets" data-formset-list-id="documentation-items">
       {{ form.additional_documentation_items_formset.management_form }}
       {% for subform in form.additional_documentation_items_formset %}
         {% include "core/manage/formset_item.html" with form=subform %}
@@ -39,6 +39,9 @@ Edit Schema
       </div>
       <button type="submit" class="button button--prominent">{% if is_new %}Create schema{% else %}Save{% endif %}</button>
     </form>
+    <div class="empty-form" data-formset-template-for-id="documentation-items">
+      {% include "core/manage/formset_item.html" with form=form.additional_documentation_items_formset.empty_form %}
+    </div>
   </section>
 </main>
 {% endblock %}

@@ -21,8 +21,9 @@ SPECIFICATION_LANGUAGE_ALLOWLIST = [
 ]
 
 class DocumentationItemForm(forms.Form):
+    id = forms.IntegerField(widget=forms.HiddenInput(), required=False)
     url = forms.URLField(label="URL")
-    name = forms.CharField(label="Name", max_length=200, required=False)
+    name = forms.CharField(label="Name", max_length=200)
     role = forms.ChoiceField(
         choices=[('', 'Other')] +
         [role for role in DocumentationItem.DocumentationItemRole.choices
@@ -38,7 +39,7 @@ class DocumentationItemForm(forms.Form):
         initial=''
     )
 
-DocumentationItemFormsetFactory = forms.formset_factory(DocumentationItemForm)
+DocumentationItemFormsetFactory = forms.formset_factory(DocumentationItemForm, extra=0)
 
 class SchemaForm(forms.Form):
     id = None
@@ -56,7 +57,7 @@ class SchemaForm(forms.Form):
     def __init__(self, *args, schema = None, **kwargs):
         super().__init__(*args, **kwargs)
         if schema == None:
-            self.additional_documentation_items_formset = DocumentationItemFormsetFactory()
+            self.additional_documentation_items_formset = DocumentationItemFormsetFactory(*args, **kwargs)
             return
 
         latest_reference = schema.latest_reference()
@@ -66,11 +67,12 @@ class SchemaForm(forms.Form):
             id__in=[ref.id for ref in (latest_readme, latest_license) if ref is not None]
         )
         initial_formset_data = [{
+            'id': documentation_item.id,
             'name': documentation_item.name,
             'url': documentation_item.url,
             'format': documentation_item.format
         } for documentation_item in other_documentation_items]
-        self.additional_documentation_items_formset = DocumentationItemFormsetFactory(initial=initial_formset_data)
+        self.additional_documentation_items_formset = DocumentationItemFormsetFactory(initial=initial_formset_data, *args, **kwargs)
         self.initial = {
             'name': schema.name,
             'reference_url': latest_reference.url if latest_reference else None,
@@ -128,8 +130,16 @@ class SchemaForm(forms.Form):
         return data
 
     def clean_license_url(self):
-        if self.cleaned_data['license_url'] == None:
+        if not self.cleaned_data['license_url']:
             return None;
         [data, matched_language] = self._clean_url('license_url', language_allowlist=[DocumentationItem.DocumentationItemFormat.PlainText])
         return data
+
+    def clean(self):
+        self.additional_documentation_items_formset.clean()
+        return super().clean()
+
+    def is_valid(self):
+        return self.additional_documentation_items_formset.is_valid() and super().is_valid()
+
 
