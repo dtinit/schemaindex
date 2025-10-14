@@ -10,7 +10,8 @@ from .models import (Schema,
                      DocumentationItem,
                      SchemaRef,
                      DocumentationItem)
-from .forms import SchemaForm
+from .forms import SchemaForm, DocumentationItemForm
+
 
 MAX_SCHEMA_RESULT_COUNT = 30
 
@@ -83,6 +84,7 @@ def account_profile(request):
         'user_schemas': user_schemas
     })
 
+
 @login_required
 def manage_schema(request, schema_id=None):
     schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id) if schema_id else None
@@ -126,6 +128,34 @@ def manage_schema(request, schema_id=None):
                 latest_license.url = license_url
                 latest_license.save()
 
+            previous_documentation_items = schema.documentationitem_set.exclude(role__in=[
+                DocumentationItem.DocumentationItemRole.README,
+                DocumentationItem.DocumentationItemRole.License
+            ])
+            previous_documentation_items_by_id = {
+                item.id: item for item in previous_documentation_items
+            }
+            
+            updated_item_ids = set()
+            # Create/update documentation items
+            for documentation_item_form in form.additional_documentation_items_formset:
+                item_id = documentation_item_form.cleaned_data.get('id')
+                if item_id:
+                    db_item = previous_documentation_items_by_id[item_id]
+                    updated_item_ids.add(item_id)
+                else:
+                    db_item = DocumentationItem.objects.create(schema=schema, created_by=request.user)
+                db_item.name = documentation_item_form.cleaned_data.get('name')
+                db_item.url = documentation_item_form.cleaned_data.get('url')
+                db_item.role = documentation_item_form.cleaned_data.get('role')
+                db_item.format = documentation_item_form.cleaned_data.get('format')
+                db_item.save()
+
+            # Delete documentation items that were removed
+            for previous_item in previous_documentation_items:
+                if not previous_item.id in updated_item_ids:
+                    previous_item.delete()
+
             return redirect('account_profile')
 
     else:
@@ -136,6 +166,7 @@ def manage_schema(request, schema_id=None):
         'is_new': schema == None,
         'form': form
     })
+
 
 @login_required
 def manage_schema_delete(request, schema_id):

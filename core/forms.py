@@ -20,6 +20,27 @@ SPECIFICATION_LANGUAGE_ALLOWLIST = [
 "bash","c","cpp","csharp","css","diff","go","graphql","ini","java","javascript","json","kotlin","less","lua","makefile","markdown","objectivec","perl","php","php-template","python","python-repl","r","ruby","rust","scss","shell","sql","swift","typescript","vbnet","wasm","xml","yaml"
 ]
 
+class DocumentationItemForm(forms.Form):
+    id = forms.IntegerField(widget=forms.HiddenInput(), required=False)
+    url = forms.URLField(label="URL")
+    name = forms.CharField(label="Name", max_length=200)
+    role = forms.ChoiceField(
+        choices=[('', 'Other')] +
+        [role for role in DocumentationItem.DocumentationItemRole.choices
+         if role[0] not in (DocumentationItem.DocumentationItemRole.License, DocumentationItem.DocumentationItemRole.README)],
+        required=False,
+        label="Role",
+        initial=''
+    )
+    format = forms.ChoiceField(
+        choices=[('', 'Other')] + list(DocumentationItem.DocumentationItemFormat.choices),
+        required=False,
+        label="Format",
+        initial=''
+    )
+
+DocumentationItemFormsetFactory = forms.formset_factory(DocumentationItemForm, extra=0)
+
 class SchemaForm(forms.Form):
     id = None
 
@@ -29,18 +50,29 @@ class SchemaForm(forms.Form):
     readme_format = forms.ChoiceField(
         choices=DocumentationItem.DocumentationItemFormat.choices,
         required=False,
-        label="README format"
+        label="README format",
     )
     license_url = forms.URLField(label="License URL", required=False)
 
     def __init__(self, *args, schema = None, **kwargs):
         super().__init__(*args, **kwargs)
         if schema == None:
+            self.additional_documentation_items_formset = DocumentationItemFormsetFactory(*args, **kwargs)
             return
 
         latest_reference = schema.latest_reference()
         latest_readme = schema.latest_readme()
         latest_license = schema.latest_license()
+        other_documentation_items = schema.documentationitem_set.exclude(
+            id__in=[ref.id for ref in (latest_readme, latest_license) if ref is not None]
+        )
+        initial_formset_data = [{
+            'id': documentation_item.id,
+            'name': documentation_item.name,
+            'url': documentation_item.url,
+            'format': documentation_item.format
+        } for documentation_item in other_documentation_items]
+        self.additional_documentation_items_formset = DocumentationItemFormsetFactory(initial=initial_formset_data, *args, **kwargs)
         self.initial = {
             'name': schema.name,
             'reference_url': latest_reference.url if latest_reference else None,
@@ -98,8 +130,16 @@ class SchemaForm(forms.Form):
         return data
 
     def clean_license_url(self):
-        if self.cleaned_data['license_url'] == None:
+        if not self.cleaned_data['license_url']:
             return None;
         [data, matched_language] = self._clean_url('license_url', language_allowlist=[DocumentationItem.DocumentationItemFormat.PlainText])
         return data
+
+    def clean(self):
+        self.additional_documentation_items_formset.clean()
+        return super().clean()
+
+    def is_valid(self):
+        return self.additional_documentation_items_formset.is_valid() and super().is_valid()
+
 

@@ -42,7 +42,57 @@
         }
       })
     });
-    
+
+    Array.from(document.querySelectorAll('[data-formset-append-to-list-id]')).forEach((appendTriggerElement) => {
+      const formsetListId = appendTriggerElement.getAttribute('data-formset-append-to-list-id');
+      if (!formsetListId){
+        return;
+      }
+      const formsetListElement = document.querySelector(`[data-formset-list-id="${formsetListId}"]`);
+      if (!formsetListElement){
+        return;
+      }
+      const emptyFormTemplate = document.querySelector(`[data-formset-template-for-id="${formsetListId}"]`);
+      if (!emptyFormTemplate){
+        return;
+      }
+      appendTriggerElement.addEventListener('click', () => {
+        const currentFormItemCount = formsetListElement.querySelectorAll('.formset').length;
+        const nextFormItemHtml = emptyFormTemplate.innerHTML.replace(/__prefix__/g, currentFormItemCount.toString())
+        formsetListElement.innerHTML = formsetListElement.innerHTML + nextFormItemHtml;
+        const totalFormInput = formsetListElement.querySelector('input[name="form-TOTAL_FORMS"]');
+        if (totalFormInput instanceof HTMLInputElement){
+          totalFormInput.value = (currentFormItemCount + 1).toString();
+        }
+      });
+    });
+
+    Array.from(document.querySelectorAll('[data-formset-remove-from-list-id]')).forEach((removeTriggerElement) => {
+       const formsetListId = removeTriggerElement.getAttribute('data-formset-remove-from-list-id');
+      if (!formsetListId){
+        return;
+      }
+      const formsetListElement = document.querySelector(`[data-formset-list-id="${formsetListId}"]`);
+      if (!formsetListElement){
+        return;
+      }
+      const totalFormCountInput = formsetListElement.querySelector('input[name="form-TOTAL_FORMS"]');
+      if (!(totalFormCountInput instanceof HTMLInputElement)){
+        return;
+      }
+      removeTriggerElement.addEventListener('click', () => {
+        const formsetElements = Array.from(formsetListElement.getElementsByClassName('formset'));
+        if (!formsetElements.length){
+          return;
+        }
+        formsetElements[formsetElements.length - 1].remove();
+        const totalFormInput = formsetListElement.querySelector('input[name="form-TOTAL_FORMS"]');
+        if (totalFormInput instanceof HTMLInputElement){
+          totalFormInput.value = (formsetElements.length - 1).toString();
+        }
+      });
+    });
+   
     setTimeout(() => {
       Array.from(document.querySelectorAll('.messages .message')).forEach((element) => {
         element.remove();

@@ -12,19 +12,36 @@ Edit Schema
     <h1>{% if is_new %}Add Schema{% else %}Edit Schema{% endif %}</h1>
     <form action="{% if is_new %}{% url 'manage_schema_new' %}{% else %}{% url 'manage_schema' schema_id=schema.pk %}{% endif %}" method="POST">
       {% csrf_token %}
+      <h2>Schema details</h2>
       {% for field in form %}
-      <div class="field{% if field.errors %} field--has-errors{% endif %}">
-        <label
-          for="{{ field.id_for_label }}"
-          class="{% if field.field.required %}field__label--is-required{% endif %}">
-          {{ field.label }}
-        </label>
-        {{ field }}  
-        {{ field.errors }}
-      </div>
+      {% include "core/manage/field.html" with field=field %}
       {% endfor %}
-      <button type="submit" class="button button--prominent">{% if is_new %}Add schema{% else %}Save{% endif %}</button>
+      <h2>Additional documentation</h2>
+      <ul class="formsets" data-formset-list-id="documentation-items">
+      {{ form.additional_documentation_items_formset.management_form }}
+      {% for subform in form.additional_documentation_items_formset %}
+        {% include "core/manage/formset_item.html" with form=subform %}
+      {% endfor %}
+      </ul>
+      <div class="formset-controls">
+        <button type="button" class="button" data-formset-append-to-list-id="documentation-items">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--md">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Add documentation link
+        </button>
+        <button type="button" class="button" data-formset-remove-from-list-id="documentation-items">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--md">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" />
+          </svg>
+          Remove
+        </button>
+      </div>
+      <button type="submit" class="button button--prominent">{% if is_new %}Create schema{% else %}Save{% endif %}</button>
     </form>
+    <div class="empty-form" data-formset-template-for-id="documentation-items">
+      {% include "core/manage/formset_item.html" with form=form.additional_documentation_items_formset.empty_form %}
+    </div>
   </section>
 </main>
 {% endblock %}
