@@ -157,18 +157,11 @@ jobs:
           export GS_BUCKET_NAME=$(python3 -c "from django.conf import settings; print(settings.GS_BUCKET_NAME)")
           gcloud storage buckets update gs://$GS_BUCKET_NAME --cors-file=gcp-cors-config.json
 
-      - name: Build and push Docker image
-        run: >
-          gcloud builds submit
-          --region us-central1
-          --tag us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY }}/schemaindex:latest
-          .
-
       - name: Deploy to Cloud Run
         run: >
           gcloud run deploy ${{ vars.CLOUD_RUN_SERVICE_NAME }}
           --region us-central1
-          --image us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY }}/schemaindex:latest
+          --source .
           --service-account ${{ vars.SERVICE_ACCOUNT_NAME }}
           --add-cloudsql-instances=${{ secrets.CLOUD_SQL_ICN }}
           --set-env-vars DJANGO_SETTINGS_MODULE="${{ vars.DJANGO_SETTINGS_MODULE }}"
