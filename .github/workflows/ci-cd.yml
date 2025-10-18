@@ -135,7 +135,7 @@ jobs:
 
       - name: Run migrations
         env:
-          DJ_DATABASE_CONN_STRING: postgres://${{ env.ENCODED_DB_CREDENTIALS }}@localhost:1234/schemaindex_staging
+          DJ_DATABASE_CONN_STRING: postgres://${{ env.ENCODED_DB_CREDENTIALS }}@localhost:1234/${{ vars.DATABASE_NAME }}
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
         run: python3 manage.py migrate
 
@@ -145,13 +145,13 @@ jobs:
       - name: Collect static files
         env:
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-          DJ_DATABASE_CONN_STRING: postgres://${{ env.ENCODED_DB_CREDENTIALS }}@localhost:1234/schemaindex_staging
+          DJ_DATABASE_CONN_STRING: postgres://${{ env.ENCODED_DB_CREDENTIALS }}@localhost:1234/${{ vars.DATABASE_NAME }}
         run: python3 manage.py collectstatic --no-input
 
       - name: Configure CORS for storage bucket
         env:
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-          DJ_DATABASE_CONN_STRING: postgres://${{ env.ENCODED_DB_CREDENTIALS }}@localhost:1234/schemaindex_staging
+          DJ_DATABASE_CONN_STRING: postgres://${{ env.ENCODED_DB_CREDENTIALS }}@localhost:1234/${{ vars.DATABASE_NAME }}
         run: |
           python3 manage.py create_gcp_cors_config
           export GS_BUCKET_NAME=$(python3 -c "from django.conf import settings; print(settings.GS_BUCKET_NAME)")
@@ -161,18 +161,18 @@ jobs:
         run: >
           gcloud builds submit --async
           --region us-central1
-          --tag us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/schemaindex-stg-registry/schemaindex:latest
+          --tag us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY }}/schemaindex:latest
           .
 
       - name: Deploy to Cloud Run
         run: >
           gcloud run deploy ${{ vars.CLOUD_RUN_SERVICE_NAME }}
           --region us-central1
-          --image us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/schemaindex-stg-registry/schemaindex:latest
+          --image us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY }}/schemaindex:latest
           --service-account ${{ vars.SERVICE_ACCOUNT_NAME }}
           --add-cloudsql-instances=${{ secrets.CLOUD_SQL_ICN }}
           --set-env-vars DJANGO_SETTINGS_MODULE="${{ vars.DJANGO_SETTINGS_MODULE }}"
           --set-env-vars DJANGO_SECRET_KEY="${{ secrets.DJANGO_SECRET_KEY }}"
-          --set-env-vars DJ_DATABASE_CONN_STRING="postgres://${{ env.ENCODED_DB_CREDENTIALS }}@//cloudsql/${{ secrets.CLOUD_SQL_ICN }}/schemaindex_staging"
+          --set-env-vars DJ_DATABASE_CONN_STRING="postgres://${{ env.ENCODED_DB_CREDENTIALS }}@//cloudsql/${{ secrets.CLOUD_SQL_ICN }}/${{ vars.DATABASE_NAME }}"
           --set-env-vars EMAIL_HOST_PASSWORD="${{ secrets.EMAIL_HOST_PASSWORD }}"
           --allow-unauthenticated

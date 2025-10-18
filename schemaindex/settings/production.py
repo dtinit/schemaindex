@@ -6,9 +6,18 @@ from google.oauth2 import service_account
 from .base import *
 
 DEBUG = False
-ALLOWED_HOSTS = ['schemaindex.dtinit.org', 'www.schemaindex.dtinit.org']
+ALLOWED_HOSTS = [
+    '.run.app', 
+    'schemaindex.dtinit.org',
+    'www.schemaindex.dtinit.org',
+]
 SITE_URL = 'https://schemaindex.dtinit.org'
-CSRF_TRUSTED_ORIGINS = ['https://' + url for url in ALLOWED_HOSTS]
+# CSRF_TRUSTED_ORIGINS = ['https://' + url for url in ALLOWED_HOSTS]
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.run.app',
+    'https://schemaindex.dtinit.org',
+    'https://www.schemaindex.dtinit.org',
+]
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
     'service-account-credentials.json'
 )
