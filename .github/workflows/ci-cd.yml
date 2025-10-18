@@ -159,7 +159,7 @@ jobs:
 
       - name: Build and push Docker image
         run: >
-          gcloud builds submit --async
+          gcloud builds submit
           --region us-central1
           --tag us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY }}/schemaindex:latest
           .
