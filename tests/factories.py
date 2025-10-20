@@ -6,7 +6,6 @@ from core.models import (
 )
 
 
-
 class UserFactory(DjangoModelFactory):
     class Meta:
         model = User
@@ -38,14 +37,12 @@ class SchemaRefFactory(ReferenceItemFactory):
     class Meta:
         model = SchemaRef
 
-
     schema = factory.SubFactory(SchemaFactory)
 
 
 class DocumentationItemFactory(ReferenceItemFactory):
     class Meta:
         model = DocumentationItem
-
 
     name = factory.Faker('bs')
     description = factory.Faker('paragraph')
