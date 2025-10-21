@@ -25,10 +25,16 @@
       <div class="markdown">
         {{ latest_readme_content }}
       </div>
+      {% if latest_readme_url %}
+      <a href="{{ latest_readme_url }}">View source</a>
+      {% endif %}
       {% endif %}
       {% if latest_definition %}
       <h2>Latest definition:</h2>
       <pre class="schema-definition"><code>{{ latest_definition|escape }}</code></pre>
+      {% if latest_definition_url %}
+      <a href="{{ latest_definition_url }}">View source</a>
+      {% endif %}
       {% endif %}
       {% if schema.schemaref_set.exists %}
       <h2>Reference links:</h2>

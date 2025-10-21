@@ -73,7 +73,9 @@ def schema_detail(request, schema_id):
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
         "latest_definition": latest_definition,
+        "latest_definition_url": latest_schema_ref.url if latest_schema_ref else None,
         "latest_readme_content": latest_readme_content,
+        "latest_readme_url": latest_readme.url if latest_readme else None,
         "latest_license": schema.latest_license
     })
 
