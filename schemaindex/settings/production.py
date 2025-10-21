@@ -8,16 +8,11 @@ from .base import *
 DEBUG = False
 ALLOWED_HOSTS = [
     '.run.app', 
-    'schemaindex.dtinit.org',
-    'www.schemaindex.dtinit.org',
+    'schemas.pub',
+    'www.schemas.pub',
 ]
-SITE_URL = 'https://schemaindex.dtinit.org'
-# CSRF_TRUSTED_ORIGINS = ['https://' + url for url in ALLOWED_HOSTS]
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.run.app',
-    'https://schemaindex.dtinit.org',
-    'https://www.schemaindex.dtinit.org',
-]
+SITE_URL = 'https://schemas.pub'
+CSRF_TRUSTED_ORIGINS = ['https://' + url for url in ALLOWED_HOSTS]
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
     'service-account-credentials.json'
 )
