@@ -356,7 +356,7 @@ a.button-link--primary:hover {
 .markdown {
   background: #222;
   padding: 0 1rem;
-  max-height: 50rem;
+  max-height: 30rem;
   overflow: auto;
 }
 
@@ -495,12 +495,13 @@ a.button-link--primary:hover {
 }
 
 .schema-definition {
-  max-height: 50rem;
+  max-height: 30rem;
   overflow: auto;
 }
 
 .schema-definition .hljs {
   background: #222;
+  white-space: pre-wrap;
 }
 
 /* Delete schema */
