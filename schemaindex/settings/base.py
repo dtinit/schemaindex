@@ -129,3 +129,7 @@ ACCOUNT_SIGNUP_FIELDS = ['email*']
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 LOGIN_REDIRECT_URL = '/account/profile/'
+
+# This is deprecated, but leaving it undefined causes more warnings
+# than the one deprication warning
+FORMS_URLFIELD_ASSUME_HTTPS=True

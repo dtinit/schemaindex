@@ -52,7 +52,7 @@ jobs:
         echo "SECRET_KEY=test-secret-key-for-ci" >> .env
 
     - name: Run Tests
-      run: python manage.py test
+      run: pytest
 
   # Deploy to Google Cloud Run (staging environment)
   deploy:
