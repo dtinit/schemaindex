@@ -181,3 +181,6 @@ def manage_schema_delete(request, schema_id):
     return render(request, "core/manage/delete_schema.html", {
         'schema': schema
     })
+
+def about(request):
+    return render(request, "core/about.html")
