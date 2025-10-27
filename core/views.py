@@ -82,7 +82,7 @@ def schema_detail(request, schema_id):
 @login_required
 def account_profile(request):
     user_schemas = Schema.objects.filter(created_by=request.user)
-    return render(request, "core/account/profile.html", {
+    return render(request, "account/profile.html", {
         'user_schemas': user_schemas
     })
 

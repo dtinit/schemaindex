@@ -26,13 +26,16 @@
         </header>
         {% block body %}
             {% if messages %}
-                {% include "messages/messages.html" with messages=messages%}
+                {% include "core/partials/messages.html" with messages=messages%}
             {% endif %}
         <main class="account-page">
-        {% block content %}{% endblock %}
+            <div class="main-content">
+                {% block content %}{% endblock %}
+            </div>
         </main>
         {% endblock body %}
         {% block extra_body %}
         {% endblock extra_body %}
+        {% include "core/partials/footer.html" %}
     </body>
 </html>
