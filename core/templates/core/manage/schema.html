@@ -8,8 +8,8 @@ Edit Schema
 {% endblock %}
 {% block page_content %}
 <main class="manage-schema">
+  <h1>{% if is_new %}Add Schema{% else %}Edit Schema{% endif %}</h1>
   <section class="main-content form-container">
-    <h1>{% if is_new %}Add Schema{% else %}Edit Schema{% endif %}</h1>
     <form action="{% if is_new %}{% url 'manage_schema_new' %}{% else %}{% url 'manage_schema' schema_id=schema.pk %}{% endif %}" method="POST">
       {% csrf_token %}
       <h2>Schema details</h2>

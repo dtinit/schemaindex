@@ -48,12 +48,13 @@
         </header>
         {% block body %}
             {% if messages %}
-                {% include "messages/messages.html" with messages=messages %}
+                {% include "core/partials/messages.html" with messages=messages %}
             {% endif %}
         {% block page_content %}
         {% endblock page_content %}
         {% endblock body %}
         {% block extra_body %}
         {% endblock extra_body %}
+        {% include "core/partials/footer.html" %}
     </body>
 </html>

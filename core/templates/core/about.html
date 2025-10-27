@@ -5,54 +5,57 @@ About Schemas.pub
 
 {% block page_content %}
 
-    <h1>About Schemas.Pub</h1>
-<p>
-Schemas.pub is a project of the <a href="https://dtinit.org">Data
-Transfer Initiative</a>, built and hosted to promote interoperability
-and consistency especially in personal data transfer.
-</p>
+<main class="about-page">
+<h1>About Schemas.Pub</h1>
+<div class="main-content">
+    <p>
+    Schemas.pub is a project of the <a href="https://dtinit.org">Data
+    Transfer Initiative</a>, built and hosted to promote interoperability
+    and consistency especially in personal data transfer.
+    </p>
 
-<p>
-    There are a few data types we mostly know how to exchange over the
-    Internet.  Individual calendar items, tasks and contacts can be exchanged
-    interoperably as files or email attachments, thanks to standards
-    written in 1998: iCalendar
-    (<a href="https://www.rfc-editor.org/rfc/rfc2445">RFC2445</a>) and
-    VCard (<a href="https://www.rfc-editor.org/rfc/rfc2425">RFC2425</a>).
-    Since 1998, standards like that are not very common.  While XML and
-    JSON have both made defining structured data formats
-    much easier, as well as schema languages like
-    <a href="https://www.w3.org/TR/xmlschema11-1/">XML Schema Definition
-       Language</a> and <a href="https://json-schema.org/">JSON Schema</a>,
-    this has not resulted in an easier job defining any given schema as a
-    standard.
-    In fact, XML/JSON and Schemas have encouraged the proliferation of
-    "unilateral" data definitions -- Web APIs withs schemas defined
-    solely by the host
-    of that API, Thus, pretty much every service that hosts
-    common data (like photos in albums on the Web!) uses different schemas.
-    Sometimes parts of these APIs use <a href="http://schema.org">schema.org</a>,
-    which is great and helps a lot with consistency (and accessibility, and
-    internationalization) of individual fields.
-</p>
+    <p>
+        There are a few data types we mostly know how to exchange over the
+        Internet.  Individual calendar items, tasks and contacts can be exchanged
+        interoperably as files or email attachments, thanks to standards
+        written in 1998: iCalendar
+        (<a href="https://www.rfc-editor.org/rfc/rfc2445">RFC2445</a>) and
+        VCard (<a href="https://www.rfc-editor.org/rfc/rfc2425">RFC2425</a>).
+        Since 1998, standards like that are not very common.  While XML and
+        JSON have both made defining structured data formats
+        much easier, as well as schema languages like
+        <a href="https://www.w3.org/TR/xmlschema11-1/">XML Schema Definition
+           Language</a> and <a href="https://json-schema.org/">JSON Schema</a>,
+        this has not resulted in an easier job defining any given schema as a
+        standard.
+        In fact, XML/JSON and Schemas have encouraged the proliferation of
+        "unilateral" data definitions -- Web APIs withs schemas defined
+        solely by the host
+        of that API, Thus, pretty much every service that hosts
+        common data (like photos in albums on the Web!) uses different schemas.
+        Sometimes parts of these APIs use <a href="http://schema.org">schema.org</a>,
+        which is great and helps a lot with consistency (and accessibility, and
+        internationalization) of individual fields.
+    </p>
 
-<p> Is this really a problem? In practice consumers of APIs just
-    translate API data into their own format, sometimes aided by schema
-    definitions and sometimes not.  Yet, we think this could be made
-    somewhat better by allowing organizations to publish schemas that
-    have some real thought behind them, alongside tools for using
-    and applying those schemas, and reputational markers to show which
-    data schemas have implementations, interoperability, open licenses
-    or standards governance.  We welcome your thoughts.
-</p>
+    <p> Is this really a problem? In practice consumers of APIs just
+        translate API data into their own format, sometimes aided by schema
+        definitions and sometimes not.  Yet, we think this could be made
+        somewhat better by allowing organizations to publish schemas that
+        have some real thought behind them, alongside tools for using
+        and applying those schemas, and reputational markers to show which
+        data schemas have implementations, interoperability, open licenses
+        or standards governance.  We welcome your thoughts.
+    </p>
 
-<p> As of launch, schemas.pub is a fraction of the functionality and
-    registry size that we envision eventually. We're building the site
-    as we learn about what's most useful to publishers of schemas
-    as well as implementers searching for solid information.</p>
+    <p> As of launch, schemas.pub is a fraction of the functionality and
+        registry size that we envision eventually. We're building the site
+        as we learn about what's most useful to publishers of schemas
+        as well as implementers searching for solid information.</p>
 
-<p>To get started, search for a schema you're interested in and see
-    how it's defined, some examples, and how it's implemented.  If you have
-    a schema you think should be listed, create an account and add it. </p>
-
+    <p>To get started, search for a schema you're interested in and see
+        how it's defined, some examples, and how it's implemented.  If you have
+        a schema you think should be listed, <a href="{% url 'account_signup' %}">create an account and add it.</a></p>
+</div>
+</main>
 {% endblock %}
