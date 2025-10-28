@@ -496,6 +496,25 @@ a.button-link--primary:hover {
   padding: 5rem 0 1rem;
 }
 
+.badge {
+  padding: 0.15rem 0.75rem; 
+  border-radius: 1rem;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.badge--rfc {
+  background: #3f6212;
+  color: #d9f99d;
+}
+
+a.badge--rfc {
+  color: #d9f99d;
+}
+
 /* Page styles */
 
 /* Homepage */
@@ -518,6 +537,22 @@ a.button-link--primary:hover {
 
 .homepage .schema-list {
   line-height: 2;
+}
+
+.homepage .schema {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.homepage .schema__badges {
+  display: flex;
+  align-items: center;
+}
+
+.homepage .schema__badges .badge {
+  height: 1.5rem;
+  min-width: 0;
 }
 
 /* Schema detail */
@@ -563,29 +598,11 @@ a.button-link--primary:hover {
   white-space: pre-wrap;
 }
 
-.badges {
+.schema-detail .badges {
   display: flex;
   flex-wrap: wrap;
 }
 
-.badge {
-  padding: 0.15rem 0.75rem; 
-  border-radius: 1rem;
-  border: 1px solid transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-}
-
-.badge--rfc {
-  background: #3f6212;
-  color: #d9f99d;
-}
-
-a.badge--rfc {
-  color: #d9f99d;
-}
 
 /* Delete schema */
 .delete-schema,
