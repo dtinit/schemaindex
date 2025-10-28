@@ -94,11 +94,13 @@ input, select {
 }
 
 .icon--sm {
+  display: inline;
   width: 1rem;
   height: 1rem;
 }
 
 .icon--md {
+  display: inline;
   width: 1.5rem;
   height: 1.5rem;
 }
@@ -493,7 +495,7 @@ a.button-link--primary:hover {
   gap: 1rem;
   padding: 5rem 0 1rem;
 }
-  
+
 /* Page styles */
 
 /* Homepage */
@@ -559,6 +561,30 @@ a.button-link--primary:hover {
 .schema-definition .hljs {
   background: #222;
   white-space: pre-wrap;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.badge {
+  padding: 0.15rem 0.75rem; 
+  border-radius: 1rem;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.badge--rfc {
+  background: #3f6212;
+  color: #d9f99d;
+}
+
+a.badge--rfc {
+  color: #d9f99d;
 }
 
 /* Delete schema */
