@@ -54,6 +54,8 @@ class SchemaForm(forms.Form):
     )
     license_url = forms.URLField(label="License URL", required=False)
 
+    matched_language_cache = {}
+
     def __init__(self, *args, schema = None, **kwargs):
         super().__init__(*args, **kwargs)
         if schema == None:
@@ -88,7 +90,7 @@ class SchemaForm(forms.Form):
             response = requests.get(data)
         except requests.exceptions.RequestException:
             raise ValidationError("The provided URL could not be reached")
-
+            
         if response.status_code != requests.codes.ok:
             raise ValidationError("The provided URL returned an invalid status code")
 
@@ -103,6 +105,7 @@ class SchemaForm(forms.Form):
                 raise ValidationError("The provided URL does not have a supported file extension")
             else:
                 # If we don't have a match but plaintext is allowed, we'll just treat it as plaintext
+                self.matched_language_cache[data] = "plaintext"
                 return [data, "plaintext"]
 
         matched_language = next(
@@ -111,7 +114,8 @@ class SchemaForm(forms.Form):
         )
         if not matched_language:
             raise ValidationError("The text content at the provided URL is not in a supported format")
-
+        
+        self.matched_language_cache[data] = matched_language
         return [data, matched_language]
 
     def clean_reference_url(self):
@@ -126,7 +130,6 @@ class SchemaForm(forms.Form):
 
     def clean_readme_url(self):
         [data, matched_language] = self._clean_url('readme_url', language_allowlist=DocumentationItem.DocumentationItemFormat)
-        self.readme_format = matched_language
         return data
 
     def clean_license_url(self):
@@ -137,7 +140,9 @@ class SchemaForm(forms.Form):
 
     def clean(self):
         self.additional_documentation_items_formset.clean()
-        return super().clean()
+        cleaned_data = super().clean()
+        cleaned_data['readme_format'] = self.matched_language_cache.get(cleaned_data['readme_url'])
+        return cleaned_data
 
     def is_valid(self):
         return self.additional_documentation_items_formset.is_valid() and super().is_valid()
