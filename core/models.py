@@ -33,6 +33,8 @@ class Schema(BaseModel):
     def latest_license(self):
         return self._latest_documentation_item_of_type(role=DocumentationItem.DocumentationItemRole.License)
     
+    def latest_rfc(self):
+        return self._latest_documentation_item_of_type(role=DocumentationItem.DocumentationItemRole.RFC)
 
 class ReferenceItem(BaseModel):
     class Meta:
