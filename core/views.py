@@ -77,7 +77,8 @@ def schema_detail(request, schema_id):
         "latest_readme_content": latest_readme_content,
         "latest_readme_url": latest_readme.url if latest_readme else None,
         "latest_license": schema.latest_license(),
-        "latest_rfc": schema.latest_rfc()
+        "latest_rfc": schema.latest_rfc(),
+        "latest_w3c": schema.latest_w3c()
     })
 
 @login_required

@@ -507,14 +507,22 @@ a.button-link--primary:hover {
 }
 
 .badge--rfc {
-  background: #3f6212;
-  color: #d9f99d;
+  background: #FFD652;
+  color: #211921;
 }
 
 a.badge--rfc {
-  color: #d9f99d;
+  color: #211921;
 }
 
+.badge--w3c {
+  background: #ffffff;
+  color: #005A9C;
+}
+
+a.badge--rfc {
+  color: #005A9C;
+}
 /* Page styles */
 
 /* Homepage */
