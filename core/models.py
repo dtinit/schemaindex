@@ -36,6 +36,9 @@ class Schema(BaseModel):
     def latest_rfc(self):
         return self._latest_documentation_item_of_type(role=DocumentationItem.DocumentationItemRole.RFC)
 
+    def latest_w3c(self):
+        return self._latest_documentation_item_of_type(role=DocumentationItem.DocumentationItemRole.W3C)
+
 class ReferenceItem(BaseModel):
     class Meta:
         abstract = True
@@ -55,6 +58,7 @@ class DocumentationItem(ReferenceItem):
         README = 'readme'
         License = 'license'
         RFC = 'rfc'
+        W3C = 'w3c'
 
     class DocumentationItemFormat(models.TextChoices):
         Markdown = 'markdown'
