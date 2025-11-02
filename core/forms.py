@@ -13,11 +13,14 @@ You can regenerate this list by loading up the site,
 opening a JS REPL in the browser's dev tools,
 and executing `hljs.listLanguanges()`.
 
+CDDL is an IETF schema language so it is added.  We may eventually need some logic so that we
+can less tightly connect what file extension something is to what we tell the highlighter what to use.
+
 Note that the actual allowlist is an intersection
 of this list and the lexers from pygments.
 '''
 SPECIFICATION_LANGUAGE_ALLOWLIST = [
-"bash","c","cpp","csharp","css","diff","go","graphql","ini","java","javascript","json","kotlin","less","lua","makefile","markdown","objectivec","perl","php","php-template","python","python-repl","r","ruby","rust","scss","shell","sql","swift","typescript","vbnet","wasm","xml","yaml"
+"bash","c","cpp","csharp","css","diff","go","graphql","ini","java","javascript","json","kotlin","less","lua","makefile","markdown","objectivec","perl","php","php-template","python","python-repl","r","ruby","rust","scss","shell","sql","swift","typescript","vbnet","wasm","xml","yaml","cddl"
 ]
 
 class DocumentationItemForm(forms.Form):
@@ -84,8 +87,12 @@ class SchemaForm(forms.Form):
         }
         self.id = schema.id
 
-    def _clean_url(self, url_field_name, language_allowlist):
-        data = self.cleaned_data[url_field_name]
+    def _clean_url_field(self, url_field_name, language_allowlist):
+        return self._clean_url(url_field_name,
+                               self.cleaned_data[url_field_name],
+                               language_allowlist)
+
+    def _clean_url(self, field_name, data, language_allowlist):
         try:
             response = requests.get(data)
         except requests.exceptions.RequestException:
@@ -106,7 +113,7 @@ class SchemaForm(forms.Form):
             else:
                 # If we don't have a match but plaintext is allowed, we'll just treat it as plaintext
                 self.matched_language_cache[data] = "plaintext"
-                return [data, "plaintext"]
+                return data
 
         matched_language = next(
             (alias for alias in language_allowlist if alias in lexer.aliases),
@@ -116,10 +123,10 @@ class SchemaForm(forms.Form):
             raise ValidationError("The text content at the provided URL is not in a supported format")
         
         self.matched_language_cache[data] = matched_language
-        return [data, matched_language]
+        return data
 
     def clean_reference_url(self):
-        [data, matched_language] = self._clean_url('reference_url', language_allowlist=SPECIFICATION_LANGUAGE_ALLOWLIST)
+        data = self._clean_url_field('reference_url', language_allowlist=SPECIFICATION_LANGUAGE_ALLOWLIST)
         schema_refs = SchemaRef.objects.exclude(schema__id=self.id)
         parsed_data = urlparse(data)
         for schema_ref in schema_refs:
@@ -129,13 +136,13 @@ class SchemaForm(forms.Form):
         return data
 
     def clean_readme_url(self):
-        [data, matched_language] = self._clean_url('readme_url', language_allowlist=DocumentationItem.DocumentationItemFormat)
+        data = self._clean_url_field('readme_url', language_allowlist=DocumentationItem.DocumentationItemFormat)
         return data
 
     def clean_license_url(self):
         if not self.cleaned_data['license_url']:
             return None;
-        [data, matched_language] = self._clean_url('license_url', language_allowlist=[DocumentationItem.DocumentationItemFormat.PlainText])
+        data = self._clean_url_field('license_url', language_allowlist=[DocumentationItem.DocumentationItemFormat.PlainText])
         return data
 
     def clean(self):
