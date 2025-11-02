@@ -1,7 +1,7 @@
 import pytest
 import requests_mock
 from urllib.parse import urlparse, urlunparse
-from core.forms import SchemaForm
+from core.forms import SchemaForm, SPECIFICATION_LANGUAGE_ALLOWLIST
 from tests.factories import SchemaFactory, SchemaRefFactory
 from core.models import DocumentationItem
 
@@ -22,18 +22,21 @@ def test_schema_management_form_prevents_duplicate_urls():
         assert error == 'The provided URL is already in use by another Schema'
 
 @pytest.mark.django_db
-def test_clean_url():
+@pytest.mark.parametrize("spec_url, expect_success",
+                         [['http://example.com/schema.cddl', True],
+                           ['', False],
+                           ['http://example.com/schema.BOGUS', False]])
+def test_clean_url(spec_url, expect_success):
     with requests_mock.Mocker() as m:
-        m.get("http://example.com/schema.cddl", text='{}')
+        m.get(spec_url, text='{}')
         m.get('http://example.com', text='{}')
         form = SchemaForm(data={
             'name': 'New schema',
-            'reference_url': "http://example.com/schema.cddl",
+            'reference_url': spec_url,
             'readme_url': 'http://example.com',
         })
-        form.is_valid()
-        assert form.errors == {}
-        # TECHNICALLY this works.  The form is NOT valid because the formset does not validate correctly.
-        # But this does test whether the CDDL extension adds an error or not.
-        # TODO: Sort out how to write tests for forms that have formsets? Or move _clean_url to a
-        # location where we can test it directly? because I wanted a test to make sure I understood _clean_url
+        if expect_success:
+            form._clean_url('reference_url', spec_url, SPECIFICATION_LANGUAGE_ALLOWLIST)
+        else:
+            with pytest.raises(Exception):
+                form._clean_url('reference_url', spec_url, SPECIFICATION_LANGUAGE_ALLOWLIST)
