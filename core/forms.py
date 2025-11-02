@@ -17,7 +17,7 @@ Note that the actual allowlist is an intersection
 of this list and the lexers from pygments.
 '''
 SPECIFICATION_LANGUAGE_ALLOWLIST = [
-"bash","c","cpp","csharp","css","diff","go","graphql","ini","java","javascript","json","kotlin","less","lua","makefile","markdown","objectivec","perl","php","php-template","python","python-repl","r","ruby","rust","scss","shell","sql","swift","typescript","vbnet","wasm","xml","yaml"
+"bash","c","cpp","csharp","css","diff","go","graphql","ini","java","javascript","json","kotlin","less","lua","makefile","markdown","objectivec","perl","php","php-template","python","python-repl","r","ruby","rust","scss","shell","sql","swift","typescript","vbnet","wasm","xml","yaml","cddl"
 ]
 
 class DocumentationItemForm(forms.Form):
