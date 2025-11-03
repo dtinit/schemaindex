@@ -3,6 +3,8 @@
  * We're not actually using Tailwind, but this is a good foundation for our stylesheets.
  * It's based on modern-normalize, which is based on normalize.css.
  *
+ * You probably shouldn't modify this file; override it in site.css instead.
+ *
  * Source: https://github.com/tailwindlabs/tailwindcss/blob/7779d3d080cae568c097e87b50e4a730f4f9592b/packages/tailwindcss/preflight.css
  */
 
