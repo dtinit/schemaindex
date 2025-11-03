@@ -213,3 +213,6 @@ personal-development/
 # Google Cloud Platform
 service-account-credentials.json
 gcp-cors-config.json
+
+# npm dependencies
+node_modules/
