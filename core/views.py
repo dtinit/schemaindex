@@ -37,7 +37,7 @@ def index(request):
     defined_schemas = (
         Schema.objects
         .prefetch_related("schemaref_set")
-        .filter(schemaref__isnull=False)
+        .exclude(schemaref__isnull=True)
     )
 
     search_query = request.GET.get('search_query', None)
@@ -55,12 +55,12 @@ def schema_detail(request, schema_id):
         pk=schema_id
     )
 
-    latest_schema_ref = schema.latest_reference()
-    latest_definition = None
-    if latest_schema_ref:
-        schema_ref_fetch_response = requests.get(latest_schema_ref.url)
-        latest_definition = escape(schema_ref_fetch_response.text)
-    
+    schemarefs = list(schema.schemaref_set.all())
+    for schemaref in schemarefs:
+        # I feel like we can do better here- e.g. put the get request in the model and
+        # pull from cache
+        schemaref.content = escape(requests.get(schemaref.url).text)
+
     latest_readme = schema.latest_readme()
     latest_readme_content = None
     if latest_readme and latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
@@ -72,8 +72,7 @@ def schema_detail(request, schema_id):
 
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
-        "latest_definition": latest_definition,
-        "latest_definition_url": latest_schema_ref.url if latest_schema_ref else None,
+        "schemarefs": schemarefs,
         "latest_readme_content": latest_readme_content,
         "latest_readme_url": latest_readme.url if latest_readme else None,
         "latest_license": schema.latest_license(),
