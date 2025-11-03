@@ -46,9 +46,10 @@
         {% if latest_readme_content %}
         <li><button class="tab-link" data-tab-link="readme">README</button></li>
         {% endif %}
-        {% if latest_definition %}
-        <li><button class="tab-link" data-tab-link="schema">Schema</button></li>
-        {% endif %}
+        {% for schemaref in schemarefs %}
+        <li><button class="tab-link" data-tab-link="schema{{ forloop.counter }}">
+            Schema {% if schema.schemaref_set.count > 1 %}{{ forloop.counter }}{% endif %}</button></li>
+        {% endfor %}
         {% if schema.documentationitem_set.exists %}
         <li><button class="tab-link" data-tab-link="docs">Docs</button></li>
         {% endif %}
@@ -64,14 +65,12 @@
           {% endif %}
         </li>
         {% endif %}
-        {% if latest_definition %}
-        <li data-tab-id="schema" class="inactive-tab schema-tab">
-          <pre class="schema-definition"><code>{{ latest_definition|escape }}</code></pre>
-          {% if latest_definition_url %}
-          <a href="{{ latest_definition_url }}">View source</a>
-          {% endif %}
+        {% for schemaref in schemarefs %}
+        <li data-tab-id="schema{{ forloop.counter }}" class="inactive-tab schema-tab">
+          <pre class="schema-definition"><code>{{ schemaref.content|escape }}</code></pre>
+          <a href="{{ schemaref.url }}">View source</a>
         </li>
-        {% endif %}
+        {% endfor %}
         {% if schema.documentationitem_set.exists %}
         <li data-tab-id="docs" class="inactive-tab schema-tab">
           <ul>
