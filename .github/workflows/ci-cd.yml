@@ -102,7 +102,7 @@ jobs:
         env:
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
         run: |
-          python -c "from django.conf import settings; print(f'url=https://{settings.ALLOWED_HOSTS[0]}')" >> $GITHUB_OUTPUT
+          python -c "from django.conf import settings; print(f'url=https://{settings.SITE_URL}')" >> $GITHUB_OUTPUT
 
       - uses: 'google-github-actions/auth@v2'
         with:
