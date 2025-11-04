@@ -370,6 +370,12 @@ a.button-link--primary:hover {
   overflow: auto;
 }
 
+.plaintext {
+  background: #222;
+  padding: 0 1rem;
+  font-family: "Courier New";
+}
+
 .markdown p,
 .markdown ul .markdown ol {
   margin: 0.5rem 0;

@@ -1,3 +1,5 @@
+import logging
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Count
 from django.utils.html import escape
@@ -63,16 +65,24 @@ def schema_detail(request, schema_id):
 
     latest_readme = schema.latest_readme()
     latest_readme_content = None
-    if latest_readme and latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
-        markdown_readme_fetch_response = requests.get(latest_readme.url)
-        unsanitized_html_content = cmarkgfm.github_flavored_markdown_to_html(markdown_readme_fetch_response.text)
-        sanitized_html_content = bleach.clean(unsanitized_html_content, MARKDOWN_HTML_TAGS, MARKDOWN_HTML_ATTRIBUTES)
+    latest_readme_format = latest_readme.format
+    if latest_readme:
+        fetch_response = requests.get(latest_readme.url).text
+        if latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
+            html_content = cmarkgfm.github_flavored_markdown_to_html(fetch_response)
+            sanitized_html_content = bleach.clean(html_content, MARKDOWN_HTML_TAGS,
+                                                  MARKDOWN_HTML_ATTRIBUTES)
+        elif latest_readme.format == DocumentationItem.DocumentationItemFormat.PlainText:
+            sanitized_html_content = bleach.clean(fetch_response)
+        else:
+            logging.error(f"Unhandled README content format: {latest_readme.format}")
         # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
         latest_readme_content = mark_safe(sanitized_html_content)
 
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
         "schemarefs": schemarefs,
+        "latest_readme_format": latest_readme_format,
         "latest_readme_content": latest_readme_content,
         "latest_readme_url": latest_readme.url if latest_readme else None,
         "latest_license": schema.latest_license(),

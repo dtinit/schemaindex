@@ -57,9 +57,17 @@
       <ul class="tabs">
         {% if latest_readme_content %}
         <li data-tab-id="readme" class="inactive-tab schema-tab">
+          {% if latest_readme_format == "markdown" %}
           <div class="markdown">
             {{ latest_readme_content }}
           </div>
+          {% elif latest_readme_format == "plaintext" %}
+            <div class="plaintext">
+              <pre>
+              {{ latest_readme_content }}
+              </pre>
+            </div>
+          {% endif %}
           {% if latest_readme_url %}
           <a href="{{ latest_readme_url }}">View source</a>
           {% endif %}
