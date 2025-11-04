@@ -9,8 +9,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint .",
-    "check-formatting": "prettier \"core/static/**/*.{js,css}\" --check",
-    "format": "prettier \"core/static/**/*.{js,css}\" --write",
+    "check-formatting": "prettier \"core/static/**/*.{js,css}\" \"README.md\" --check",
+    "format": "prettier \"core/static/**/*.{js,css}\" \"README.md\" --write",
     "typecheck": "tsc"
   },
   "repository": {
