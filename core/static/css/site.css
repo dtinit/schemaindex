@@ -373,7 +373,7 @@ a.button-link--primary:hover {
 .plaintext {
   background: #222;
   padding: 0 1rem;
-  font-family: "Courier New";
+  font-family: 'Courier New';
 }
 
 .markdown p,
