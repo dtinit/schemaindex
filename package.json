@@ -1,0 +1,41 @@
+{
+  "name": "schemaindex",
+  "version": "1.0.0",
+  "description": "A public schema registry.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "es5"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint .",
+    "check-formatting": "prettier \"core/static/**/*.{js,css}\" \"README.md\" --check",
+    "format": "prettier \"core/static/**/*.{js,css}\" \"README.md\" --write",
+    "typecheck": "tsc",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dtinit/schemaindex.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/dtinit/schemaindex/issues"
+  },
+  "homepage": "https://github.com/dtinit/schemaindex#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3"
+  }
+}

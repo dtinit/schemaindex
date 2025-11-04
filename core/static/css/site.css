@@ -28,7 +28,7 @@ main {
 }
 
 .color-logo {
-  color: var(--logo-color); 
+  color: var(--logo-color);
 }
 
 h1 {
@@ -51,15 +51,14 @@ a:hover {
   color: var(--text-link-color-highlight);
 }
 
-
-input, select {
+input,
+select {
   border-radius: 8px;
   padding: 0.5rem;
   background: #444;
   color: var(--text-primary);
   width: 100%;
 }
-
 
 .nav-header {
   display: flex;
@@ -169,7 +168,7 @@ input, select {
 }
 
 .messages .message .message__progress-bar {
-  position: absolute; 
+  position: absolute;
   left: 100%;
   bottom: 0;
   right: 0;
@@ -215,7 +214,7 @@ input, select {
   text-decoration: none;
   border-radius: 1rem;
   padding: 0.25rem 1.25rem;
-  box-shadow: 0 4px 4px -1px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 4px -1px rgba(0, 0, 0, 0.1);
 }
 
 a.button-link--primary:hover {
@@ -264,10 +263,10 @@ a.button-link--primary:hover {
 
 .button--prominent,
 .button--confirm,
-.button--danger{
+.button--danger {
   padding: 0.5rem 1rem;
   border-radius: 6px;
-  box-shadow: 0 4px 4px -1px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 4px -1px rgba(0, 0, 0, 0.1);
 }
 
 .button--prominent,
@@ -285,7 +284,7 @@ a.button-link--primary:hover {
 }
 
 .button--prominent:hover,
-.button--confirm:hover { 
+.button--confirm:hover {
   background: var(--primary-color-highlight);
   color: var(--text-primary);
 }
@@ -306,7 +305,7 @@ a.button-link--primary:hover {
   flex-direction: row-reverse;
 }
 
-.account-page form > button:last-child{
+.account-page form > button:last-child {
   align-self: flex-end;
   width: 100%;
 }
@@ -321,7 +320,7 @@ a.button-link--primary:hover {
  * but cause layout issues as flex children */
 .account-page #resend,
 .account-page #logout-from-stage {
-  display: none; 
+  display: none;
 }
 
 .field {
@@ -372,8 +371,7 @@ a.button-link--primary:hover {
 }
 
 .markdown p,
-.markdown ul
-.markdown ol {
+.markdown ul .markdown ol {
   margin: 0.5rem 0;
 }
 
@@ -440,7 +438,7 @@ a.button-link--primary:hover {
   padding: 1rem 0;
 }
 
-.formset:first-child{
+.formset:first-child {
   padding-top: 0;
 }
 
@@ -476,8 +474,8 @@ a.button-link--primary:hover {
 
 .tab-link--is-active,
 .tab-link--is-active:hover {
-  color: var(--text-link-color);  
-  border-color: var(--text-link-color)
+  color: var(--text-link-color);
+  border-color: var(--text-link-color);
 }
 
 .inactive-tab {
@@ -497,7 +495,7 @@ a.button-link--primary:hover {
 }
 
 .badge {
-  padding: 0.15rem 0.75rem; 
+  padding: 0.15rem 0.75rem;
   border-radius: 1rem;
   border: 1px solid transparent;
   display: flex;
@@ -507,7 +505,7 @@ a.button-link--primary:hover {
 }
 
 .badge--rfc {
-  background: #FFD652;
+  background: #ffd652;
   color: #211921;
 }
 
@@ -517,11 +515,11 @@ a.badge--rfc {
 
 .badge--w3c {
   background: #ffffff;
-  color: #005A9C;
+  color: #005a9c;
 }
 
 a.badge--rfc {
-  color: #005A9C;
+  color: #005a9c;
 }
 /* Page styles */
 
@@ -610,7 +608,6 @@ a.badge--rfc {
   display: flex;
   flex-wrap: wrap;
 }
-
 
 /* Delete schema */
 .delete-schema,
