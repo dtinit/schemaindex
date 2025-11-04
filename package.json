@@ -6,18 +6,6 @@
   "directories": {
     "test": "tests"
   },
-  "lint-staged": {
-    "core/static/**/*.js": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "README.md": [
-      "prettier --write"
-    ],
-    "core/static/**/*.css": [
-      "prettier --write"
-    ]
-  },
   "prettier": {
     "singleQuote": true,
     "trailingComma": "es5"
