@@ -35,22 +35,29 @@ Frontend dev tools like ESLint are delivered via [npm](https://www.npmjs.com/), 
 1. Install [Node.js](https://nodejs.org).
 2. Run `npm install` wherever you cloned this repository to.
 
-#### Linting with ESLint
+### Linting with ESLint
 
 You can run the linter by executing `npm run lint`. If there are no issues, there won't be any output.
 
-To get linting feedback in your code editor, [check here](https://eslint.org/docs/latest/use/integrations) to find an ESLint integration or instructions for your editor. The configuration file is named [eslint.config.js](eslint.config.js), but your editor will probably find it for you.
+To get linting feedback in your code editor, [check here](https://eslint.org/docs/latest/use/integrations) to find an ESLint integration or instructions for your editor. The configuration file is named [eslint.config.js](eslint.config.js), but your editor/plugin should find it for you.
 
-#### Formatting with Prettier
+### Formatting with Prettier
 
 You can format JavaScript and CSS files with `npm run format`.
 
-To enable formatting from your code editor, [check here](https://prettier.io/docs/en/editors) for instructions for your editor. The configuration is in [package.json](package.json).
+To enable formatting from your code editor, [check here](https://prettier.io/docs/en/editors) for instructions for your editor. The configuration is in [package.json](package.json), but your editor/plugin should find it for you.
 
-#### Typechecking with TypeScript
+### Typechecking with TypeScript
 
 You can check JavaScript types with `npm run typecheck`.
 
-To get type checking feedback in your code editor, [check here](https://github.com/microsoft/TypeScript/wiki/TypeScript-Editor-Support) for instructions for your editor. The configuration file is named [tsconfig.json](tsconfig.json), but your editor will probably find it for you.
+To get type checking feedback in your code editor, [check here](https://github.com/microsoft/TypeScript/wiki/TypeScript-Editor-Support) for instructions for your editor. The configuration file is named [tsconfig.json](tsconfig.json), but your editor/plugin should find it for you.
 
 Note that we only use TypeScript to _type check_ our JavaScript files; we do not _transpile_ from TypeScript to JavaScript. Don't try to write any TypeScript in this repository (except for declaration files like [globals.d.ts](globals.d.ts)). Check out the [TypeScript JSDoc Reference](https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html) to learn how to leverage types in JavaScript files.
+
+### Precommit checks/fixes
+
+When commiting relevant files with git, the following steps are performed:
+
+- JavaScript files are linted, typechecked, and formatted. If issues are found, your commit will fail; please correct your issues and try again.
+- README.md and CSS files are formatted.
