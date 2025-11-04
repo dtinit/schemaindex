@@ -6,6 +6,11 @@
   "directories": {
     "test": "tests"
   },
+  "lint-staged": {},
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "es5"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint .",

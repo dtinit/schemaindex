@@ -45,7 +45,7 @@ To get linting feedback in your code editor, [check here](https://eslint.org/doc
 
 You can format JavaScript and CSS files with `npm run format`.
 
-To enable formatting from your code editor, [check here](https://prettier.io/docs/en/editors) for instructions for your editor. The configuration file is named [.prettierrc](.prettierrc), but your editor will probably find it for you.
+To enable formatting from your code editor, [check here](https://prettier.io/docs/en/editors) for instructions for your editor. The configuration is in [package.json](package.json).
 
 #### Typechecking with TypeScript
 
