@@ -54,6 +54,23 @@ jobs:
       - name: Check types with TypeScript
         run: npm run typecheck
 
+  check-pending-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check pending migrations
+        run: python3 manage.py makemigrations --check
+
   # Test Python/Django code with PostgreSQL database
   test-python:
     runs-on: ubuntu-latest
