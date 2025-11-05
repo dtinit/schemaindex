@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth.models import User
+from datetime import datetime
 
 class BaseModel(models.Model):
     class Meta:
@@ -14,12 +15,27 @@ class BaseModel(models.Model):
     def create(cls, created_by):
         return cls(created_by=created_by)
 
+class PublicSchemaManager(models.Manager):
+    def get_queryset(self):
+        return (
+            super().get_queryset().filter(
+                published_at__isnull=False,
+                published_at__lte=datetime.now()
+            )
+        )
 
 class Schema(BaseModel):
+    objects = models.Manager()
+    public_objects = PublicSchemaManager()
     name = models.CharField(max_length=200)
+    published_at = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return self.name
+
+    @property
+    def is_published(self):
+        return self.published_at and self.published_at >= datetime.now()
 
     def _latest_documentation_item_of_type(self, role):
         return self.documentationitem_set.filter(role=role).order_by('-created_at').first()

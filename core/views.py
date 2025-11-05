@@ -37,7 +37,7 @@ MARKDOWN_HTML_ATTRIBUTES = {
 
 def index(request):
     defined_schemas = (
-        Schema.objects
+        Schema.public_objects
         .prefetch_related("schemaref_set")
         .exclude(schemaref__isnull=True)
     )
