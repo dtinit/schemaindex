@@ -662,7 +662,33 @@ a.badge--rfc {
   justify-content: space-between;
 }
 
-.account .schema-list .schema .schema__action-group {
+.account .schema-list .schema .schema__action-group,
+.account .schema-list .schema .schema__info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.account .visibility-badge {
+  display: inline-block;
+  padding: 0.15rem 0.75rem;
+  padding: 0.15rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 14px;
+}
+
+.account .visibility-badge--published {
+  background: #15803d;
+  color: #eee;
+}
+
+.account .visibility-badge--unpublished {
+  background: #525252;
+  color: #ddd;
+}
+
+.account .schema-list .schema .info {
   display: flex;
   align-items: center;
   justify-content: space-between;

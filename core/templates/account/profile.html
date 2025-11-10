@@ -11,7 +11,18 @@ Account
     <ul class="schema-list">
       {% for schema in user_schemas|dictsort:"name" %}
       <li class="schema">
-        {{schema.name}}
+        <div class="schema__info">
+          {{schema.name}}
+          {% if schema.published_at %}
+          <div class="visibility-badge visibility-badge--published">
+          Published
+          </div>
+          {% else %}
+          <div class="visibility-badge visibility-badge--unpublished">
+          Private draft
+          {% endif %}
+          </div>
+        </div>
         <div class="schema__action-group">
           <a href="{% url 'manage_schema' schema_id=schema.pk %}">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--md">
