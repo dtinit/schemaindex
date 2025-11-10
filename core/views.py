@@ -5,6 +5,7 @@ from django.db.models import Count
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
 import requests
 import cmarkgfm
 import bleach
@@ -190,6 +191,19 @@ def manage_schema_delete(request, schema_id):
         return redirect('account_profile')
        
     return render(request, "core/manage/delete_schema.html", {
+        'schema': schema
+    })
+
+@login_required
+def manage_schema_publish(request, schema_id):
+    schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
+
+    if request.method == 'POST':
+        schema.published_at = timezone.now() 
+        schema.save()
+        return redirect('schema_detail', schema_id=schema.id)
+
+    return render(request, "core/manage/publish_schema.html", {
         'schema': schema
     })
 
