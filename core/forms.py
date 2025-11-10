@@ -1,5 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 import requests
 from pygments.lexers import get_lexer_for_filename
 from pygments.util import ClassNotFound
@@ -127,7 +128,9 @@ class SchemaForm(forms.Form):
 
     def clean_reference_url(self):
         data = self._clean_url_field('reference_url', language_allowlist=SPECIFICATION_LANGUAGE_ALLOWLIST)
-        schema_refs = SchemaRef.objects.exclude(schema__id=self.id)
+        schema_refs = SchemaRef.objects.select_related('schema').exclude(
+            Q(schema__id=self.id) | Q(schema__published_at__isnull=True)
+        )
         parsed_data = urlparse(data)
         for schema_ref in schema_refs:
             parsed_url = urlparse(schema_ref.url)
