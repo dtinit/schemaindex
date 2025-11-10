@@ -4,7 +4,6 @@ from django.db.models import Q
 import requests
 from pygments.lexers import get_lexer_for_filename
 from pygments.util import ClassNotFound
-from urllib.parse import urlparse
 from .models import DocumentationItem, SchemaRef
 
 '''
@@ -131,10 +130,8 @@ class SchemaForm(forms.Form):
         schema_refs = SchemaRef.objects.select_related('schema').exclude(
             Q(schema__id=self.id) | Q(schema__published_at__isnull=True)
         )
-        parsed_data = urlparse(data)
         for schema_ref in schema_refs:
-            parsed_url = urlparse(schema_ref.url)
-            if parsed_url.netloc == parsed_data.netloc and parsed_url.path == parsed_data.path:
+            if schema_ref.has_same_domain_and_path(data):
                 raise ValidationError("The provided URL is already in use by another Schema")
         return data
 

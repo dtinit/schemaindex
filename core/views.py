@@ -6,6 +6,7 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.http import HttpResponse
 import requests
 import cmarkgfm
 import bleach
@@ -199,6 +200,14 @@ def manage_schema_publish(request, schema_id):
     schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
 
     if request.method == 'POST':
+        lastest_reference = schema.lastest_reference()
+        if latest_reference == None:
+           return HttpResponse("Schema not defined", status=409)
+
+        other_schema_refs = SchemaRef.get_published_by_domain_and_path(latest_reference.url)
+        if len(other_schema_refs) > 0:
+            return HttpResponse("Schema definition URL in use", status=403)
+
         schema.published_at = timezone.now() 
         schema.save()
         return redirect('schema_detail', schema_id=schema.id)
