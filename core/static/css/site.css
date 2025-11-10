@@ -679,7 +679,7 @@ a.badge--rfc {
 }
 
 .account .visibility-badge--published {
-  background: #15803d;
+  background: var(--primary-color);
   color: #eee;
 }
 

@@ -6,7 +6,7 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from django.http import HttpResponse
+from django.core.exceptions import PermissionDenied
 import requests
 import cmarkgfm
 import bleach
@@ -187,6 +187,9 @@ def manage_schema(request, schema_id=None):
 def manage_schema_delete(request, schema_id):
     schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
 
+    if schema.published_at:
+        raise PermissionDenied
+
     if request.method == 'POST':
         schema.delete()
         return redirect('account_profile')
@@ -202,11 +205,11 @@ def manage_schema_publish(request, schema_id):
     if request.method == 'POST':
         lastest_reference = schema.lastest_reference()
         if latest_reference == None:
-           return HttpResponse("Schema not defined", status=409)
+            raise PermissionDenied
 
         other_schema_refs = SchemaRef.get_published_by_domain_and_path(latest_reference.url)
         if len(other_schema_refs) > 0:
-            return HttpResponse("Schema definition URL in use", status=403)
+            raise PermissionDenied
 
         schema.published_at = timezone.now() 
         schema.save()
