@@ -9,13 +9,13 @@ from core.models import DocumentationItem
 def test_schema_management_form_prevents_duplicate_published_urls():
     existing_schema_ref = SchemaRefFactory(url='http://example.com/definition.json')
     https_url = urlunparse(urlparse(existing_schema_ref.url)._replace(scheme='https'))
+    edited_schema = SchemaFactory()
     with requests_mock.Mocker() as m:
         m.get(https_url, text='{}')
         m.get('http://example.com', text='{}')
-        form = SchemaForm(data={
-            'name': 'New schema',
-            'reference_url': https_url,
+        form = SchemaForm(schema=edited_schema, data={
             'readme_url': 'http://example.com',
+            'reference_url': https_url,
             'form-TOTAL_FORMS': 0,
             'form-INITIAL_FORMS': 0
         })

@@ -4,7 +4,7 @@ from django.db.models import Q
 import requests
 from pygments.lexers import get_lexer_for_filename
 from pygments.util import ClassNotFound
-from .models import DocumentationItem, SchemaRef
+from .models import DocumentationItem, SchemaRef, Schema
 
 '''
 This is currently just a list of languages supported
@@ -127,6 +127,11 @@ class SchemaForm(forms.Form):
 
     def clean_reference_url(self):
         data = self._clean_url_field('reference_url', language_allowlist=SPECIFICATION_LANGUAGE_ALLOWLIST)
+        # If this schema is unpublished, we don't care if the URL is already in use
+        if self.id is None or not Schema.public_objects.filter(id=self.id).exists():
+            return data
+
+        # But if it's a published schema, we need to make sure the URL isn't already in use
         schema_refs = SchemaRef.objects.select_related('schema').exclude(
             Q(schema__id=self.id) | Q(schema__published_at__isnull=True)
         )

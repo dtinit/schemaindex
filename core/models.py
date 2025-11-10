@@ -79,7 +79,7 @@ class ReferenceItem(BaseModel):
     def __str__(self):
         return self.url
 
-    def has_same_domain_and_path(other_url):
+    def has_same_domain_and_path(self, other_url):
         parsed_url_1 = urlparse(self.url)
         parsed_url_2 = urlparse(other_url)
         return parsed_url_1.netloc == parsed_url_2.netloc and parsed_url_1.path == parsed_url_2.path
