@@ -67,7 +67,6 @@ def schema_detail(request, schema_id):
 
     latest_readme = schema.latest_readme()
     latest_readme_content = None
-    latest_readme_format = latest_readme.format
     if latest_readme:
         fetch_response = requests.get(latest_readme.url).text
         if latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
@@ -84,13 +83,14 @@ def schema_detail(request, schema_id):
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
         "schemarefs": schemarefs,
-        "latest_readme_format": latest_readme_format,
+        "latest_readme_format": latest_readme.format if latest_readme else None,
         "latest_readme_content": latest_readme_content,
         "latest_readme_url": latest_readme.url if latest_readme else None,
         "latest_license": schema.latest_license(),
         "latest_rfc": schema.latest_rfc(),
         "latest_w3c": schema.latest_w3c()
     })
+
 
 @login_required
 def account_profile(request):
@@ -198,6 +198,7 @@ def manage_schema_delete(request, schema_id):
         'schema': schema
     })
 
+
 @login_required
 def manage_schema_publish(request, schema_id):
     schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
@@ -218,6 +219,7 @@ def manage_schema_publish(request, schema_id):
     return render(request, "core/manage/publish_schema.html", {
         'schema': schema
     })
+
 
 def about(request):
     return render(request, "core/about.html")
