@@ -1,7 +1,7 @@
 import logging
 
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
@@ -54,9 +54,18 @@ def index(request):
 
 
 def schema_detail(request, schema_id):
+    schema_filter = Q(published_at__isnull=False)
+
+    # Unpublished schemas can be viewed by their creators
+    if request.user.is_authenticated:
+        schema_filter |= Q(created_by=request.user)
+
     schema = get_object_or_404(
-        Schema.objects.prefetch_related("schemaref_set").prefetch_related("documentationitem_set"),
-        pk=schema_id
+        Schema.objects
+            .prefetch_related("schemaref_set")
+            .prefetch_related("documentationitem_set")
+            .filter(schema_filter),
+        pk=schema_id,
     )
 
     schemarefs = list(schema.schemaref_set.all())
