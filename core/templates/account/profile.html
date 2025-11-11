@@ -12,7 +12,7 @@ Account
       {% for schema in user_schemas|dictsort:"name" %}
       <li class="schema">
         <div class="schema__info">
-          {{schema.name}}
+          <a href="{% url 'schema_detail' schema_id=schema.id %}">{{schema.name}}</a>
           {% if schema.published_at %}
           <div class="visibility-badge visibility-badge--published">
           Published
