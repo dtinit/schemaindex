@@ -176,7 +176,7 @@ def manage_schema(request, schema_id=None):
                 if not previous_item.id in updated_item_ids:
                     previous_item.delete()
 
-            return redirect('account_profile')
+            return redirect('schema_detail', schema_id=schema.id)
 
     else:
         form = SchemaForm(schema=schema)
