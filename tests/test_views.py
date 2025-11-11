@@ -27,3 +27,21 @@ def test_private_schemas_accessible_to_creators():
     client.force_login(schema.created_by)
     response = client.get(f'/schemas/{schema.id}', follow=True)
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_published_schemas_listed():
+    schema = SchemaFactory()
+    client = Client()
+    response = client.get('/')
+    assert response.status_code == 200
+    assert schema.name in str(response.content)
+
+
+@pytest.mark.django_db
+def test_private_schemas_not_listed():
+    schema = SchemaFactory(published_at=None)
+    client = Client()
+    response = client.get('/')
+    assert response.status_code == 200
+    assert schema.name not in str(response.content)
