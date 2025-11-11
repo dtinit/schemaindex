@@ -5,13 +5,13 @@ Publish Schema
 {% block page_content %}
 <main>
   <section class="main-content form-container delete-schema">
-    <h1>Publish Schema?</h1>
-    <p>Are you sure you want to publish "{{ schema.name }}?" Published schemas are visible to everyone, and can only be unpublished or deleted by a Schemas.Pub administrator.</p>
+    <h1>Make "{{ schema.name }}" public?</h1>
+    <p>Are you sure you want to make the "{{ schema.name }}" schema public? Public schemas are visible to everyone, and cannot be changed back to private or deleted except by a Schemas.Pub administrator.</p>
     <form action="{% url 'manage_schema_publish' schema_id=schema.pk %}" method="POST">
       {% csrf_token %}
       <div class="button-group">
-        <a href="{% url 'account_profile' %}" type="cancel" class="button">Cancel</a>
-        <button type="submit" class="button button--danger">Publish schema</button>
+        <a href="{% url 'schema_detail' schema_id=schema.id %}" type="cancel" class="button">Cancel</a>
+        <button type="submit" class="button button--danger">Make public</button>
       </div>
     </form>
   </section>

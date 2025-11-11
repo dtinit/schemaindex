@@ -5,8 +5,8 @@ Delete Schema
 {% block page_content %}
 <main>
   <section class="main-content form-container delete-schema">
-    <h1>Delete Schema?</h1>
-    <p>Are you sure you want to delete "{{ schema.name }}?"</p>
+    <h1>Delete "{{ schema.name }}?"</h1>
+    <p>Are you sure you want to delete "{{ schema.name }}?" This cannot be undone.</p>
     <form action="{% url 'manage_schema_delete' schema_id=schema.pk %}" method="POST">
       {% csrf_token %}
       <div class="button-group">

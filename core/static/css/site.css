@@ -527,6 +527,26 @@ a.badge--rfc {
 a.badge--rfc {
   color: #005a9c;
 }
+
+.info-box {
+  background: #172554;
+  color: #bfdbfe;
+  border: 1px solid #1e3a8a;
+  padding: 1rem;
+  border-radius: 6px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.info-box a {
+  color: #eff6ff;
+  text-decoration: underline;
+}
+
+.info-box a:hover {
+  color: #ddd;
+}
+
 /* Page styles */
 
 /* Homepage */
