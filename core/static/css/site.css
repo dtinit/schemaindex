@@ -547,6 +547,12 @@ a.badge--rfc {
   color: #ddd;
 }
 
+.dangerous-form,
+.dangerous-form .button-group {
+  align-items: center;
+  justify-content: center;
+}
+
 /* Page styles */
 
 /* Homepage */
@@ -633,13 +639,6 @@ a.badge--rfc {
 .schema-detail .badges {
   display: flex;
   flex-wrap: wrap;
-}
-
-/* Delete schema */
-.delete-schema,
-.delete-schema .button-group {
-  align-items: center;
-  justify-content: center;
 }
 
 /* Account profile */

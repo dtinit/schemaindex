@@ -208,21 +208,23 @@ def manage_schema_delete(request, schema_id):
 def manage_schema_publish(request, schema_id):
     schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
 
+    latest_reference = schema.latest_reference()
     if request.method == 'POST':
-        lastest_reference = schema.lastest_reference()
         if latest_reference == None:
             raise PermissionDenied
 
-        other_schema_refs = SchemaRef.get_published_by_domain_and_path(latest_reference.url)
-        if len(other_schema_refs) > 0:
+        other_schema_refs = SchemaRef.objects.get_published_by_domain_and_path(latest_reference.url)
+        if other_schema_refs.exists():
             raise PermissionDenied
 
         schema.published_at = timezone.now() 
         schema.save()
         return redirect('schema_detail', schema_id=schema.id)
-
+   
+    conflicting_published_schema_ref = SchemaRef.objects.get_published_by_domain_and_path(latest_reference.url).first() if latest_reference else None
     return render(request, "core/manage/publish_schema.html", {
-        'schema': schema
+        'schema': schema,
+        'conflicting_schema': conflicting_published_schema_ref.schema if conflicting_published_schema_ref else None
     })
 
 

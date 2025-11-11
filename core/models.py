@@ -59,22 +59,24 @@ class Schema(BaseModel):
         return self._latest_documentation_item_of_type(role=DocumentationItem.DocumentationItemRole.W3C)
 
 
+class ReferenceItemManager(models.Manager):
+    def get_published_by_domain_and_path(self, url):
+        published_schema_refs = super().get_queryset().select_related('schema').exclude(
+            schema__published_at__isnull=True
+        )
+        matching_published_schema_ref_ids = [
+            schema_ref.id for schema_ref in published_schema_refs
+            if schema_ref.has_same_domain_and_path(url)
+        ]
+        return super().get_queryset().filter(id__in=matching_published_schema_ref_ids)
+
+
 class ReferenceItem(BaseModel):
     class Meta:
         abstract = True
 
+    objects = ReferenceItemManager()
     url = models.URLField()
-
-    @classmethod
-    def get_published_by_domain_and_path(other_url):
-        published_schema_refs = self.select_related('schema').exclude(
-            schema__published_at__is_null=True
-        )
-        matching_published_schema_refs = [
-            schema_ref for schema_ref in published_schema_refs
-            if schema_ref.has_same_domain_and_path(url)
-        ]
-        return matching_published_schema_refs
 
     def __str__(self):
         return self.url
