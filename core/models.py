@@ -68,6 +68,12 @@ class ReferenceItemManager(models.Manager):
             schema_ref.id for schema_ref in published_schema_refs
             if schema_ref.has_same_domain_and_path(url)
         ]
+        # Custom manager methods like this typically return a QuerySet.
+        # In this case, we already retrieved these items from the db,
+        # so we *could* break convention and just return the actual objects.
+        # Instead, we're making an extra db request just to return a QuerySet
+        # of the matching objects, prefering developer ergonomics
+        # over max performance. For now, the performance hit should be negligible.
         return super().get_queryset().filter(id__in=matching_published_schema_ref_ids)
 
 
