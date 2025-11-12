@@ -15,7 +15,7 @@ Account
           <a href="{% url 'schema_detail' schema_id=schema.id %}">{{schema.name}}</a>
           {% if schema.published_at %}
           <div class="visibility-badge visibility-badge--published">
-          Published
+          Public
           </div>
           {% else %}
           <div class="visibility-badge visibility-badge--unpublished">
