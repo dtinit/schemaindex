@@ -466,6 +466,7 @@ a.button-link--primary:hover {
   justify-content: flex-start;
   gap: 2rem;
   border-bottom: 1px solid #555;
+  overflow: auto;
 }
 
 .tab-link {
