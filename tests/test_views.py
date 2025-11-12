@@ -33,6 +33,8 @@ def test_private_schemas_accessible_to_creators():
 @pytest.mark.django_db
 def test_published_schemas_listed():
     schema = SchemaFactory()
+    # Undefined schemas aren't listed on the homepage
+    SchemaRefFactory(schema=schema)
     client = Client()
     response = client.get('/')
     assert response.status_code == 200
@@ -42,6 +44,9 @@ def test_published_schemas_listed():
 @pytest.mark.django_db
 def test_private_schemas_not_listed():
     schema = SchemaFactory(published_at=None)
+    # Make sure it has a definition so we know published_at
+    # is the reason it's not showing up
+    SchemaRefFactory(schema=schema)
     client = Client()
     response = client.get('/')
     assert response.status_code == 200

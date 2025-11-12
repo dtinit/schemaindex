@@ -38,13 +38,17 @@ MARKDOWN_HTML_ATTRIBUTES = {
 }
 
 def index(request):
-    schemas = Schema.public_objects.prefetch_related("schemaref_set")
+    defined_schemas = (
+        Schema.public_objects
+        .prefetch_related("schemaref_set")
+        .exclude(schemaref__isnull=True)
+    )
 
     search_query = request.GET.get('search_query', None)
-    results = schemas.filter(name__icontains=search_query) if search_query else schemas
+    results = defined_schemas.filter(name__icontains=search_query) if search_query else defined_schemas
 
     return render(request, "core/index.html", {
-        "total_schema_count": schemas.count(),
+        "total_schema_count": defined_schemas.count(),
         "schemas": results.order_by("name")[:MAX_SCHEMA_RESULT_COUNT],
     })
 
