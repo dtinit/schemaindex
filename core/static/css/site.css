@@ -525,7 +525,7 @@ a.badge--rfc {
   color: #005a9c;
 }
 
-a.badge--rfc {
+a.badge--w3c {
   color: #005a9c;
 }
 /* Page styles */
@@ -614,6 +614,7 @@ a.badge--rfc {
 .schema-detail .badges {
   display: flex;
   flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 /* Delete schema */
