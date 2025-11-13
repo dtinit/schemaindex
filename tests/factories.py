@@ -1,6 +1,7 @@
 from factory.django import DjangoModelFactory
 from django.contrib.auth.models import User
 import factory
+from datetime import timezone
 from core.models import (
     BaseModel, Schema, ReferenceItem, SchemaRef, DocumentationItem
 )
@@ -24,6 +25,7 @@ class SchemaFactory(BaseModelFactory):
          model = Schema
     
     name = factory.Faker('bs')
+    published_at = factory.Faker("past_datetime", tzinfo=timezone.utc)
 
 
 class ReferenceItemFactory(BaseModelFactory):

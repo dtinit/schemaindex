@@ -9,6 +9,16 @@
 
 {% block page_content %}
 <main class="schema-detail">
+  {% if schema.published_at == None %}
+  <div class="info-box">
+    <p>
+      <b>This is a private draft.</b> Only you can see this page.
+    </p>
+    <p>
+      When you're ready to share your schema, <a href="{% url 'manage_schema_publish' schema_id=schema.id %}">make it public.</a> 
+    </p>
+  </div>
+  {% endif %}
   <h1>{{ schema.name }}</h1>
   <div class="content">
     <section class="sidebar">
