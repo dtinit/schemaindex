@@ -73,8 +73,7 @@
           /__prefix__/g,
           currentFormItemCount.toString()
         );
-        formsetListElement.innerHTML =
-          formsetListElement.innerHTML + nextFormItemHtml;
+        formsetListElement.insertAdjacentHTML('beforeend', nextFormItemHtml);
         const totalFormInput = formsetListElement.querySelector(
           'input[name="form-TOTAL_FORMS"]'
         );
