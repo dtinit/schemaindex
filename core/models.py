@@ -33,6 +33,11 @@ class Schema(BaseModel):
     name = models.CharField(max_length=200)
     published_at = models.DateTimeField(blank=True, null=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['published_at'])
+        ]
+
     def __str__(self):
         return self.name
 
