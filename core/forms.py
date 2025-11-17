@@ -1,10 +1,10 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 import requests
 from pygments.lexers import get_lexer_for_filename
 from pygments.util import ClassNotFound
-from urllib.parse import urlparse
-from .models import DocumentationItem, SchemaRef
+from .models import DocumentationItem, SchemaRef, Schema
 
 '''
 This is currently just a list of languages supported
@@ -127,11 +127,16 @@ class SchemaForm(forms.Form):
 
     def clean_reference_url(self):
         data = self._clean_url_field('reference_url', language_allowlist=SPECIFICATION_LANGUAGE_ALLOWLIST)
-        schema_refs = SchemaRef.objects.exclude(schema__id=self.id)
-        parsed_data = urlparse(data)
+        # If this schema is unpublished, we don't care if the URL is already in use
+        if self.id is None or not Schema.public_objects.filter(id=self.id).exists():
+            return data
+
+        # But if it's a published schema, we need to make sure the URL isn't already in use
+        schema_refs = SchemaRef.objects.select_related('schema').filter(
+            schema__in=Schema.public_objects.exclude(id=self.id)
+        )
         for schema_ref in schema_refs:
-            parsed_url = urlparse(schema_ref.url)
-            if parsed_url.netloc == parsed_data.netloc and parsed_url.path == parsed_data.path:
+            if schema_ref.has_same_domain_and_path(data):
                 raise ValidationError("The provided URL is already in use by another Schema")
         return data
 

@@ -1,10 +1,13 @@
 import logging
 
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from django.core.exceptions import PermissionDenied
+from datetime import datetime
 import requests
 import cmarkgfm
 import bleach
@@ -37,7 +40,7 @@ MARKDOWN_HTML_ATTRIBUTES = {
 
 def index(request):
     defined_schemas = (
-        Schema.objects
+        Schema.public_objects
         .prefetch_related("schemaref_set")
         .exclude(schemaref__isnull=True)
     )
@@ -52,9 +55,18 @@ def index(request):
 
 
 def schema_detail(request, schema_id):
+    schema_filter = Q(published_at__lte=datetime.now())
+
+    # Unpublished schemas can be viewed by their creators
+    if request.user.is_authenticated:
+        schema_filter |= Q(created_by=request.user)
+
     schema = get_object_or_404(
-        Schema.objects.prefetch_related("schemaref_set").prefetch_related("documentationitem_set"),
-        pk=schema_id
+        Schema.objects
+            .prefetch_related("schemaref_set")
+            .prefetch_related("documentationitem_set")
+            .filter(schema_filter),
+        pk=schema_id,
     )
 
     schemarefs = list(schema.schemaref_set.all())
@@ -65,7 +77,6 @@ def schema_detail(request, schema_id):
 
     latest_readme = schema.latest_readme()
     latest_readme_content = None
-    latest_readme_format = latest_readme.format
     if latest_readme:
         fetch_response = requests.get(latest_readme.url).text
         if latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
@@ -82,13 +93,14 @@ def schema_detail(request, schema_id):
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
         "schemarefs": schemarefs,
-        "latest_readme_format": latest_readme_format,
+        "latest_readme_format": latest_readme.format if latest_readme else None,
         "latest_readme_content": latest_readme_content,
         "latest_readme_url": latest_readme.url if latest_readme else None,
         "latest_license": schema.latest_license(),
         "latest_rfc": schema.latest_rfc(),
         "latest_w3c": schema.latest_w3c()
     })
+
 
 @login_required
 def account_profile(request):
@@ -169,7 +181,7 @@ def manage_schema(request, schema_id=None):
                 if not previous_item.id in updated_item_ids:
                     previous_item.delete()
 
-            return redirect('account_profile')
+            return redirect('schema_detail', schema_id=schema.id)
 
     else:
         form = SchemaForm(schema=schema)
@@ -185,6 +197,9 @@ def manage_schema(request, schema_id=None):
 def manage_schema_delete(request, schema_id):
     schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
 
+    if schema.published_at:
+        raise PermissionDenied('Public schemas cannot be deleted except by an admin')
+
     if request.method == 'POST':
         schema.delete()
         return redirect('account_profile')
@@ -192,6 +207,31 @@ def manage_schema_delete(request, schema_id):
     return render(request, "core/manage/delete_schema.html", {
         'schema': schema
     })
+
+
+@login_required
+def manage_schema_publish(request, schema_id):
+    schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
+
+    latest_reference = schema.latest_reference()
+    if request.method == 'POST':
+        if latest_reference == None:
+            raise PermissionDenied('Schemas without a definition cannot be published')
+
+        other_schema_refs = SchemaRef.objects.get_published_by_domain_and_path(latest_reference.url)
+        if other_schema_refs.exists():
+            raise PermissionDenied('Another public schema has claimed this definition URL')
+
+        schema.published_at = timezone.now() 
+        schema.save()
+        return redirect('schema_detail', schema_id=schema.id)
+   
+    conflicting_published_schema_ref = SchemaRef.objects.get_published_by_domain_and_path(latest_reference.url).first() if latest_reference else None
+    return render(request, "core/manage/publish_schema.html", {
+        'schema': schema,
+        'conflicting_schema': conflicting_published_schema_ref.schema if conflicting_published_schema_ref else None
+    })
+
 
 def about(request):
     return render(request, "core/about.html")

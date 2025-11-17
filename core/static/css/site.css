@@ -528,6 +528,32 @@ a.badge--rfc {
 a.badge--w3c {
   color: #005a9c;
 }
+
+.info-box {
+  background: #172554;
+  color: #bfdbfe;
+  border: 1px solid #1e3a8a;
+  padding: 1rem;
+  border-radius: 6px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.info-box a {
+  color: #eff6ff;
+  text-decoration: underline;
+}
+
+.info-box a:hover {
+  color: #ddd;
+}
+
+.dangerous-form,
+.dangerous-form .button-group {
+  align-items: center;
+  justify-content: center;
+}
+
 /* Page styles */
 
 /* Homepage */
@@ -617,13 +643,6 @@ a.badge--w3c {
   gap: 0.5rem;
 }
 
-/* Delete schema */
-.delete-schema,
-.delete-schema .button-group {
-  align-items: center;
-  justify-content: center;
-}
-
 /* Account profile */
 .account {
   margin: 1rem auto;
@@ -664,7 +683,33 @@ a.badge--w3c {
   justify-content: space-between;
 }
 
-.account .schema-list .schema .schema__action-group {
+.account .schema-list .schema .schema__action-group,
+.account .schema-list .schema .schema__info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.account .visibility-badge {
+  display: inline-block;
+  padding: 0.15rem 0.75rem;
+  padding: 0.15rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 14px;
+}
+
+.account .visibility-badge--published {
+  background: var(--primary-color);
+  color: #eee;
+}
+
+.account .visibility-badge--unpublished {
+  background: #525252;
+  color: #ddd;
+}
+
+.account .schema-list .schema .info {
   display: flex;
   align-items: center;
   justify-content: space-between;

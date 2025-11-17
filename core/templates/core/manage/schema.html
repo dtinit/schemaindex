@@ -1,4 +1,5 @@
 {% extends "core/layouts/base.html" %}
+{% load filters %}
 {% block head_title %}
 {% if is_new %}
 Add Schema
@@ -9,6 +10,11 @@ Edit Schema
 {% block page_content %}
 <main class="manage-schema">
   <h1>{% if is_new %}Add Schema{% else %}Edit Schema{% endif %}</h1>
+  {% if schema and not schema.published_at|exists_and_is_in_past %}
+  <div class="info-box">
+    When you're ready to make your schema public, <a href="{% url 'manage_schema_publish' schema_id=schema.id %}">click here.</a>
+  </div>
+  {% endif %}
   <section class="main-content form-container">
     <form action="{% if is_new %}{% url 'manage_schema_new' %}{% else %}{% url 'manage_schema' schema_id=schema.pk %}{% endif %}" method="POST">
       {% csrf_token %}
