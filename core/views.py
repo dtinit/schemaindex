@@ -7,6 +7,7 @@ from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
+from datetime import datetime
 import requests
 import cmarkgfm
 import bleach
@@ -54,7 +55,7 @@ def index(request):
 
 
 def schema_detail(request, schema_id):
-    schema_filter = Q(published_at__isnull=False)
+    schema_filter = Q(published_at__lte=datetime.now())
 
     # Unpublished schemas can be viewed by their creators
     if request.user.is_authenticated:

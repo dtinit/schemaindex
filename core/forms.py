@@ -132,8 +132,8 @@ class SchemaForm(forms.Form):
             return data
 
         # But if it's a published schema, we need to make sure the URL isn't already in use
-        schema_refs = SchemaRef.objects.select_related('schema').exclude(
-            Q(schema__id=self.id) | Q(schema__published_at__isnull=True)
+        schema_refs = SchemaRef.objects.select_related('schema').filter(
+            schema__in=Schema.public_objects.exclude(id=self.id)
         )
         for schema_ref in schema_refs:
             if schema_ref.has_same_domain_and_path(data):

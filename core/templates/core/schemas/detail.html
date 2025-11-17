@@ -1,5 +1,6 @@
 {% extends "core/layouts/base.html" %}
 {% load static %}
+{% load filters %}
 {% block head_title %}
 {{ schema.name }} - Schemas.Pub
 {% endblock %}
@@ -9,7 +10,7 @@
 
 {% block page_content %}
 <main class="schema-detail">
-  {% if schema.published_at == None %}
+  {% if not schema.published_at|exists_and_is_in_past %}
   <div class="info-box">
     <p>
       <b>This is a private draft.</b> Only you can see this page.
