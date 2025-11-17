@@ -198,7 +198,7 @@ def manage_schema_delete(request, schema_id):
     schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
 
     if schema.published_at:
-        raise PermissionDenied
+        raise PermissionDenied('Public schemas cannot be deleted except by an admin')
 
     if request.method == 'POST':
         schema.delete()
@@ -216,11 +216,11 @@ def manage_schema_publish(request, schema_id):
     latest_reference = schema.latest_reference()
     if request.method == 'POST':
         if latest_reference == None:
-            raise PermissionDenied
+            raise PermissionDenied('Schemas without a definition cannot be published')
 
         other_schema_refs = SchemaRef.objects.get_published_by_domain_and_path(latest_reference.url)
         if other_schema_refs.exists():
-            raise PermissionDenied
+            raise PermissionDenied('Another public schema has claimed this definition URL')
 
         schema.published_at = timezone.now() 
         schema.save()

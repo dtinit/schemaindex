@@ -1,6 +1,7 @@
 import pytest
 import requests_mock
 from tests.factories import SchemaFactory, UserFactory, SchemaRefFactory
+from core.models import Schema
 from django.test import Client
 
 
@@ -86,3 +87,27 @@ def test_private_schemas_with_new_urls_can_be_published():
     schema.refresh_from_db()
     assert schema.published_at != None
 
+
+@pytest.mark.django_db
+def test_private_schemas_can_be_deleted():
+    schema = SchemaFactory(published_at=None)
+    client = Client()
+    client.force_login(schema.created_by)
+    get_response = client.get(f'/manage/schema/{schema.id}/delete')
+    assert get_response.status_code == 200
+    post_response = client.post(f'/manage/schema/{schema.id}/delete', follow=True)
+    assert post_response.status_code == 200
+    assert not Schema.objects.filter(id=schema.id).exists()
+
+
+@pytest.mark.django_db
+def test_published_schemas_cannot_be_deleted():
+    schema = SchemaFactory()
+    client = Client()
+    client.force_login(schema.created_by)
+    get_response = client.get(f'/manage/schema/{schema.id}/delete')
+    assert get_response.status_code == 403
+    post_response = client.post(f'/manage/schema/{schema.id}/delete', follow=True)
+    assert post_response.status_code == 403
+    assert Schema.objects.filter(id=schema.id).exists()
+                        
