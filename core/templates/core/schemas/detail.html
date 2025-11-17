@@ -40,6 +40,16 @@
       {% if latest_license %}
       <p><a href="{{ latest_license.url }}">License</a></p>
       {% endif %}
+      {% if latest_readme_format == "html" and latest_readme_url %}
+        <p>
+          <a href="{{ latest_readme_url }}" target="_blank">
+            README
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--sm">
+                   <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6h5.25M18.75 6v5.25M18.75 6L9 15.75M6.75 6.75v10.5c0 .621.504 1.125 1.125 1.125h10.5"/>
+            </svg>
+          </a>
+        </p>
+      {% endif %}
     </section>
     <section class="main-content">
       <ul class="tab-links">
@@ -86,7 +96,7 @@
             <li><a href="{{documentation_item.url}}">{{documentation_item.name}}</a>
             {% endfor %}
           </ul>
-        </li> 
+        </li>
         {% endif %}
       </ul>
     </section>

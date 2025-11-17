@@ -63,6 +63,7 @@ class DocumentationItem(ReferenceItem):
     class DocumentationItemFormat(models.TextChoices):
         Markdown = 'markdown'
         PlainText = 'plaintext'
+        Html = 'html'
 
     name = models.CharField(max_length=300)
     description = models.TextField(blank=True, null=True)

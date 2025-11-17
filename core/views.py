@@ -74,6 +74,10 @@ def schema_detail(request, schema_id):
                                                   MARKDOWN_HTML_ATTRIBUTES)
         elif latest_readme.format == DocumentationItem.DocumentationItemFormat.PlainText:
             sanitized_html_content = bleach.clean(fetch_response)
+
+        elif latest_readme.format == DocumentationItem.DocumentationItemFormat.Html:
+            sanitized_html_content = bleach.clean(fetch_response, strip=True)
+            latest_readme_content = mark_safe(sanitized_html_content)
         else:
             logging.error(f"Unhandled README content format: {latest_readme.format}")
         # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
