@@ -108,12 +108,9 @@ class SchemaForm(forms.Form):
         try:
             lexer = get_lexer_for_filename(data)
         except ClassNotFound:
-            if not "plaintext" in language_allowlist:
-                raise ValidationError("The provided URL does not have a supported file extension")
-            else:
-                # If we don't have a match but plaintext is allowed, we'll just treat it as plaintext
-                self.matched_language_cache[data] = "plaintext"
-                return data
+            # If we don't have a match we'll just treat it as None
+            self.matched_language_cache[data] = None
+            return data
 
         matched_language = next(
             (alias for alias in language_allowlist if alias in lexer.aliases),
