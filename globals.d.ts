@@ -1,8 +1,7 @@
-interface WindowWithHljs extends Window {
-  hljs: {
-    highlightAll: () => void
+import { HLJSApi } from 'highlight.js';
+
+declare global {
+  interface Window {
+    hljs?: HLJSApi;
   }
 }
-declare const window: WindowWithHljs;
-
-export {}
