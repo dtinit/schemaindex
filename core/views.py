@@ -88,6 +88,7 @@ def schema_detail(request, schema_id):
             sanitized_html_content = bleach.clean(fetch_response)
             latest_readme_content = mark_safe(sanitized_html_content)
         else:
+            logging.error(f"Unhandled README content format: {latest_readme.format}")
             # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
             #Anyother format is returned as None
             latest_readme_content = None
