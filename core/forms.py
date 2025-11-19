@@ -124,6 +124,10 @@ class SchemaForm(forms.Form):
 
     def clean_reference_url(self):
         data = self._clean_url_field('reference_url', language_allowlist=SPECIFICATION_LANGUAGE_ALLOWLIST)
+        # Reject unknown or unsupported schema formats
+        if self.matched_language_cache.get(data) is None:
+            raise ValidationError("The provided URL does not have a supported file extension")
+
         # If this schema is unpublished, we don't care if the URL is already in use
         if self.id is None or not Schema.public_objects.filter(id=self.id).exists():
             return data
