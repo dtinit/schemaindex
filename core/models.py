@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth.models import User
-from datetime import datetime
+from django.utils import timezone
 from urllib.parse import urlparse
 
 class BaseModel(models.Model):
@@ -22,7 +22,7 @@ class PublicSchemaManager(models.Manager):
         return (
             super().get_queryset().filter(
                 published_at__isnull=False,
-                published_at__lte=datetime.now()
+                published_at__lte=timezone.now()
             )
         )
 
@@ -43,7 +43,7 @@ class Schema(BaseModel):
 
     @property
     def is_published(self):
-        return self.published_at and self.published_at >= datetime.now()
+        return self.published_at and self.published_at >= timezone.now()
 
     def _latest_documentation_item_of_type(self, role):
         return self.documentationitem_set.filter(role=role).order_by('-created_at').first()
