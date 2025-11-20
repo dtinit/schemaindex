@@ -49,7 +49,20 @@
       <p>Added on {{ schema.created_at | date }}</p>
       <p>Managed by {{ schema.created_by }}</p>
       {% if latest_license %}
-      <p><a href="{{ latest_license.url }}">License</a></p>
+      <p><a href="{{ latest_license.url }}">License
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--sm">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6h5.25M18.75 6v5.25M18.75 6L9 15.75M6.75 6.75v10.5c0 .621.504 1.125 1.125 1.125h10.5"/></svg>
+      </a></p>
+      {% endif %}
+      {% if latest_readme_format == None and latest_readme_url %}
+      <p>
+        <a href="{{ latest_readme_url }}" target="_blank">
+          README
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--sm">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6h5.25M18.75 6v5.25M18.75 6L9 15.75M6.75 6.75v10.5c0 .621.504 1.125 1.125 1.125h10.5"/></svg>
+          </a></p>
+        </a>
+      </p>
       {% endif %}
     </section>
     <section class="main-content">

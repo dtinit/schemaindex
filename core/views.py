@@ -82,12 +82,15 @@ def schema_detail(request, schema_id):
             html_content = cmarkgfm.github_flavored_markdown_to_html(fetch_response)
             sanitized_html_content = bleach.clean(html_content, MARKDOWN_HTML_TAGS,
                                                   MARKDOWN_HTML_ATTRIBUTES)
+            latest_readme_content = mark_safe(sanitized_html_content)
         elif latest_readme.format == DocumentationItem.DocumentationItemFormat.PlainText:
             sanitized_html_content = bleach.clean(fetch_response)
+            latest_readme_content = mark_safe(sanitized_html_content)
         else:
             logging.error(f"Unhandled README content format: {latest_readme.format}")
-        # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
-        latest_readme_content = mark_safe(sanitized_html_content)
+            # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
+            #Anyother format is returned as None
+            latest_readme_content = None
 
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
