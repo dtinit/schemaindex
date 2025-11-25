@@ -122,12 +122,28 @@ def manage_schema(request, schema_id=None):
             schema = schema if schema else Schema.objects.create(created_by=request.user)
             schema.name = form.cleaned_data['name']
             schema.save()
+            
+            previous_schema_refs = schema.schemaref_set.all()
+            previous_schema_refs_by_id = {
+                schema_ref.id: schema_ref for schema_ref in previous_schema_refs
+            }
+            updated_schema_ref_ids = set()
+            # Create/update schema_refs
+            for schema_ref_form in form.schema_refs_formset:
+                schema_ref_id = schema_ref_form.cleaned_data.get('id')
+                if schema_ref_id:
+                    db_item = previous_schema_refs_by_id[schema_ref_id]
+                    updated_schema_ref_ids.add(schema_ref_id)
+                else:
+                    db_item = SchemaRef.objects.create(schema=schema, created_by=request.user)
+                db_item.name = schema_ref_form.cleaned_data.get('name')
+                db_item.url = schema_ref_form.cleaned_data.get('url')
+                db_item.save()
 
-            latest_reference = schema.latest_reference()
-            if latest_reference == None:
-                latest_reference = SchemaRef.objects.create(schema=schema, created_by=request.user)
-            latest_reference.url = form.cleaned_data['reference_url']
-            latest_reference.save()
+            # Delete schema refs that were removed
+            for schema_ref in previous_schema_refs:
+                if not schema_ref.id in updated_schema_ref_ids:
+                    schema_ref.delete()
 
             latest_readme = schema.latest_readme()
             if latest_readme == None:
