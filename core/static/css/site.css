@@ -360,7 +360,7 @@ a.button-link--primary:hover {
   cursor: pointer;
 }
 
-.field .errorlist {
+.errorlist {
   color: var(--danger-color-text);
 }
 

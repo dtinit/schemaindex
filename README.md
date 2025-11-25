@@ -20,9 +20,10 @@ During local development, emails will output to the console instead of actually 
 
 We have JavaScript support for dynamic formsets as part of a form. For an example, see the "additional documentation" section of the [schema management form](core/templates/core/manage/schema.html).
 
-1. Create a `ul` element for the formset elements with the attribute `data-formset-list-id="<Some list id>"`.
-2. Render the formset's `empty_form` somewhere on the page inside an element with the attribute `data-formset-template-for-id="<The list id>"`.
-3. To use buttons to add and remove formset items to and from the formset, use the attribute `data-formset-append-to-list-id="<The list id>"` on the append button and `data-formset-remove-from-list-id="<The list id>"` on the remove button.
+1. Pass a custom `prefix` to the formset, e.g: `formset = FormsetFactory(prefix="<Some custom formset id>")`.
+2. Create a `ul` element for the formset elements with the attribute `data-formset-list-id="<The formset prefix>"`.
+3. Render the formset's `empty_form` somewhere on the page inside an element with the attribute `data-formset-template-for-id="<The formset prefix>"`.
+4. To use buttons to add and remove formset items to and from the formset, use the attribute `data-formset-append-to-list-id="<The formset prefix>"` on the append button and `data-formset-remove-from-list-id="<The formset prefix>"` on the remove button.
 
 ### Stylesheets
 

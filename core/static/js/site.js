@@ -75,7 +75,7 @@
         );
         formsetListElement.insertAdjacentHTML('beforeend', nextFormItemHtml);
         const totalFormInput = formsetListElement.querySelector(
-          'input[name="form-TOTAL_FORMS"]'
+          `input[name="${formsetListId}-TOTAL_FORMS"]`
         );
         if (totalFormInput instanceof HTMLInputElement) {
           totalFormInput.value = (currentFormItemCount + 1).toString();
@@ -99,7 +99,7 @@
         return;
       }
       const totalFormCountInput = formsetListElement.querySelector(
-        'input[name="form-TOTAL_FORMS"]'
+        `input[name="${formsetListId}-TOTAL_FORMS"]`
       );
       if (!(totalFormCountInput instanceof HTMLInputElement)) {
         return;
@@ -113,7 +113,7 @@
         }
         formsetElements[formsetElements.length - 1].remove();
         const totalFormInput = formsetListElement.querySelector(
-          'input[name="form-TOTAL_FORMS"]'
+          `input[name="${formsetListId}-TOTAL_FORMS"]`
         );
         if (totalFormInput instanceof HTMLInputElement) {
           totalFormInput.value = (formsetElements.length - 1).toString();
