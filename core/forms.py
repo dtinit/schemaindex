@@ -108,12 +108,9 @@ class SchemaForm(forms.Form):
         try:
             lexer = get_lexer_for_filename(data)
         except ClassNotFound:
-            if not "plaintext" in language_allowlist:
-                raise ValidationError("The provided URL does not have a supported file extension")
-            else:
-                # If we don't have a match but plaintext is allowed, we'll just treat it as plaintext
-                self.matched_language_cache[data] = "plaintext"
-                return data
+            # If we don't have a match we'll just treat it as None
+            self.matched_language_cache[data] = None
+            return data
 
         matched_language = next(
             (alias for alias in language_allowlist if alias in lexer.aliases),
@@ -127,6 +124,10 @@ class SchemaForm(forms.Form):
 
     def clean_reference_url(self):
         data = self._clean_url_field('reference_url', language_allowlist=SPECIFICATION_LANGUAGE_ALLOWLIST)
+        # Reject unknown or unsupported schema formats
+        if self.matched_language_cache.get(data) is None:
+            raise ValidationError("The provided URL does not have a supported file extension")
+
         # If this schema is unpublished, we don't care if the URL is already in use
         if self.id is None or not Schema.public_objects.filter(id=self.id).exists():
             return data
