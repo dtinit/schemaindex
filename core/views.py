@@ -229,22 +229,28 @@ def manage_schema_delete(request, schema_id):
 
 @login_required
 def manage_schema_publish(request, schema_id):
-    schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
+    schema = get_object_or_404(Schema.objects.filter(created_by=request.user).prefetch_related('schemaref_set'), id=schema_id)
+    published_schema_refs = SchemaRef.objects.filter(schema__in=Schema.public_objects.all()).all()
+    conflicting_published_schema_ref = None
+    for schema_ref in schema.schemaref_set.all():
+        for published_schema_ref in published_schema_refs:
+            if published_schema_ref.has_same_domain_and_path(schema_ref.url):
+                conflicting_published_schema_ref = published_schema_ref
+                break;
+        if conflicting_published_schema_ref:
+            break;
 
-    latest_reference = schema.latest_reference()
     if request.method == 'POST':
-        if latest_reference == None:
-            raise PermissionDenied('Schemas without a definition cannot be published')
-
-        other_schema_refs = SchemaRef.objects.get_published_by_domain_and_path(latest_reference.url)
-        if other_schema_refs.exists():
+        if conflicting_published_schema_ref:
             raise PermissionDenied('Another public schema has claimed this definition URL')
+
+        if schema.schemaref_set.count() == 0:
+            raise PermissionDenied('Schemas without a definition cannot be published')
 
         schema.published_at = timezone.now() 
         schema.save()
         return redirect('schema_detail', schema_id=schema.id)
    
-    conflicting_published_schema_ref = SchemaRef.objects.get_published_by_domain_and_path(latest_reference.url).first() if latest_reference else None
     return render(request, "core/manage/publish_schema.html", {
         'schema': schema,
         'conflicting_schema': conflicting_published_schema_ref.schema if conflicting_published_schema_ref else None
