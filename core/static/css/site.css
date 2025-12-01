@@ -11,7 +11,7 @@ html {
   --logo-color: #fde047;
   --text-link-color: #818cf8;
   --text-link-color-highlight: #a5b4fc;
-  background: #222;
+  background: #000;
   color: var(--text-primary);
   font-family: sans-serif;
   height: 100%;
@@ -365,7 +365,6 @@ a.button-link--primary:hover {
 }
 
 .markdown {
-  background: #222;
   padding: 0 1rem;
   overflow: auto;
 }
@@ -595,6 +594,94 @@ a.badge--w3c {
 }
 
 /* Schema detail */
+.schema-layout {
+  display: grid;
+  grid-template-columns: 17rem 1fr 17rem;
+  grid-template-rows: auto 1fr;
+}
+
+.schema-layout .schema-layout__header {
+  grid-column-start: span 3;
+  text-align: center;
+}
+
+.schema-layout .header__info {
+  margin-top: 1rem;
+  background: #191919;
+  border-bottom: 1px solid #444;
+  border-top: 1px solid #444;
+  color: var(--text-secondary);
+  padding: 1rem 2rem;
+  text-align: left;
+  display: flex;
+  gap: 1rem;
+}
+
+.schema-layout .schema-layout__nav {
+  padding: 1rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.schema-layout .schema-layout__nav a {
+  color: inherit;
+  font-weight: inherit;
+}
+
+.schema-layout .schema-layout__nav .nav-group {
+  border-bottom: 1px solid #333;
+}
+
+.schema-layout .schema-layout__nav .nav-group li a {
+  padding: 0.5rem;
+  border-radius: 8px;
+  margin: 0 -0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.schema-layout .schema-layout__nav .nav-group li a:hover,
+.schema-layout .schema-layout__nav .nav-group li a.is-active {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+.schema-layout .schema-layout__nav .nav-group .nav-group__section-header {
+  padding-top: 0.5rem;
+}
+
+.schema-layout .schema-layout__nav .nav-group .nav-group {
+  border-bottom: none;
+}
+
+.schema-layout .schema-layout__nav .nav-group .nav-group li a {
+  background: none;
+  padding-left: 1.8rem;
+  font-size: 14px;
+}
+
+.schema-layout .schema-layout__nav .nav-group .nav-group li a:hover {
+  text-decoration: underline;
+}
+
+.schema-layout .schema-layout__nav .nav-group-label {
+  color: #999;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: -0.5rem;
+}
+
+.schema-layout .schema-layout__content {
+  background: #2a2a2a;
+  border-left: 1px solid #444;
+  border-right: 1px solid #444;
+}
+
+/* Schema detail TODO: remove/replace */
 .schema-detail {
   margin: 1rem;
   display: flex;
