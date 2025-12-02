@@ -115,7 +115,7 @@ class SchemaForm(forms.Form):
     name = forms.CharField(label="Name", max_length=200)
     readme_url = forms.URLField(label="README URL")
     readme_format = forms.ChoiceField(
-        choices=DocumentationItem.DocumentationItemFormat.choices,
+        choices=[('', 'Other')] + list(DocumentationItem.DocumentationItemFormat.choices),
         required=False,
         label="README format",
     )
