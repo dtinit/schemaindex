@@ -53,14 +53,14 @@ def index(request):
     })
 
 
-def schema_detail(request, schema_id):
+# Unpublished schemas can be viewed by their creators
+def _get_public_or_owned_schema_or_404(request, schema_id):
     schema_filter = Q(published_at__lte=timezone.now())
 
-    # Unpublished schemas can be viewed by their creators
     if request.user.is_authenticated:
         schema_filter |= Q(created_by=request.user)
 
-    schema = get_object_or_404(
+    return get_object_or_404(
         Schema.objects
             .prefetch_related("schemaref_set")
             .prefetch_related("documentationitem_set")
@@ -68,11 +68,9 @@ def schema_detail(request, schema_id):
         pk=schema_id,
     )
 
-    schemarefs = list(schema.schemaref_set.all())
-    for schemaref in schemarefs:
-        # I feel like we can do better here- e.g. put the get request in the model and
-        # pull from cache
-        schemaref.content = escape(requests.get(schemaref.url).text)
+
+def schema_detail(request, schema_id):
+    schema = _get_public_or_owned_schema_or_404(request, schema_id)
 
     latest_readme = schema.latest_readme()
     latest_readme_content = None
@@ -93,13 +91,24 @@ def schema_detail(request, schema_id):
 
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
-        "schemarefs": schemarefs,
         "latest_readme_format": latest_readme.format if latest_readme else None,
         "latest_readme_content": latest_readme_content,
         "latest_readme_url": latest_readme.url if latest_readme else None,
-        "latest_license": schema.latest_license(),
-        "latest_rfc": schema.latest_rfc(),
-        "latest_w3c": schema.latest_w3c()
+        "latest_license": schema.latest_license()
+    })
+
+
+def schema_ref_detail(request, schema_id, schema_ref_id):
+    schema = _get_public_or_owned_schema_or_404(request, schema_id)
+    schema_ref = get_object_or_404(schema.schemaref_set.filter(id=schema_ref_id))
+    # I feel like we can do better here- e.g. put the get request in the model and
+    # pull from cache
+    schema_ref.content = escape(requests.get(schema_ref.url).text)
+
+    return render(request, "core/schemas/detail_schema_ref.html", {
+        "schema": schema,
+        "schema_ref": schema_ref,
+        "latest_license": schema.latest_license()
     })
 
 
