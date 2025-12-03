@@ -1,4 +1,8 @@
 {% extends "core/schemas/layout.html" %}
+{% load static %}
+{% block extra_head %}
+<script src="{% static 'js/initialize-syntax-highlighting.js' %}"></script>
+{% endblock %}
 {% block head_title %}
 {% if schema_ref.name %}
 {{ schema_ref.name }} - {{ schema.name }} - Schemas.Pub
