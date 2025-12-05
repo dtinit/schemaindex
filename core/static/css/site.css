@@ -11,7 +11,7 @@ html {
   --logo-color: #fde047;
   --text-link-color: #818cf8;
   --text-link-color-highlight: #a5b4fc;
-  background: #222;
+  background: #000;
   color: var(--text-primary);
   font-family: sans-serif;
   height: 100%;
@@ -96,12 +96,14 @@ select {
   display: inline;
   width: 1rem;
   height: 1rem;
+  flex-shrink: 0;
 }
 
 .icon--md {
   display: inline;
   width: 1.5rem;
   height: 1.5rem;
+  flex-shrink: 0;
 }
 
 .messages {
@@ -364,16 +366,13 @@ a.button-link--primary:hover {
   color: var(--danger-color-text);
 }
 
-.markdown {
-  background: #222;
-  padding: 0 1rem;
-  overflow: auto;
+.plaintext {
+  font-family: 'Courier New';
 }
 
-.plaintext {
-  background: #222;
+.markdown {
+  overflow: auto;
   padding: 0 1rem;
-  font-family: 'Courier New';
 }
 
 .markdown p,
@@ -537,6 +536,7 @@ a.badge--w3c {
   border-radius: 6px;
   margin: 0 auto;
   text-align: center;
+  display: inline-block;
 }
 
 .info-box a {
@@ -595,37 +595,146 @@ a.badge--w3c {
 }
 
 /* Schema detail */
-.schema-detail {
-  margin: 1rem;
+.schema-layout {
+  display: grid;
+  grid-template-columns: 17rem 1fr 17rem;
+  grid-template-rows: auto 1fr;
+}
+
+.schema-layout .schema-layout__header {
+  grid-column-start: span 3;
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
 }
 
-.schema-detail .content {
+.schema-layout .header__info {
+  background: #191919;
+  border-bottom: 1px solid #444;
+  border-top: 1px solid #444;
+  color: var(--text-secondary);
+  padding: 1rem 2rem;
+  text-align: left;
   display: flex;
   gap: 1rem;
-  align-items: flex-start;
-  justify-content: center;
   width: 100%;
 }
 
-.schema-detail .sidebar {
-  width: 15rem;
-  background: #333;
+.schema-layout .schema-layout__nav {
   padding: 1rem;
-  border-radius: 8px;
   color: var(--text-secondary);
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.schema-detail .schema-tab {
+.schema-layout hr {
+  border-color: #444;
+}
+
+.schema-layout .schema-layout__nav a {
+  color: inherit;
+  font-weight: inherit;
+}
+
+.schema-layout .schema-layout__nav .nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.schema-layout .schema-layout__nav .nav-group li a {
+  padding: 0.5rem;
+  border-radius: 8px;
+  margin: 0 -0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.schema-layout .schema-layout__nav .nav-group li a:hover,
+.schema-layout .schema-layout__nav .nav-group li a.is-active {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+.schema-layout .schema-layout__nav .nav-group .nav-group__section-header {
+  padding-top: 0.5rem;
+}
+
+/* A nested nav-group */
+.schema-layout .schema-layout__nav .nav-group .nav-group {
+  border-bottom: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.schema-layout .schema-layout__nav .nav-group .nav-group li a {
+  padding: 0;
+  background: none;
+  padding-left: 1.85rem;
+  font-size: 14px;
+}
+
+.schema-layout .schema-layout__nav .nav-group .nav-group li a:hover {
+  text-decoration: underline;
+}
+
+.schema-layout .schema-layout__nav .nav-group-label {
+  color: #999;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: -0.75rem;
+}
+
+.schema-layout .schema-layout__content {
+  background: #2a2a2a;
+  border-left: 1px solid #444;
+  border-right: 1px solid #444;
+  overflow: hidden;
+}
+
+.schema-layout .schema-layout__content .external-readme-link {
+  padding: 1rem;
+}
+
+.schema-layout .schema-layout__extra {
+  padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  color: var(--text-secondary);
+}
+
+.schema-layout .schema-layout__extra .detail-list,
+.schema-layout .schema-layout__extra .detail-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.schema-layout .schema-layout__extra .detail-list .detail-list-item__label {
+  font-size: 14px;
+}
+
+.schema-layout .schema-layout__extra .detail-list .detail-list-item__value {
+  color: #fff;
+}
+
+.schema-ref-detail {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.schema-ref-detail h2 {
+  color: #fff;
 }
 
 .schema-definition {
@@ -633,11 +742,14 @@ a.badge--w3c {
 }
 
 .schema-definition .hljs {
-  background: #222;
+  background: #000;
+  border-radius: 6px;
+  border: 1px solid #444;
+  overflow: hidden;
   white-space: pre-wrap;
 }
 
-.schema-detail .badges {
+.badges {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;

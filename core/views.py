@@ -7,6 +7,7 @@ from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
+from functools import wraps
 import requests
 import cmarkgfm
 import bleach
@@ -37,6 +38,30 @@ MARKDOWN_HTML_ATTRIBUTES = {
     "a": ["href", "alt", "title"],
 }
 
+# ---- Decorators ----
+
+def lookup_schema(function):
+    @wraps(function)
+    def _wrap_request(request, schema_id, *args, **kwargs):
+        schema_filter = Q(published_at__lte=timezone.now())
+
+        if request.user.is_authenticated:
+            schema_filter |= Q(created_by=request.user)
+
+        schema = get_object_or_404(
+            Schema.objects
+                .prefetch_related("schemaref_set")
+                .prefetch_related("documentationitem_set")
+                .filter(schema_filter),
+            pk=schema_id,
+        )
+        
+        return function(request, schema, *args, **kwargs)
+    return _wrap_request
+
+
+# --- Views
+
 def index(request):
     defined_schemas = (
         Schema.public_objects
@@ -53,27 +78,8 @@ def index(request):
     })
 
 
-def schema_detail(request, schema_id):
-    schema_filter = Q(published_at__lte=timezone.now())
-
-    # Unpublished schemas can be viewed by their creators
-    if request.user.is_authenticated:
-        schema_filter |= Q(created_by=request.user)
-
-    schema = get_object_or_404(
-        Schema.objects
-            .prefetch_related("schemaref_set")
-            .prefetch_related("documentationitem_set")
-            .filter(schema_filter),
-        pk=schema_id,
-    )
-
-    schemarefs = list(schema.schemaref_set.all())
-    for schemaref in schemarefs:
-        # I feel like we can do better here- e.g. put the get request in the model and
-        # pull from cache
-        schemaref.content = escape(requests.get(schemaref.url).text)
-
+@lookup_schema
+def schema_detail(request, schema):
     latest_readme = schema.latest_readme()
     latest_readme_content = None
     if latest_readme:
@@ -82,25 +88,35 @@ def schema_detail(request, schema_id):
             html_content = cmarkgfm.github_flavored_markdown_to_html(fetch_response)
             sanitized_html_content = bleach.clean(html_content, MARKDOWN_HTML_TAGS,
                                                   MARKDOWN_HTML_ATTRIBUTES)
+            # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
             latest_readme_content = mark_safe(sanitized_html_content)
         elif latest_readme.format == DocumentationItem.DocumentationItemFormat.PlainText:
-            sanitized_html_content = bleach.clean(fetch_response)
-            latest_readme_content = mark_safe(sanitized_html_content)
+            latest_readme_content = fetch_response 
         else:
             logging.error(f"Unhandled README content format: {latest_readme.format}")
-            # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
-            #Anyother format is returned as None
+            # Any other format is returned as None
             latest_readme_content = None
 
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
-        "schemarefs": schemarefs,
         "latest_readme_format": latest_readme.format if latest_readme else None,
         "latest_readme_content": latest_readme_content,
         "latest_readme_url": latest_readme.url if latest_readme else None,
-        "latest_license": schema.latest_license(),
-        "latest_rfc": schema.latest_rfc(),
-        "latest_w3c": schema.latest_w3c()
+        "latest_license": schema.latest_license()
+    })
+
+
+@lookup_schema
+def schema_ref_detail(request, schema, schema_ref_id):
+    schema_ref = get_object_or_404(schema.schemaref_set.filter(id=schema_ref_id))
+    # I feel like we can do better here- e.g. put the get request in the model and
+    # pull from cache
+    schema_ref.content = escape(requests.get(schema_ref.url).text)
+
+    return render(request, "core/schemas/detail_schema_ref.html", {
+        "schema": schema,
+        "schema_ref": schema_ref,
+        "latest_license": schema.latest_license()
     })
 
 

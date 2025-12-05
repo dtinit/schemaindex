@@ -63,6 +63,12 @@ class Schema(BaseModel):
     def latest_w3c(self):
         return self._latest_documentation_item_of_type(role=DocumentationItem.DocumentationItemRole.W3C)
 
+    def additional_documentation_items(self):
+        return self.documentationitem_set.exclude(role__in=[
+            DocumentationItem.DocumentationItemRole.README,
+            DocumentationItem.DocumentationItemRole.License
+        ])
+
 
 class ReferenceItemManager(models.Manager):
     def get_published_by_domain_and_path(self, url):

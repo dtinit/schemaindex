@@ -1,0 +1,43 @@
+{% extends "core/schemas/layout.html" %}
+{% load static %}
+{% block extra_head %}
+<script src="{% static 'js/initialize-syntax-highlighting.js' %}"></script>
+{% endblock %}
+{% block head_title %}
+{% if schema_ref.name %}
+{{ schema_ref.name }} - {{ schema.name }} - Schemas.Pub
+{% else %}
+{{ schema.name }} - Schemas.Pub
+{% endif %}
+{% endblock %}
+
+{% block schema_content %}
+<div class="schema-ref-detail">
+  {% if schema_ref.name %}
+  <h2>{{ schema_ref.name }}</h2>
+  {% elif schema.schemaref_set.count == 1 %}
+  <h2>{{ schema.name }}</h2>
+  {% else %}
+  <h2>Unnamed definition</h2>
+  {% endif %}
+  <!-- Please don't add whitespace to this line!-->
+  <pre class="schema-definition"><code>{{ schema_ref.content|escape }}</code></pre>
+  <p>
+    <a href="{{ schema_ref.url }}">View source</a>
+  </p>
+</div>
+{% endblock %}
+
+{% block schema_extra %}
+Activity
+<ul class="detail-list">
+  <li>
+    <div class="detail-list-item__label">Last updated</div>
+    <div class="detail-list-item__value">{{ schema_ref.updated_at|date }}</div>
+  </li>
+  <li>
+    <div class="detail-list-item__label">Added on</div>
+    <div class="detail-list-item__value">{{ schema_ref.created_at|date }}</div>
+  </li>
+</ul>
+{% endblock %}
