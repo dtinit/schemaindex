@@ -7,6 +7,7 @@ from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
+from functools import wraps
 import requests
 import cmarkgfm
 import bleach
@@ -37,6 +38,30 @@ MARKDOWN_HTML_ATTRIBUTES = {
     "a": ["href", "alt", "title"],
 }
 
+# ---- Decorators ----
+
+def lookup_schema(function):
+    @wraps(function)
+    def _wrap_request(request, schema_id, *args, **kwargs):
+        schema_filter = Q(published_at__lte=timezone.now())
+
+        if request.user.is_authenticated:
+            schema_filter |= Q(created_by=request.user)
+
+        schema = get_object_or_404(
+            Schema.objects
+                .prefetch_related("schemaref_set")
+                .prefetch_related("documentationitem_set")
+                .filter(schema_filter),
+            pk=schema_id,
+        )
+        
+        return function(request, schema, *args, **kwargs)
+    return _wrap_request
+
+
+# --- Views
+
 def index(request):
     defined_schemas = (
         Schema.public_objects
@@ -53,25 +78,8 @@ def index(request):
     })
 
 
-# Unpublished schemas can be viewed by their creators
-def _get_public_or_owned_schema_or_404(request, schema_id):
-    schema_filter = Q(published_at__lte=timezone.now())
-
-    if request.user.is_authenticated:
-        schema_filter |= Q(created_by=request.user)
-
-    return get_object_or_404(
-        Schema.objects
-            .prefetch_related("schemaref_set")
-            .prefetch_related("documentationitem_set")
-            .filter(schema_filter),
-        pk=schema_id,
-    )
-
-
-def schema_detail(request, schema_id):
-    schema = _get_public_or_owned_schema_or_404(request, schema_id)
-
+@lookup_schema
+def schema_detail(request, schema):
     latest_readme = schema.latest_readme()
     latest_readme_content = None
     if latest_readme:
@@ -98,8 +106,8 @@ def schema_detail(request, schema_id):
     })
 
 
-def schema_ref_detail(request, schema_id, schema_ref_id):
-    schema = _get_public_or_owned_schema_or_404(request, schema_id)
+@lookup_schema
+def schema_ref_detail(request, schema, schema_ref_id):
     schema_ref = get_object_or_404(schema.schemaref_set.filter(id=schema_ref_id))
     # I feel like we can do better here- e.g. put the get request in the model and
     # pull from cache
