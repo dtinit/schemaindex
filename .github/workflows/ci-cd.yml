@@ -286,3 +286,15 @@ jobs:
             --title="${{ steps.create-tag.outputs.tag }}" \
             --notes="$release_body" \
             --generate-notes
+
+  notify-slack:
+    needs: [deploy, create-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Notify via Slack'
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.WORKFLOW_NOTIFICATION_SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "*Schemas.Pub was just deployed to ${{ inputs.environment }} at ${{ needs.deploy.outputs.url }}*\nView the changes: https://github.com/dtinit/schemaindex/releases/tag/${{ needs.create-release.outputs.tag }}"
