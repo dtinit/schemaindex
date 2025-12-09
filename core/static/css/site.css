@@ -248,8 +248,7 @@ a.button-link--primary:hover {
   align-self: flex-end;
 }
 
-.button,
-.tab-link {
+.button {
   font-weight: 500;
   cursor: pointer;
   color: var(--text-primary);
@@ -259,8 +258,7 @@ a.button-link--primary:hover {
   justify-content: center;
 }
 
-.button:hover,
-.tab-link:hover {
+.button:hover {
   color: var(--text-secondary);
 }
 
@@ -487,36 +485,6 @@ a.button-link--primary:hover {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
-}
-
-.tab-links {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 2rem;
-  border-bottom: 1px solid #555;
-  overflow: auto;
-}
-
-.tab-link {
-  padding: 0.5rem 0 1rem;
-  border-bottom: 2px solid transparent;
-}
-
-.tab-link:hover {
-  color: var(--text-link-color-highlight);
-  border-color: var(--text-link-color-highlight);
-}
-
-.tab-link--is-active,
-.tab-link--is-active:hover {
-  color: var(--text-link-color);
-  border-color: var(--text-link-color);
-}
-
-.inactive-tab {
-  display: none !important;
 }
 
 .site-footer {
