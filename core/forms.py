@@ -2,9 +2,10 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 import requests
-from pygments.lexers import get_lexer_for_filename
+from pygments.lexers import get_lexer_for_filename, get_all_lexers
 from pygments.util import ClassNotFound
 from .models import DocumentationItem, SchemaRef, Schema
+
 
 '''
 This is currently just a list of languages supported
@@ -19,8 +20,20 @@ can less tightly connect what file extension something is to what we tell the hi
 Note that the actual allowlist is an intersection
 of this list and the lexers from pygments.
 '''
+
 SPECIFICATION_LANGUAGE_ALLOWLIST = [
 "bash","c","cpp","csharp","css","diff","go","graphql","ini","java","javascript","json","kotlin","less","lua","makefile","markdown","objectivec","perl","php","php-template","python","python-repl","r","ruby","rust","scss","shell","sql","swift","typescript","vbnet","wasm","xml","yaml","cddl"
+]
+
+# These are just alphabetized and shown as help text
+EXPLICITLY_SUPPORTED_FILE_EXTENSIONS = [
+    '.json',
+    '.markdown',
+    '.md',
+    '.xml',
+    '.yaml',
+    '.yml',
+    '.cddl'
 ]
 
 class ReferenceItemForm(forms.Form):
@@ -53,7 +66,20 @@ def clean_url(url):
 class SchemaRefForm(ReferenceItemForm):
     schema_id = None
 
-    name = forms.CharField(label="Name", max_length=200, required=False)
+    name = forms.CharField(
+        label="Name",
+        max_length=200,
+        required=False,
+        help_text="Optional: Descriptive name for this schema file"
+    )
+    url = forms.URLField(
+        label="URL",
+        help_text=f"Accepted formats: {', '.join(sorted(EXPLICITLY_SUPPORTED_FILE_EXTENSIONS))}"
+    )
+
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def clean_url(self):
         if not self.cleaned_data['url']:
@@ -112,14 +138,26 @@ DocumentationItemFormsetFactory = forms.formset_factory(DocumentationItemForm, e
 class SchemaForm(forms.Form):
     id = None
 
-    name = forms.CharField(label="Name", max_length=200)
-    readme_url = forms.URLField(label="README URL")
+    name = forms.CharField(
+        label="Name",
+        max_length=200,
+        help_text="A descriptive name for your schema"
+    )
+    readme_url = forms.URLField(
+        label="README URL",
+        widget=forms.TextInput(attrs={'placeholder': 'https://example.com/README.md'})
+    )
     readme_format = forms.ChoiceField(
         choices=[('', 'Other')] + list(DocumentationItem.DocumentationItemFormat.choices),
         required=False,
         label="README format",
+        help_text="Markdown and Plaintext READMEs are displayed on Schemas.Pub"
     )
-    license_url = forms.URLField(label="License URL", required=False)
+    license_url = forms.URLField(
+        label="License URL",
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'https://example.com/LICENSE'})
+    )
 
     def __init__(self, *args, schema = None, **kwargs):
         super().__init__(*args, **kwargs)

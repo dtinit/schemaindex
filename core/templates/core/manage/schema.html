@@ -19,14 +19,12 @@ Edit Schema
     <form action="{% if is_new %}{% url 'manage_schema_new' %}{% else %}{% url 'manage_schema' schema_id=schema.pk %}{% endif %}" method="POST">
       {% csrf_token %}
       <h2>Schema details</h2>
-      {% for field in form %}
-      {% include "core/manage/field.html" with field=field %}
-      {% endfor %}
-      <h2>Definitions</h2>
+      {% include "core/manage/field.html" with field=form.name %}
+      <h2 class="field__label--is-required">Definition URL </h2>
       <ul class="formsets" data-formset-list-id="schema_refs">
       {{ form.schema_refs_formset.management_form }}
       {% for subform in form.schema_refs_formset %}
-        {% include "core/manage/formset_item.html" with form=subform %}
+        {% include "core/manage/schema_ref_form.html" with form=subform %}
       {% endfor %}
       </ul>
       <div class="formset-controls">
@@ -43,11 +41,16 @@ Edit Schema
           Remove
         </button>
       </div>
+      <div class="split-field-container split-field-container--67-33">
+        {% include "core/manage/field.html" with field=form.readme_url %}
+        {% include "core/manage/field.html" with field=form.readme_format %}
+      </div>
+      {% include "core/manage/field.html" with field=form.license_url %}
       <h2>Additional documentation</h2>
       <ul class="formsets" data-formset-list-id="documentation_items">
       {{ form.additional_documentation_items_formset.management_form }}
       {% for subform in form.additional_documentation_items_formset %}
-        {% include "core/manage/formset_item.html" with form=subform %}
+        {% include "core/manage/documentation_item_form.html" with form=subform %}
       {% endfor %}
       </ul>
       <div class="formset-controls">
@@ -68,10 +71,10 @@ Edit Schema
       <button type="submit" class="button button--prominent">{% if is_new %}Create schema{% else %}Save{% endif %}</button>
     </form>
     <div class="empty-form" data-formset-template-for-id="documentation_items">
-      {% include "core/manage/formset_item.html" with form=form.additional_documentation_items_formset.empty_form %}
+      {% include "core/manage/documentation_item_form.html" with form=form.additional_documentation_items_formset.empty_form %}
     </div>
     <div class="empty-form" data-formset-template-for-id="schema_refs">
-      {% include "core/manage/formset_item.html" with form=form.schema_refs_formset.empty_form %}
+      {% include "core/manage/schema_ref_form.html" with form=form.schema_refs_formset.empty_form %}
     </div>
   </section>
 </main>
