@@ -81,6 +81,7 @@ select {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  color: var(--text-primary);
 }
 
 .nav-header__auth-actions {
@@ -207,29 +208,6 @@ select {
   color: var(--text-secondary);
 }
 
-.button-link {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.button-link--primary {
-  background: var(--primary-color);
-  text-decoration: none;
-  border-radius: 1rem;
-  padding: 0.25rem 1.25rem;
-  box-shadow: 0 4px 4px -1px rgba(0, 0, 0, 0.1);
-}
-
-a.button-link--primary:hover {
-  color: var(--text-primary);
-  background: var(--primary-color-highlight);
-  text-decoration: none;
-}
-
-.button-link--primary:active {
-  box-shadow: none;
-}
-
 .account-page {
   width: 100%;
   max-width: 30rem;
@@ -260,6 +238,33 @@ a.button-link--primary:hover {
 
 .button:hover {
   color: var(--text-secondary);
+}
+
+/* A button that looks like a link */
+.button--link {
+  color: var(--text-link-color);
+}
+
+.button--link:hover {
+  color: var(--text-link-color-highlight);
+}
+
+.button--primary {
+  background: var(--primary-color);
+  text-decoration: none;
+  border-radius: 1rem;
+  padding: 0.25rem 1.25rem;
+  box-shadow: 0 4px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+a.button--primary:hover {
+  color: var(--text-primary);
+  background: var(--primary-color-highlight);
+  text-decoration: none;
+}
+
+.button--primary:active {
+  box-shadow: none;
 }
 
 .button--prominent,
