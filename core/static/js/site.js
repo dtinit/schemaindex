@@ -16,6 +16,78 @@
     };
   };
 
+  /** @param {HTMLElement} formsetElement */
+  const attachFormsetControlHandlers = (formsetElement) => {
+    const closeTriggerElements = Array.from(
+      formsetElement.getElementsByClassName('formset__close-trigger')
+    );
+    closeTriggerElements.forEach((element) => {
+      element.addEventListener('click', () => {
+        formsetElement.remove();
+      });
+    });
+  };
+
+  /**
+   * Django formsets have an internal "management form" which tracks
+   * the number of forms inside the formset. Rather than updating these
+   * values manually as we add or remove forms, here we start watching
+   * the formset's children so we can update the management form values
+   * as we detect forms being added/removed.
+   *
+   * Note: this assumes all forms within an element with the
+   * "data-formset-list-id" attribute have the ".formset" class.
+   *
+   * @param {HTMLElement} formsetListElement
+   */
+  const initializeFormsetListManagementForm = (formsetListElement) => {
+    const formsetListId = formsetListElement.getAttribute(
+      'data-formset-list-id'
+    );
+    if (!formsetListId) {
+      console.error(
+        new Error(
+          "The formset list element has no 'data-formset-list-id' attribute"
+        )
+      );
+      return;
+    }
+    const totalFormInput = formsetListElement.querySelector(
+      `input[name="${formsetListId}-TOTAL_FORMS"]`
+    );
+    const mutationObserver = new MutationObserver((mutationList) => {
+      mutationList.forEach((mutation) => {
+        if (mutation.type !== 'childList') {
+          return;
+        }
+        if (!(totalFormInput instanceof HTMLInputElement)) {
+          console.error(
+            new Error(
+              'The formset list element has no TOTAL_FORMS input (did you forget to render the management form?'
+            )
+          );
+          return;
+        }
+        totalFormInput.value = formsetListElement
+          .getElementsByClassName('formset')
+          .length.toString();
+        // If nodes were not added, we're done. Otherwise, wire up the handlers.
+        if (!mutation.addedNodes || !mutation.addedNodes.length) {
+          return;
+        }
+        mutation.addedNodes.forEach((node) => {
+          if (
+            node instanceof HTMLElement &&
+            node.classList.contains('formset')
+          ) {
+            attachFormsetControlHandlers(node);
+          }
+        });
+      });
+    });
+    mutationObserver.observe(formsetListElement, { childList: true });
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
     Array.from(document.querySelectorAll('.js-autosubmit-input'))
       // If the input isn't in a form, there's nothing to submit
@@ -44,6 +116,22 @@
         }
       });
     });
+
+    Array.from(document.querySelectorAll('[data-formset-list-id]')).forEach(
+      (formsetListElement) => {
+        if (!(formsetListElement instanceof HTMLElement)) {
+          return;
+        }
+        initializeFormsetListManagementForm(formsetListElement);
+        Array.from(
+          formsetListElement.getElementsByClassName('formset')
+        ).forEach((formsetElement) => {
+          if (formsetElement instanceof HTMLElement) {
+            attachFormsetControlHandlers(formsetElement);
+          }
+        });
+      }
+    );
 
     Array.from(
       document.querySelectorAll('[data-formset-append-to-list-id]')
@@ -74,50 +162,6 @@
           currentFormItemCount.toString()
         );
         formsetListElement.insertAdjacentHTML('beforeend', nextFormItemHtml);
-        const totalFormInput = formsetListElement.querySelector(
-          `input[name="${formsetListId}-TOTAL_FORMS"]`
-        );
-        if (totalFormInput instanceof HTMLInputElement) {
-          totalFormInput.value = (currentFormItemCount + 1).toString();
-        }
-      });
-    });
-
-    Array.from(
-      document.querySelectorAll('[data-formset-remove-from-list-id]')
-    ).forEach((removeTriggerElement) => {
-      const formsetListId = removeTriggerElement.getAttribute(
-        'data-formset-remove-from-list-id'
-      );
-      if (!formsetListId) {
-        return;
-      }
-      const formsetListElement = document.querySelector(
-        `[data-formset-list-id="${formsetListId}"]`
-      );
-      if (!formsetListElement) {
-        return;
-      }
-      const totalFormCountInput = formsetListElement.querySelector(
-        `input[name="${formsetListId}-TOTAL_FORMS"]`
-      );
-      if (!(totalFormCountInput instanceof HTMLInputElement)) {
-        return;
-      }
-      removeTriggerElement.addEventListener('click', () => {
-        const formsetElements = Array.from(
-          formsetListElement.getElementsByClassName('formset')
-        );
-        if (!formsetElements.length) {
-          return;
-        }
-        formsetElements[formsetElements.length - 1].remove();
-        const totalFormInput = formsetListElement.querySelector(
-          `input[name="${formsetListId}-TOTAL_FORMS"]`
-        );
-        if (totalFormInput instanceof HTMLInputElement) {
-          totalFormInput.value = (formsetElements.length - 1).toString();
-        }
       });
     });
 
@@ -128,66 +172,5 @@
         }
       );
     }, MESSAGE_TIMEOUT_MS);
-
-    /** @param {string} tabId */
-    const activateTab = (tabId) => {
-      const tabLinkElement = document.querySelector(
-        `[data-tab-link="${tabId}"]`
-      );
-      const tabElement = document.querySelector(`[data-tab-id="${tabId}"]`);
-      if (
-        !(tabLinkElement instanceof HTMLElement) ||
-        !(tabElement instanceof HTMLElement) ||
-        !tabElement.parentElement ||
-        !tabLinkElement.parentElement ||
-        !tabLinkElement.parentElement.parentElement
-      ) {
-        return;
-      }
-      const tabContainerElement = tabElement.parentElement;
-      const tabLinkContainerElement =
-        tabLinkElement.parentElement.parentElement;
-      Array.from(tabContainerElement.children).forEach((otherTabElement) => {
-        if (otherTabElement === tabElement) {
-          otherTabElement.classList.remove('inactive-tab');
-          return;
-        }
-        otherTabElement.classList.add('inactive-tab');
-      });
-
-      Array.from(tabLinkContainerElement.children).forEach(
-        (otherTabLinkContainerElement) => {
-          const otherTabLinkElement = otherTabLinkContainerElement.children[0];
-          if (!otherTabLinkElement) {
-            return;
-          }
-          if (otherTabLinkElement === tabLinkElement) {
-            otherTabLinkElement.classList.add('tab-link--is-active');
-            return;
-          }
-          otherTabLinkElement.classList.remove('tab-link--is-active');
-        }
-      );
-    };
-
-    Array.from(document.querySelectorAll('.tab-links')).forEach(
-      (tabLinkContainerElement) => {
-        const tabLinkElements = Array.from(
-          tabLinkContainerElement.querySelectorAll('.tab-link')
-        );
-        tabLinkElements.forEach((tabLinkElement, i) => {
-          const tabId = tabLinkElement.getAttribute('data-tab-link');
-          if (!tabId) {
-            return;
-          }
-          if (i === 0) {
-            activateTab(tabId);
-          }
-          tabLinkElement.addEventListener('click', () => {
-            activateTab(tabId);
-          });
-        });
-      }
-    );
   });
 })();

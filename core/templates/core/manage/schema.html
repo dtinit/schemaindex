@@ -19,59 +19,50 @@ Edit Schema
     <form action="{% if is_new %}{% url 'manage_schema_new' %}{% else %}{% url 'manage_schema' schema_id=schema.pk %}{% endif %}" method="POST">
       {% csrf_token %}
       <h2>Schema details</h2>
-      {% for field in form %}
-      {% include "core/manage/field.html" with field=field %}
-      {% endfor %}
-      <h2>Definitions</h2>
+      {% include "core/manage/field.html" with field=form.name %}
+      <h2 class="field__label--is-required">Definition URL </h2>
       <ul class="formsets" data-formset-list-id="schema_refs">
       {{ form.schema_refs_formset.management_form }}
       {% for subform in form.schema_refs_formset %}
-        {% include "core/manage/formset_item.html" with form=subform %}
+        {% include "core/manage/schema_ref_form.html" with form=subform %}
       {% endfor %}
       </ul>
       <div class="formset-controls">
-        <button type="button" class="button" data-formset-append-to-list-id="schema_refs">
+        <button type="button" class="button button--link" data-formset-append-to-list-id="schema_refs">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--md">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
           Add schema definition
         </button>
-        <button type="button" class="button" data-formset-remove-from-list-id="schema_refs">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--md">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" />
-          </svg>
-          Remove
-        </button>
       </div>
+      <div class="split-field-container split-field-container--67-33">
+        {% include "core/manage/field.html" with field=form.readme_url %}
+        {% include "core/manage/field.html" with field=form.readme_format %}
+      </div>
+      {% include "core/manage/field.html" with field=form.license_url %}
       <h2>Additional documentation</h2>
       <ul class="formsets" data-formset-list-id="documentation_items">
       {{ form.additional_documentation_items_formset.management_form }}
       {% for subform in form.additional_documentation_items_formset %}
-        {% include "core/manage/formset_item.html" with form=subform %}
+        {% include "core/manage/documentation_item_form.html" with form=subform %}
       {% endfor %}
       </ul>
       <div class="formset-controls">
-        <button type="button" class="button" data-formset-append-to-list-id="documentation_items">
+        <button type="button" class="button button--link" data-formset-append-to-list-id="documentation_items">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--md">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
           Add documentation link
-        </button>
-        <button type="button" class="button" data-formset-remove-from-list-id="documentation_items">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--md">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" />
-          </svg>
-          Remove
         </button>
       </div>
       {{ form.non_field_errors }}
       <button type="submit" class="button button--prominent">{% if is_new %}Create schema{% else %}Save{% endif %}</button>
     </form>
     <div class="empty-form" data-formset-template-for-id="documentation_items">
-      {% include "core/manage/formset_item.html" with form=form.additional_documentation_items_formset.empty_form %}
+      {% include "core/manage/documentation_item_form.html" with form=form.additional_documentation_items_formset.empty_form %}
     </div>
     <div class="empty-form" data-formset-template-for-id="schema_refs">
-      {% include "core/manage/formset_item.html" with form=form.schema_refs_formset.empty_form %}
+      {% include "core/manage/schema_ref_form.html" with form=form.schema_refs_formset.empty_form %}
     </div>
   </section>
 </main>

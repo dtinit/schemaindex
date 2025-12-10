@@ -25,7 +25,7 @@
                 {% endif %}"
             >
             {% if request.path != '/' %}
-            <a class="home-link button-link" href="{% url 'index' %}">
+            <a class="home-link" href="{% url 'index' %}">
                 <span>
                     <span class="color-logo">{</span>Schemas<span class="color-logo">.</span>Pub<span class="color-logo">}</span>
                 </span>
@@ -40,8 +40,8 @@
             </a>
             {% else %}
             <div class="nav-header__auth-actions">
-                <a href="{% url 'account_signup' %}" class="button-link">Sign up</a> 
-                <a href="{% url 'account_login' %}" class="button-link button-link--primary">Sign in</a>
+                <a href="{% url 'account_signup' %}" class="button">Sign up</a> 
+                <a href="{% url 'account_login' %}" class="button button--primary">Sign in</a>
             </div>
             {% endif %}
             {% endif %}

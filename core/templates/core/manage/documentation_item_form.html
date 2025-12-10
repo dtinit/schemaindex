@@ -1,0 +1,15 @@
+<li class="formset form-container">
+  <button class="button formset__close-trigger" type="button">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon--md">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+    </svg>
+  </button>
+  <div class="split-field-container split-field-container--67-33">
+    {% include "core/manage/field.html" with field=form.name %}
+    {% include "core/manage/field.html" with field=form.role %}
+  </div>
+  <div class="split-field-container split-field-container--67-33">
+    {% include "core/manage/field.html" with field=form.url %}
+    {% include "core/manage/field.html" with field=form.format %}
+  </div>
+</li>
