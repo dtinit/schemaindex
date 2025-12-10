@@ -474,6 +474,7 @@ a.button--primary:hover {
   border-radius: 8px;
   background: #444;
   width: 100%;
+  position: relative;
 }
 
 .formset input,
@@ -483,6 +484,12 @@ a.button--primary:hover {
 
 .formset:first-child {
   padding-top: 0;
+}
+
+.formset .formset__close-trigger {
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
 }
 
 .formset-controls {
