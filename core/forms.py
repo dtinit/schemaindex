@@ -1,3 +1,4 @@
+from urllib.parse import urlparse
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
@@ -86,10 +87,11 @@ class SchemaRefForm(ReferenceItemForm):
             return None
 
         data = clean_url(self.cleaned_data['url'])
+        parsed_url = urlparse(data)
 
         # Use pygments to verify the language from the filename
         try:
-            lexer = get_lexer_for_filename(data)
+            lexer = get_lexer_for_filename(parsed_url.path)
         except ClassNotFound:
             raise ValidationError("The provided URL does not have a supported file extension")
 
