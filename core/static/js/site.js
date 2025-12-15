@@ -172,5 +172,9 @@
         }
       );
     }, MESSAGE_TIMEOUT_MS);
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
   });
 })();
