@@ -51,7 +51,8 @@ def test_schema_management_form_allows_duplicate_private_urls():
 @pytest.mark.parametrize("spec_url, expect_success",
                          [['http://example.com/schema.cddl', True],
                            ['', False],
-                           ['http://example.com/schema.BOGUS', False]])
+                           ['http://example.com/schema.BOGUS', False],
+                            ['http://example.com/schema.cddl?param=hello#anchor', True]])
 def test_clean_url(spec_url, expect_success):
     with requests_mock.Mocker() as m:
         m.get(spec_url, text='{}')
