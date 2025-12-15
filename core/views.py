@@ -16,6 +16,7 @@ from .models import (Schema,
                      SchemaRef,
                      DocumentationItem)
 from .forms import SchemaForm, DocumentationItemForm
+from .utils import guess_language_by_extension
 
 
 MAX_SCHEMA_RESULT_COUNT = 30
@@ -31,6 +32,7 @@ MARKDOWN_HTML_TAGS = [
     "img",
     "a",
     "sub", "sup",
+    "table", "thead", "tbody", "th", "tr", "td"
 ] 
 MARKDOWN_HTML_ATTRIBUTES = {
     "*": ["id"],
@@ -60,7 +62,16 @@ def lookup_schema(function):
     return _wrap_request
 
 
-# --- Views
+# ---- Helpers ----
+
+def render_markdown(markdown_source_text):
+    html_content = cmarkgfm.github_flavored_markdown_to_html(markdown_source_text)
+    sanitized_html_content = bleach.clean(html_content, MARKDOWN_HTML_TAGS, MARKDOWN_HTML_ATTRIBUTES)
+    # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
+    return mark_safe(sanitized_html_content)
+
+
+# ---- Views ----
 
 def index(request):
     defined_schemas = (
@@ -83,15 +94,11 @@ def schema_detail(request, schema):
     latest_readme = schema.latest_readme()
     latest_readme_content = None
     if latest_readme:
-        fetch_response = requests.get(latest_readme.url).text
+        response_text = requests.get(latest_readme.url).text
         if latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
-            html_content = cmarkgfm.github_flavored_markdown_to_html(fetch_response)
-            sanitized_html_content = bleach.clean(html_content, MARKDOWN_HTML_TAGS,
-                                                  MARKDOWN_HTML_ATTRIBUTES)
-            # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
-            latest_readme_content = mark_safe(sanitized_html_content)
+            latest_readme_content = render_markdown(response_text)
         elif latest_readme.format == DocumentationItem.DocumentationItemFormat.PlainText:
-            latest_readme_content = fetch_response 
+            latest_readme_content = response_text
         else:
             logging.error(f"Unhandled README content format: {latest_readme.format}")
             # Any other format is returned as None
@@ -109,9 +116,14 @@ def schema_detail(request, schema):
 @lookup_schema
 def schema_ref_detail(request, schema, schema_ref_id):
     schema_ref = get_object_or_404(schema.schemaref_set.filter(id=schema_ref_id))
-    # I feel like we can do better here- e.g. put the get request in the model and
+    # TODO: I feel like we can do better here- e.g. put the get request in the model and
     # pull from cache
-    schema_ref.content = escape(requests.get(schema_ref.url).text)
+    text_content = requests.get(schema_ref.url).text
+    language = guess_language_by_extension(schema_ref.url, ["markdown"])
+    if language == "markdown":
+        schema_ref.markdown = render_markdown(text_content)
+    else:
+        schema_ref.content = escape(text_content)
 
     return render(request, "core/schemas/detail_schema_ref.html", {
         "schema": schema,

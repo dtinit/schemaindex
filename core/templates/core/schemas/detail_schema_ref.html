@@ -20,8 +20,14 @@
   {% else %}
   <h2>Unnamed definition</h2>
   {% endif %}
+  {% if schema_ref.markdown %}
+  <div class="markdown">
+    {{ schema_ref.markdown }}
+  </div>
+  {% else %}
   <!-- Please don't add whitespace to this line!-->
   <pre class="schema-definition"><code>{{ schema_ref.content|escape }}</code></pre>
+  {% endif %}
   <p>
     <a href="{{ schema_ref.url }}">View source</a>
   </p>

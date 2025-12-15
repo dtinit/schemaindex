@@ -3,9 +3,8 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 import requests
-from pygments.lexers import get_lexer_for_filename, get_all_lexers
-from pygments.util import ClassNotFound
 from .models import DocumentationItem, SchemaRef, Schema
+from .utils import guess_language_by_extension
 
 
 '''
@@ -85,22 +84,11 @@ class SchemaRefForm(ReferenceItemForm):
     def clean_url(self):
         if not self.cleaned_data['url']:
             return None
+        data = self.cleaned_data['url']; 
+        matched_language = guess_language_by_extension(data, SPECIFICATION_LANGUAGE_ALLOWLIST)
 
-        data = clean_url(self.cleaned_data['url'])
-        parsed_url = urlparse(data)
-
-        # Use pygments to verify the language from the filename
-        try:
-            lexer = get_lexer_for_filename(parsed_url.path)
-        except ClassNotFound:
-            raise ValidationError("The provided URL does not have a supported file extension")
-
-        matched_language = next(
-            (alias for alias in SPECIFICATION_LANGUAGE_ALLOWLIST if alias in lexer.aliases),
-            None
-        )
         if not matched_language:
-            raise ValidationError("The text content at the provided URL is not in a supported format")
+            raise ValidationError("The provided URL does not have a supported file extension")
         
         # If the schema is unpublished, we don't care if the URL is already in use
         if self.schema_id is None or not Schema.public_objects.filter(id=self.schema_id).exists():

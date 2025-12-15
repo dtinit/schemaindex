@@ -419,6 +419,16 @@ a.button--primary:hover {
   margin: 1rem 0;
 }
 
+.markdown table th,
+.markdown table td {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #666;
+}
+
+.markdown table tr:nth-child(2n) {
+  background: #333;
+}
+
 .main-content {
   width: 100%;
   max-width: 60rem;
