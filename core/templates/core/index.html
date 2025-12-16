@@ -47,7 +47,7 @@ Schemas.Pub - A public schema registry
         {% else %}
         of {{ total_schema_count }}
         {% endif %}
-        schema{{ schemas | pluralize }}:
+        schema{{ total_schema_count | pluralize }}:
       {% else %}
       No {% if request.GET.search_query %} matching {% endif %} schemas.
       {% endif %}
