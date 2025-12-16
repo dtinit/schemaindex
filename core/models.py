@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
 from urllib.parse import urlparse
+from .utils import guess_specification_language_by_extension, guess_language_by_extension
 
 class BaseModel(models.Model):
     class Meta:
@@ -108,17 +109,21 @@ class ReferenceItem(BaseModel):
 class SchemaRef(ReferenceItem):
     schema = models.ForeignKey(Schema, on_delete=models.CASCADE)
 
+    @property
+    def language(self):
+        return guess_specification_language_by_extension(self.url)
+
 
 class DocumentationItem(ReferenceItem):
     class DocumentationItemRole(models.TextChoices):
-        README = 'readme'
+        README = 'readme', 'README'
         License = 'license'
-        RFC = 'rfc'
-        W3C = 'w3c'
+        RFC = 'rfc', 'RFC'
+        W3C = 'w3c', 'W3C'
 
     class DocumentationItemFormat(models.TextChoices):
         Markdown = 'markdown'
-        PlainText = 'plaintext'
+        PlainText = 'plaintext', 'Plain text'
 
     name = models.CharField(max_length=300)
     description = models.TextField(blank=True, null=True)
@@ -128,4 +133,8 @@ class DocumentationItem(ReferenceItem):
 
     def __str__(self):
         return self.name
+
+    @property
+    def language(self):
+        return guess_language_by_extension(self.url, ['markdown'])
 
