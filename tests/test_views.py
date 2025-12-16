@@ -1,7 +1,10 @@
 import pytest
 import requests_mock
-from tests.factories import SchemaFactory, UserFactory, SchemaRefFactory
-from core.models import Schema
+from tests.factories import (
+    SchemaFactory, UserFactory, SchemaRefFactory,
+    DocumentationItemFactory
+)
+from core.models import Schema, DocumentationItem
 from django.test import Client
 
 
@@ -52,6 +55,65 @@ def test_private_schemas_not_listed():
     response = client.get('/')
     assert response.status_code == 200
     assert schema.name not in str(response.content)
+
+
+@pytest.mark.django_db
+def test_published_schemas_filterable_by_language():
+    json_schema = SchemaFactory()
+    json_schema_ref = SchemaRefFactory(url="http://example.com/schema.json", schema=json_schema)
+    xml_schema = SchemaFactory()
+    xml_schema_ref = SchemaRefFactory(url="http://example.com/schema.xml", schema=xml_schema)
+    client = Client()
+    default_response = client.get('/')
+    assert json_schema.name in str(default_response.content)
+    assert xml_schema.name in str(default_response.content)
+    json_filtered_response = client.get('/?specification_file_type=json')
+    assert json_schema.name in str(json_filtered_response.content)
+    assert xml_schema.name not in str(json_filtered_response.content)
+    xml_filtered_response = client.get('/?specification_file_type=xml')
+    assert json_schema.name not in str(xml_filtered_response.content)
+    assert xml_schema.name in str(xml_filtered_response.content)
+
+
+@pytest.mark.django_db
+def test_published_schemas_filterable_by_documentation_item_role():
+    rfc_schema = SchemaFactory()
+    SchemaRefFactory(schema=rfc_schema)
+    rfc_item = DocumentationItemFactory(
+        schema=rfc_schema,
+        role=DocumentationItem.DocumentationItemRole.RFC
+    )
+    w3c_schema = SchemaFactory()
+    SchemaRefFactory(schema=w3c_schema)
+    w3c_item = DocumentationItemFactory(
+        schema=w3c_schema,
+        role=DocumentationItem.DocumentationItemRole.W3C
+    )
+    client = Client()
+    default_response = client.get('/')
+    assert rfc_schema.name in str(default_response.content)
+    assert w3c_schema.name in str(default_response.content)
+    rfc_filtered_response = client.get(f'/?documentation_role={DocumentationItem.DocumentationItemRole.RFC.value}')
+    assert rfc_schema.name in str(rfc_filtered_response.content)
+    assert w3c_schema.name not in str(rfc_filtered_response.content)
+    w3c_filtered_response = client.get(f'/?documentation_role={DocumentationItem.DocumentationItemRole.W3C.value}')
+    assert rfc_schema.name not in str(w3c_filtered_response.content)
+    assert w3c_schema.name in str(w3c_filtered_response.content)
+
+
+@pytest.mark.django_db
+def test_published_schemas_searchable_by_name():
+    matching_schema = SchemaFactory(name="Matching Schema")
+    SchemaRefFactory(schema=matching_schema)
+    other_schema = SchemaFactory(name="Other Schema")
+    SchemaRefFactory(schema=other_schema)
+    client = Client()
+    default_response = client.get('/')
+    assert matching_schema.name in str(default_response.content)
+    assert other_schema.name in str(default_response.content)
+    searched_response = client.get('/?search_query=matching')
+    assert matching_schema.name in str(searched_response.content)
+    assert other_schema.name not in str(searched_response.content)
 
 
 @pytest.mark.django_db
