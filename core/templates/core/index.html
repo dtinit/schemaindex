@@ -43,13 +43,13 @@ Schemas.Pub - A public schema registry
     <p>
       {% if schemas|length > 0 %}
         Showing {{ schemas | length }}
-        {% if request.GET.search_query %} matching
+        {% if request.GET.search_query or request.GET.specification_file_type or request.GET.documentation_role %} matching
         {% else %}
         of {{ total_schema_count }}
         {% endif %}
         schema{{ total_schema_count | pluralize }}:
       {% else %}
-      No {% if request.GET.search_query %} matching {% endif %} schemas.
+      No {% if request.GET.search_query or request.GET.specification_file_type or request.GET.documentation_role %} matching {% endif %} schemas.
       {% endif %}
     </p>
     <ul class="schema-list">
