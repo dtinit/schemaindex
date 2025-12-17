@@ -74,9 +74,6 @@ def render_markdown(markdown_source_text):
 # ---- Views ----
 
 def index(request):
-    logger = logging.getLogger(__name__)
-    logger.info("Schema Index main page accessed")
-    
     defined_schemas = (
         Schema.public_objects
         .prefetch_related("schemaref_set")
@@ -85,13 +82,6 @@ def index(request):
 
     search_query = request.GET.get('search_query', None)
     results = defined_schemas.filter(name__icontains=search_query) if search_query else defined_schemas
-
-    if search_query:
-        results_count = results.count()
-        logger.info(f"Search performed: query='{search_query}', results_count={results_count}")
-        
-        if results_count == 0:
-            logger.warning(f"Search returned no results: query='{search_query}'")
 
     return render(request, "core/index.html", {
         "total_schema_count": defined_schemas.count(),
