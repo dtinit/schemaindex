@@ -40,43 +40,30 @@ STORAGES = {
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'json': {
-            '()': 'django_google_structured_logger.formatter.GoogleFormatter',
-        },
-    },
-    'handlers': {
-        'google_cloud': {
-            'class': 'google.cloud.logging_v2.handlers.StructuredLogHandler',
-            'stream': sys.stdout,
-            'formatter': 'json',
-        },
-        # If we need a fallback or for debugging if necessary
-        'console': {
-            'class': 'logging.StreamHandler',
-            'stream': sys.stderr,
-        },
-    },
-    'root': {
-        'handlers': ['google_cloud'],
-        'level': 'INFO',
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['google_cloud'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'django.request': {
-            'handlers': ['google_cloud'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-    },
-}
+if os.environ.get('USE_GCLOUD_LOGGING', '0') == '1':
+    LOGGING["handlers"]["cloud_logging"] = {
+        "()": "schemaindex.utils.logging_utils.get_cloud_logging_handler",
+    }
+    
+    LOGGING["root"] = {
+        "handlers": ["cloud_logging"],
+        "level": "INFO",
+    }
+    
+    LOGGING["loggers"]["django"]["handlers"] = ["cloud_logging"]
+    LOGGING["loggers"]["django"]["propagate"] = False
+
+    LOGGING["loggers"]["schemaindex"] = {
+        "handlers": ["cloud_logging"],
+        "level": "INFO",
+        "propagate": False,
+    }
+    
+    LOGGING["loggers"]["django.request"] = {
+        "handlers": ["cloud_logging"],
+        "level": "INFO",
+        "propagate": False,
+    }
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"

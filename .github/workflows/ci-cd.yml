@@ -236,6 +236,7 @@ jobs:
           --set-env-vars DJANGO_SECRET_KEY="${{ secrets.DJANGO_SECRET_KEY }}"
           --set-env-vars DJ_DATABASE_CONN_STRING="postgres://${{ env.ENCODED_DB_CREDENTIALS }}@//cloudsql/${{ secrets.CLOUD_SQL_ICN }}/${{ vars.DATABASE_NAME }}"
           --set-env-vars EMAIL_HOST_PASSWORD="${{ secrets.EMAIL_HOST_PASSWORD }}"
+          --set-env-vars USE_GCLOUD_LOGGING=1
           --allow-unauthenticated
 
   create-release:

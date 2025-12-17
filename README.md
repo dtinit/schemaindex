@@ -14,6 +14,14 @@ To start the project, run `python3 manage.py runserver`.
 
 During local development, emails will output to the console instead of actually sending.
 
+## Cloud Logging
+
+Basic log aggregation for Cloud Run.
+
+Set environment variable in Cloud Run: `USE_GCLOUD_LOGGING=1`
+
+For local development: Logs go to console (no Cloud Logging). The `USE_GCLOUD_LOGGING` variable should remain unset or set to `0`.
+
 ## Utilites
 
 ### Formsets
