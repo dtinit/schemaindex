@@ -18,25 +18,38 @@ Schemas.Pub - A public schema registry
   <h2>A public schema registry</h2>
   <section class="main-content">
     <form action="" method="GET">
-      <input
-        name="search_query"
-        type="text"
-        placeholder="Search for a schema"
-        value="{{ request.GET.search_query }}" 
-        class="js-autosubmit-input"
-        {% if 'search_query' in request.GET %}autofocus{% endif %}
-      />
+      <div class="split-field-container split-field-container--50-25-25">
+        <input
+          name="search_query"
+          type="text"
+          placeholder="Search for a schema"
+          value="{{ request.GET.search_query }}" 
+          class="js-autosubmit-input field"
+          {% if request.GET.search_query %}autofocus{% endif %}
+        />
+        <select name="specification_file_type" class="js-autosubmit-select field">
+          <option value="" {% if not request.GET.specification_file_type %}selected{% endif %}>Any language</option>
+          <option value="json" {% if request.GET.specification_file_type == 'json' %}selected{% endif %}>JSON</option>
+          <option value="xml" {% if request.GET.specification_file_type == 'xml' %}selected{% endif %}>XML</option>
+        </select>
+        <select name="documentation_role" class="js-autosubmit-select field">
+          <option value="" {% if not request.GET.documentation_role %}selected{% endif %}>Any documentation</option>
+          {% for role in documentation_roles %}
+          <option value="{{ role.value }}" {% if request.GET.documentation_role == role.value %}selected{% endif %}>{{ role.label }}</option> 
+          {% endfor %}
+        </select>
+      </div>
     </form>
     <p>
       {% if schemas|length > 0 %}
         Showing {{ schemas | length }}
-        {% if request.GET.search_query %} matching
+        {% if request.GET.search_query or request.GET.specification_file_type or request.GET.documentation_role %} matching
         {% else %}
         of {{ total_schema_count }}
         {% endif %}
-        schema{{ schemas | pluralize }}:
+        schema{{ total_schema_count | pluralize }}:
       {% else %}
-      No {% if request.GET.search_query %} matching {% endif %} schemas.
+      No {% if request.GET.search_query or request.GET.specification_file_type or request.GET.documentation_role %} matching {% endif %} schemas.
       {% endif %}
     </p>
     <ul class="schema-list">

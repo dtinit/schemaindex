@@ -4,26 +4,8 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 import requests
 from .models import DocumentationItem, SchemaRef, Schema
-from .utils import guess_language_by_extension
+from .utils import guess_specification_language_by_extension
 
-
-'''
-This is currently just a list of languages supported
-by our syntax highlighter, Highlight.js, *without plaintext.*
-You can regenerate this list by loading up the site,
-opening a JS REPL in the browser's dev tools,
-and executing `hljs.listLanguanges()`.
-
-CDDL is an IETF schema language so it is added.  We may eventually need some logic so that we
-can less tightly connect what file extension something is to what we tell the highlighter what to use.
-
-Note that the actual allowlist is an intersection
-of this list and the lexers from pygments.
-'''
-
-SPECIFICATION_LANGUAGE_ALLOWLIST = [
-"bash","c","cpp","csharp","css","diff","go","graphql","ini","java","javascript","json","kotlin","less","lua","makefile","markdown","objectivec","perl","php","php-template","python","python-repl","r","ruby","rust","scss","shell","sql","swift","typescript","vbnet","wasm","xml","yaml","cddl"
-]
 
 # These are just alphabetized and shown as help text
 EXPLICITLY_SUPPORTED_FILE_EXTENSIONS = [
@@ -85,7 +67,7 @@ class SchemaRefForm(ReferenceItemForm):
         if not self.cleaned_data['url']:
             return None
         data = self.cleaned_data['url']; 
-        matched_language = guess_language_by_extension(data, SPECIFICATION_LANGUAGE_ALLOWLIST)
+        matched_language = guess_specification_language_by_extension(data)
 
         if not matched_language:
             raise ValidationError("The provided URL does not have a supported file extension")

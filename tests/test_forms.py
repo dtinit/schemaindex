@@ -1,7 +1,7 @@
 import pytest
 import requests_mock
 from urllib.parse import urlparse, urlunparse
-from core.forms import SchemaForm, SPECIFICATION_LANGUAGE_ALLOWLIST, clean_url
+from core.forms import SchemaForm, clean_url
 from tests.factories import SchemaFactory, SchemaRefFactory
 from core.models import DocumentationItem
 

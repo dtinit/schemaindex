@@ -107,6 +107,19 @@
         }
       });
 
+    Array.from(document.querySelectorAll('.js-autosubmit-select'))
+      // If the input isn't in a form, there's nothing to submit
+      .filter(
+        /** @returns {input is (HTMLSelectElement & {form: HTMLFormElement})} */
+        (input) => input instanceof HTMLSelectElement && Boolean(input.form)
+      )
+      .forEach((selectElement) => {
+        const handleChange = () => {
+          selectElement.form.submit();
+        };
+        selectElement.addEventListener('input', handleChange);
+      });
+
     Array.from(
       document.querySelectorAll('.message__dismissal-trigger')
     ).forEach((element) => {

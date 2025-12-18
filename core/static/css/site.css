@@ -382,12 +382,20 @@ a.button--primary:hover {
   width: 50%;
 }
 
-.split-field-container--67-33 .field:first-of-type {
+.split-field-container--67-33 .field:first-child {
   width: 67%;
 }
 
-.split-field-container--67-33 .field:last-of-type {
+.split-field-container--67-33 .field:last-child {
   width: 33%;
+}
+
+.split-field-container--50-25-25 .field {
+  width: 25%;
+}
+
+.split-field-container--50-25-25 .field:first-child {
+  width: 50%;
 }
 
 .errorlist {

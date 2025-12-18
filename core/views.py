@@ -16,7 +16,6 @@ from .models import (Schema,
                      SchemaRef,
                      DocumentationItem)
 from .forms import SchemaForm, DocumentationItemForm
-from .utils import guess_language_by_extension
 
 
 MAX_SCHEMA_RESULT_COUNT = 30
@@ -78,14 +77,34 @@ def index(request):
         Schema.public_objects
         .prefetch_related("schemaref_set")
         .exclude(schemaref__isnull=True)
+        .order_by("name")
     )
 
     search_query = request.GET.get('search_query', None)
-    results = defined_schemas.filter(name__icontains=search_query) if search_query else defined_schemas
+    specification_file_type = request.GET.get('specification_file_type', None)
+    documentation_role = request.GET.get('documentation_role', None)
+
+    filtered_by_documentation_type = defined_schemas.filter(
+        documentationitem__role=documentation_role
+    ) if documentation_role else defined_schemas
+
+    filtered_by_name = filtered_by_documentation_type.filter(
+        name__icontains=search_query
+    ) if search_query else filtered_by_documentation_type
+
+    filtered_by_specification_file_type = [
+        schema for schema in filtered_by_name
+        if any(schema_ref.language == specification_file_type for schema_ref in schema.schemaref_set.all())
+    ] if specification_file_type else filtered_by_name
+
 
     return render(request, "core/index.html", {
         "total_schema_count": defined_schemas.count(),
-        "schemas": results.order_by("name")[:MAX_SCHEMA_RESULT_COUNT],
+        "schemas": filtered_by_specification_file_type[:MAX_SCHEMA_RESULT_COUNT],
+        "documentation_roles": [
+            DocumentationItem.DocumentationItemRole.RFC,
+            DocumentationItem.DocumentationItemRole.W3C
+        ]
     })
 
 
@@ -119,8 +138,7 @@ def schema_ref_detail(request, schema, schema_ref_id):
     # TODO: I feel like we can do better here- e.g. put the get request in the model and
     # pull from cache
     text_content = requests.get(schema_ref.url).text
-    language = guess_language_by_extension(schema_ref.url, ["markdown"])
-    if language == "markdown":
+    if schema_ref.language == "markdown":
         schema_ref.markdown = render_markdown(text_content)
     else:
         schema_ref.content = escape(text_content)
