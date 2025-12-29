@@ -13,4 +13,42 @@ def test_multiple_schemarefs():
     assert Schema.objects.all().count() == 1
     assert my_schema.schemaref_set.count() == 2
 
+@pytest.mark.parametrize("repo_url, raw_url", [
+    [
+        "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
+        "https://raw.githubusercontent.com/userorg/reponame/branch/path/to/file.json"
+    ],
+    [
+        "https://github.com/userorg/reponame/blob/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json",
+        "https://raw.githubusercontent.com/userorg/reponame/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json"
+    ],
 
+])
+def test_reference_item_github_url_info_converts_repo_url_to_raw(repo_url, raw_url):
+    schema_ref = SchemaRef(url=repo_url)
+    assert schema_ref.url_provider_info.raw_url == raw_url
+     
+
+@pytest.mark.parametrize("repo_url, raw_url", [
+    [
+        "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
+        "https://raw.githubusercontent.com/userorg/reponame/refs/heads/branch/path/to/file.json"
+    ],
+    [
+        "https://github.com/userorg/reponame/blob/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json",
+        "https://raw.githubusercontent.com/userorg/reponame/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json"
+    ],
+    [
+        "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
+        # GitHub provides this style of link in the web UI
+        # but redirects them to raw.githubusercontent.com
+        "https://github.com/userorg/reponame/raw/refs/heads/branch/path/to/file.json"
+    ],
+    [
+        "https://github.com/userorg/reponame/blob/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json",
+        "https://github.com/userorg/reponame/raw/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json"
+    ]
+])
+def test_reference_item_github_url_info_converts_raw_url_to_repo(repo_url, raw_url):
+    schema_ref = SchemaRef(url=raw_url)
+    assert schema_ref.url_provider_info.repo_url == repo_url
