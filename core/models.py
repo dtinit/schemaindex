@@ -89,6 +89,112 @@ class ReferenceItemManager(models.Manager):
         return super().get_queryset().filter(id__in=matching_published_schema_ref_ids)
 
 
+class URLProviderInfo:
+    """
+    Encapsulates provider-specific (e.g. GitHub) URL info and helpers.
+    """
+    provider_name = None
+
+
+    def __init__(self, url):
+        self.url = url
+
+    @classmethod
+    def from_url(cls, url):
+        if GitHubURLInfo.matches(url):
+            return GitHubURLInfo(url)
+
+        return cls(url)
+
+
+class GitHubURLInfo(URLProviderInfo):
+    """
+    GitHub URL helpers for converting "repo URLs"
+    (github.com/user/repo/branch/blob/path/file.json)
+    to "raw URLs"
+    (raw.githubusercontent.com/user/repo/path/file.json)
+    and vice versa.
+
+    Repo URLs host a file within GitHub's web UI and are meant to be
+    accessed by a browser, whereas raw URLs resolve to the actual file.
+
+    We don't currently support every possible format of these two URLs,
+    but we've tried to cover the most common ones for now.
+
+    The raw URLs constructed by this class may differ slightly from what
+    you'd get when clicking the actual "Raw" link for a file in GitHub's web UI,
+    but they should both resolve to the same file.
+    """
+
+    REPO_NETLOC = "github.com"
+    RAW_NETLOC = "raw.githubusercontent.com"
+
+    provider_name = 'GitHub'
+
+    @classmethod
+    def matches(cls, url):
+        parsed = urlparse(url)
+        return parsed.netloc in (cls.REPO_NETLOC, cls.RAW_NETLOC)
+
+    @property
+    def _is_raw_url(self):
+        parsed = urlparse(self.url)
+        if parsed.netloc == self.RAW_NETLOC:
+            return True
+        # {{REPO_NETLOC}}/{userorg}/{reponame}/raw/... 
+        # is a special case for raw URLs even though it's
+        # hosted at the netloc for repo URLs
+        if parsed.netloc != self.REPO_NETLOC:
+            return False
+        path_parts = parsed.path.strip("/").split("/")
+        return len(path_parts) >= 3 and path_parts[2] == "raw"
+
+    @property
+    def _is_repo_url(self):
+        parsed = urlparse(self.url)
+        return parsed.netloc == self.REPO_NETLOC and not self._is_raw_url
+    
+    @property
+    def raw_url(self):
+        """
+        Returns a "raw.githubusercontent.com/..." URL if possible.
+        """
+        if self._is_raw_url:
+            return self.url
+        parsed = urlparse(self.url)
+        # github.com/{user}/{repo}/blob/{branch}/{path} -> raw.githubuser.content.com/{user}/{repo}/{branch}/{path}
+        path_parts = parsed.path.strip("/").split("/")
+        if len(path_parts) < 5:
+            return None
+        user, repo, blob, branch, *filepath = path_parts
+        raw_path = "/".join([user, repo, branch] + filepath)
+        return f"https://{self.RAW_NETLOC}/{raw_path}"
+
+    @property
+    def repo_url(self):
+        """
+        Returns a "github.com/..." URL if possible.
+        """
+        if self._is_repo_url:
+            return self.url
+        parsed = urlparse(self.url)
+        # raw.githubusercontent.com/{user}/{repo}/(refs/heads/){branch}/{path}
+        # or
+        # github.com/{user}/{repo}/raw/(refs/heads/){branch}/{path}
+        # -> github.com/{user}/{repo}/blob/{branch}/{path}
+        path_parts = parsed.path.strip("/").split("/")
+        if len(path_parts) < 4:
+            return None
+        # Handle special case for raw URLs hosted at REPO_NETLOC
+        if path_parts[2] == 'raw':
+            del path_parts[2]
+        # Permalinks don't have "/refs/heads"
+        if path_parts[2] == 'refs' and path_parts[3] == 'heads':
+            del path_parts[2:4]
+        user, repo, branch, *filepath = path_parts
+        normal_path = "/".join([user, repo, "blob", branch] + filepath)
+        return f"https://{self.REPO_NETLOC}/{normal_path}"
+
 class ReferenceItem(BaseModel):
     class Meta:
         abstract = True
@@ -99,6 +205,10 @@ class ReferenceItem(BaseModel):
 
     def __str__(self):
         return self.url
+
+    @property
+    def url_provider_info(self):
+        return URLProviderInfo.from_url(self.url) 
 
     def has_same_domain_and_path(self, other_url):
         parsed_url_1 = urlparse(self.url)
