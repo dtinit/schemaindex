@@ -51,6 +51,12 @@ a:hover {
   color: var(--text-link-color-highlight);
 }
 
+.text-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 input,
 select {
   border-radius: 8px;
@@ -557,6 +563,15 @@ a.badge--w3c {
   color: #005a9c;
 }
 
+.badge--github {
+  padding: 0;
+}
+
+.badge--github svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
 .info-box {
   background: #172554;
   color: #bfdbfe;
@@ -738,6 +753,11 @@ a.badge--w3c {
   flex-direction: column;
   gap: 1rem;
   color: var(--text-secondary);
+}
+
+.schema-layout .schema-layout__extra .badges {
+  display: flex;
+  flex-wrap: wrap;
 }
 
 .schema-layout .schema-layout__extra .detail-list,

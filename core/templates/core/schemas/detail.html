@@ -1,25 +1,41 @@
 {% extends "core/schemas/layout.html" %}
+{% load filters %}
 {% block head_title %}
 {{ schema.name }} - Schemas.Pub
 {% endblock %}
 
 {% block schema_content %}
 <div>
-  {% if latest_readme_format == 'markdown' %}
+  {% if latest_readme.format == 'markdown' %}
   <div class="markdown">
     {{ latest_readme_content }}
   </div>
-  {% elif latest_readme_format == 'plaintext' %}
+  <hr />
+  <div class="external-readme-link">
+    <a href="{{ latest_readme|try_github_repo_url }}" class="text-with-icon">
+      View source
+      {{ latest_readme|branded_external_link_icon_for_reference_item }}
+    </a>
+  </div>
+  {% elif latest_readme.format == 'plaintext' %}
   <div class="plaintext">
     {{ latest_readme_content }}
   </div>
-  {% elif latest_readme_url %}
+  <hr />
   <div class="external-readme-link">
-    <a href="{{ latest_readme_url }}">View external README
-      <i data-lucide="external-link" class="icon--sm"></i>
+    <a href="{{ latest_readme|try_github_repo_url }}" class="text-with-icon">
+      View source
+      {{ latest_readme|branded_external_link_icon_for_reference_item }}
     </a>
   </div>
-    {% endif %}
+  {% elif latest_readme %}
+  <div class="external-readme-link">
+    <a href="{{ latest_readme|try_github_repo_url }}" class="text-with-icon">
+      View external README
+      {{ latest_readme|branded_external_link_icon_for_reference_item }}
+    </a>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
 

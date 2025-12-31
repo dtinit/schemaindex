@@ -1,4 +1,5 @@
 {% extends "core/schemas/layout.html" %}
+{% load filters %}
 {% load static %}
 {% block extra_head %}
 <script src="{% static 'js/initialize-syntax-highlighting.js' %}"></script>
@@ -28,8 +29,9 @@
   <!-- Please don't add whitespace to this line!-->
   <pre class="schema-definition"><code>{{ schema_ref.content|escape }}</code></pre>
   {% endif %}
+  <hr />
   <p>
-    <a href="{{ schema_ref.url }}">View source</a>
+    <a href="{{ schema_ref|try_github_repo_url }}" class="text-with-icon">View source{{ schema_ref|branded_external_link_icon_for_reference_item }}</a>
   </p>
 </div>
 {% endblock %}
