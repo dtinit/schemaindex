@@ -56,22 +56,20 @@ Schemas.Pub - A public schema registry
       {% for schema in schemas %}
       <li class="schema">
         <a href="{% url 'schema_detail' schema_id=schema.id %}">{{ schema.name }}</a>
-        {% if schema.latest_rfc %}
         <ul class="schema__badges">
+          {% if schema.latest_rfc %}
           <li class="badge badge--rfc">
             <i data-lucide="file-text" class="icon--sm"></i>
             RFC
           </li>
-        </ul>
-        {% endif %}
-        {% if schema.latest_w3c %}
-        <ul class="schema__badges">
+          {% endif %}
+          {% if schema.latest_w3c %}
           <li class="badge badge--w3c">
             <i data-lucide="file-text" class="icon--sm"></i>
             W3C
           </li>
+          {% endif %}
         </ul>
-        {% endif %}
       </li>
       {% endfor %}
     </ul>

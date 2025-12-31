@@ -91,6 +91,27 @@
     {% endblock %}
   </main>
   <aside class="schema-layout__extra">
+    {% if schema.latest_rfc or schema.latest_w3c or 'GitHub' in schema.url_providers %}
+    <ul class="badges">
+      {% if 'GitHub' in schema.url_providers %}
+      <li class="badge badge--github">
+        {% include "core/icons/GitHub_Invertocat_Light.svg" %}
+      </li>
+      {% endif %}
+      {% if schema.latest_rfc %}
+      <li class="badge badge--rfc">
+        <i data-lucide="file-text" class="icon--sm"></i>
+        RFC
+      </li>
+      {% endif %}
+      {% if schema.latest_w3c %}
+      <li class="badge badge--w3c">
+        <i data-lucide="file-text" class="icon--sm"></i>
+        W3C
+      </li>
+      {% endif %}
+    </ul>
+    {% endif %}
     {% if latest_license %}
     Details
     <ul class="detail-list">
