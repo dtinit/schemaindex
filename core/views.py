@@ -125,9 +125,8 @@ def schema_detail(request, schema):
 
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
-        "latest_readme_format": latest_readme.format if latest_readme else None,
+        "latest_readme": latest_readme,
         "latest_readme_content": latest_readme_content,
-        "latest_readme_url": latest_readme.url if latest_readme else None,
         "latest_license": schema.latest_license()
     })
 

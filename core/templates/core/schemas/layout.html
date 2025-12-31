@@ -50,9 +50,9 @@
       <ul class="nav-group">
         {% for documentation_item in schema.additional_documentation_items.all %}
         <li>
-          <a href="{{ documentation_item.url }}">
+          <a href="{{ documentation_item|try_github_repo_url }}">
             {{ documentation_item.name }}
-            <i data-lucide="external-link" class="icon--sm"></i>
+            {{ documentation_item|branded_external_link_icon_for_reference_item }}
           </a>
         </li>
         {% endfor %}
@@ -95,9 +95,9 @@
     Details
     <ul class="detail-list">
       <li>
-        <a href="{{ latest_license.url }}">
+        <a href="{{ latest_license|try_github_repo_url }}" class="text-with-icon">
           License
-          <i data-lucide="external-link" class="icon--sm"></i>
+          {{ latest_license|branded_external_link_icon_for_reference_item }}
         </a>
       </li>
     </ul>

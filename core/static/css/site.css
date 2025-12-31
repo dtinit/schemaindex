@@ -51,6 +51,12 @@ a:hover {
   color: var(--text-link-color-highlight);
 }
 
+.text-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 input,
 select {
   border-radius: 8px;
