@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
 from urllib.parse import urlparse
+import requests
 from .utils import guess_specification_language_by_extension, guess_language_by_extension
 
 class BaseModel(models.Model):
@@ -216,6 +217,18 @@ class ReferenceItem(BaseModel):
 
     def __str__(self):
         return self.url
+
+    # TODO: Cache content and add optional param to force a refresh (GitHub issue #157)
+    def get_content(self):
+        if (
+            self.url_provider_info.provider_name == GitHubURLInfo.provider_name and
+            self.url_provider_info.raw_url
+        ):
+            content_url = self.url_provider_info.raw_url
+        else:
+            content_url = self.url
+        response = requests.get(content_url)
+        return response.text
 
     @property
     def url_provider_info(self):

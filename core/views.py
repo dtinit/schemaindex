@@ -8,7 +8,6 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
 from functools import wraps
-import requests
 import cmarkgfm
 import bleach
 from .models import (Schema,
@@ -113,7 +112,7 @@ def schema_detail(request, schema):
     latest_readme = schema.latest_readme()
     latest_readme_content = None
     if latest_readme:
-        response_text = requests.get(latest_readme.url).text
+        response_text = latest_readme.get_content()
         if latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
             latest_readme_content = render_markdown(response_text)
         elif latest_readme.format == DocumentationItem.DocumentationItemFormat.PlainText:
@@ -134,9 +133,7 @@ def schema_detail(request, schema):
 @lookup_schema
 def schema_ref_detail(request, schema, schema_ref_id):
     schema_ref = get_object_or_404(schema.schemaref_set.filter(id=schema_ref_id))
-    # TODO: I feel like we can do better here- e.g. put the get request in the model and
-    # pull from cache
-    text_content = requests.get(schema_ref.url).text
+    text_content = schema_ref.get_content()
     if schema_ref.language == "markdown":
         schema_ref.markdown = render_markdown(text_content)
     else:
