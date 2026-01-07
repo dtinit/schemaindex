@@ -104,7 +104,6 @@ class DocumentationItemForm(ReferenceItemForm):
     )
 
 
-SchemaRefFormsetFactory = forms.formset_factory(SchemaRefForm, extra=0)
 DocumentationItemFormsetFactory = forms.formset_factory(DocumentationItemForm, extra=0)
 
 class SchemaForm(forms.Form):
@@ -135,6 +134,7 @@ class SchemaForm(forms.Form):
         super().__init__(*args, **kwargs)
         if schema == None:
             self.additional_documentation_items_formset = DocumentationItemFormsetFactory(prefix="documentation_items", *args, **kwargs)
+            SchemaRefFormsetFactory = forms.formset_factory(SchemaRefForm, extra=1)
             self.schema_refs_formset = SchemaRefFormsetFactory(prefix="schema_refs", *args, **kwargs)
             return
 
@@ -162,6 +162,9 @@ class SchemaForm(forms.Form):
             'name': schema_ref.name,
             'url': schema_ref.url,
         } for schema_ref in schema.schemaref_set.all()]
+        # If there aren't any schema_refs, render the formset with an extra empty formset item
+        extra_formset_item_count = max(1 - len(initial_schema_refs_formset_data), 0)
+        SchemaRefFormsetFactory = forms.formset_factory(SchemaRefForm, extra=extra_formset_item_count)
         self.schema_refs_formset = SchemaRefFormsetFactory(prefix="schema_refs", initial=initial_schema_refs_formset_data, *args, **kwargs)
         for schema_ref_form in self.schema_refs_formset:
             schema_ref_form.schema_id = schema.id
