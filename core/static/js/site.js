@@ -1,6 +1,10 @@
 (() => {
   // This needs to match the animation duration in site.css
   const MESSAGE_TIMEOUT_MS = 10 * 1000;
+  const FORMAT_OPTION_VALUE_EXTENSIONS = {
+    markdown: ['md', 'markdown'],
+    plaintext: ['txt'],
+  };
 
   /**
    * @param {(...args: any) => any} fn
@@ -177,6 +181,52 @@
         formsetListElement.insertAdjacentHTML('beforeend', nextFormItemHtml);
       });
     });
+
+    Array.from(document.querySelectorAll('[data-url-format-selector-for]'))
+      .filter(
+        (formatSelectElement) =>
+          formatSelectElement instanceof HTMLSelectElement
+      )
+      .forEach((formatSelectElement) => {
+        const triggerElementId = formatSelectElement.getAttribute(
+          'data-url-format-selector-for'
+        );
+        if (!triggerElementId) {
+          return;
+        }
+        const triggerElement = document.getElementById(triggerElementId);
+        if (!(triggerElement instanceof HTMLInputElement)) {
+          return;
+        }
+        // Get the available formats and filter by the ones we know extensions for
+        /** @type {(keyof FORMAT_OPTION_VALUE_EXTENSIONS)[]} */
+        const availableFormats = Array.from(formatSelectElement.options)
+          .map(({ value }) => value)
+          .filter(
+            /** @type {(value: string) => value is keyof FORMAT_OPTION_VALUE_EXTENSIONS } */
+            (value) => value in FORMAT_OPTION_VALUE_EXTENSIONS
+          );
+        /* When the input element changes, we'll try to match its extension.
+         * If there's a match, we'll select it in the format dropdown.
+         */
+        triggerElement.addEventListener('change', () => {
+          try {
+            const url = new URL(triggerElement.value);
+            const matchingFormat = availableFormats.find((value) =>
+              FORMAT_OPTION_VALUE_EXTENSIONS[value].find((extension) =>
+                url.pathname.toLowerCase().endsWith('.' + extension)
+              )
+            );
+            if (matchingFormat) {
+              formatSelectElement.value = matchingFormat;
+            }
+            // eslint-disable-next-line no-unused-vars
+          } catch (err) {
+            // Fine; don't mess with the select element
+          }
+        });
+        triggerElement.addEventListener('blur', () => {});
+      });
 
     setTimeout(() => {
       Array.from(document.querySelectorAll('.messages .message')).forEach(
