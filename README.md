@@ -33,6 +33,20 @@ We have JavaScript support for dynamic formsets as part of a form. For an exampl
 3. Render the formset's `empty_form` somewhere on the page inside an element with the attribute `data-formset-template-for-id="<The formset prefix>"`.
 4. To use buttons to add and remove formset items to and from the formset, use the attribute `data-formset-append-to-list-id="<The formset prefix>"` on the append button and `data-formset-remove-from-list-id="<The formset prefix>"` on the remove button.
 
+### URL Format Select Field
+
+You can use `data-url-format-selector-for` for `<select>` inputs meant to control the format of files specified in another input.
+
+```html
+<input type="url" id="my-url-input" />
+<select data-url-format-selector-for="my-url-input">
+  <option value="markdown">Markdown</option>
+  <option value="plaintext">Plaintext</option>
+</select>
+```
+
+This will change the select value when the URL in `#my-url-input` changes to something with a matching file extension.
+
 ### Stylesheets
 
 We use the CSS reset/normalizer from Tailwind named [preflight.css](core/static/css/preflight.css) which is fairly aggressive. Otherwise, all site styles are defined in [site.css](core/static/css/site.css) with global styles at the top and page styles at the bottom. We try to use BEM syntax where appropriate; for example, we have a `.button` class with modifiers like `.button--prominent` and `.button--danger`.
