@@ -1,6 +1,7 @@
 (() => {
   // This needs to match the animation duration in site.css
   const MESSAGE_TIMEOUT_MS = 10 * 1000;
+  // These keys need to match the values of DocumentationItemFormat
   const FORMAT_OPTION_VALUE_EXTENSIONS = {
     markdown: ['md', 'markdown'],
     plaintext: ['txt'],
@@ -92,6 +93,71 @@
     mutationObserver.observe(formsetListElement, { childList: true });
   };
 
+  /**
+   * Pass a `select` element containing a list of file formats
+   * for a paired URL field. When the URL field is changed,
+   * the `select` will be updated to a matching format if possible.
+   *
+   * @param {HTMLSelectElement} formatSelectElement
+   */
+  const initializeFormatSelectElement = (formatSelectElement) => {
+    const triggerElementId = formatSelectElement.getAttribute(
+      'data-url-format-selector-for'
+    );
+    if (!triggerElementId) {
+      return;
+    }
+    const triggerElement = document.getElementById(triggerElementId);
+    if (!(triggerElement instanceof HTMLInputElement)) {
+      return;
+    }
+    // Get the available formats and filter by the ones we know extensions for
+    /** @type {(keyof FORMAT_OPTION_VALUE_EXTENSIONS)[]} */
+    const availableFormats = Array.from(formatSelectElement.options)
+      .map(({ value }) => value)
+      .filter(
+        /** @type {(value: string) => value is keyof FORMAT_OPTION_VALUE_EXTENSIONS } */
+        (value) => value in FORMAT_OPTION_VALUE_EXTENSIONS
+      );
+    /**
+     * When the input element changes, we'll try to match its extension.
+     * If there's a match, we'll select it in the format dropdown.
+     */
+    const handleTriggerElementInput = () => {
+      try {
+        const url = new URL(triggerElement.value);
+        const matchingFormat = availableFormats.find((value) =>
+          FORMAT_OPTION_VALUE_EXTENSIONS[value].find((extension) =>
+            url.pathname.toLowerCase().endsWith('.' + extension)
+          )
+        );
+        if (matchingFormat) {
+          formatSelectElement.value = matchingFormat;
+        }
+        // eslint-disable-next-line no-unused-vars
+      } catch (err) {
+        // Fine; don't mess with the select element
+      }
+    };
+    triggerElement.addEventListener('input', handleTriggerElementInput);
+    /**
+     * If the user manually changes the format selection,
+     * stop trying to set it for them.
+     * 'change' events do *not* fire when we set the value programmatically
+     */
+    const handleFormatSelectElementChange = () => {
+      triggerElement.removeEventListener('input', handleTriggerElementInput);
+      formatSelectElement.removeEventListener(
+        'change',
+        handleFormatSelectElementChange
+      );
+    };
+    formatSelectElement.addEventListener(
+      'change',
+      handleFormatSelectElementChange
+    );
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
     Array.from(document.querySelectorAll('.js-autosubmit-input'))
       // If the input isn't in a form, there's nothing to submit
@@ -179,6 +245,16 @@
           currentFormItemCount.toString()
         );
         formsetListElement.insertAdjacentHTML('beforeend', nextFormItemHtml);
+        const formsetItems = formsetListElement.querySelectorAll('.formset');
+        Array.from(
+          formsetItems[formsetItems.length - 1].querySelectorAll(
+            '[data-url-format-selector-for]'
+          )
+        )
+          .filter((element) => element instanceof HTMLSelectElement)
+          .forEach((formatSelectElement) => {
+            initializeFormatSelectElement(formatSelectElement);
+          });
       });
     });
 
@@ -187,46 +263,9 @@
         (formatSelectElement) =>
           formatSelectElement instanceof HTMLSelectElement
       )
-      .forEach((formatSelectElement) => {
-        const triggerElementId = formatSelectElement.getAttribute(
-          'data-url-format-selector-for'
-        );
-        if (!triggerElementId) {
-          return;
-        }
-        const triggerElement = document.getElementById(triggerElementId);
-        if (!(triggerElement instanceof HTMLInputElement)) {
-          return;
-        }
-        // Get the available formats and filter by the ones we know extensions for
-        /** @type {(keyof FORMAT_OPTION_VALUE_EXTENSIONS)[]} */
-        const availableFormats = Array.from(formatSelectElement.options)
-          .map(({ value }) => value)
-          .filter(
-            /** @type {(value: string) => value is keyof FORMAT_OPTION_VALUE_EXTENSIONS } */
-            (value) => value in FORMAT_OPTION_VALUE_EXTENSIONS
-          );
-        /* When the input element changes, we'll try to match its extension.
-         * If there's a match, we'll select it in the format dropdown.
-         */
-        triggerElement.addEventListener('change', () => {
-          try {
-            const url = new URL(triggerElement.value);
-            const matchingFormat = availableFormats.find((value) =>
-              FORMAT_OPTION_VALUE_EXTENSIONS[value].find((extension) =>
-                url.pathname.toLowerCase().endsWith('.' + extension)
-              )
-            );
-            if (matchingFormat) {
-              formatSelectElement.value = matchingFormat;
-            }
-            // eslint-disable-next-line no-unused-vars
-          } catch (err) {
-            // Fine; don't mess with the select element
-          }
-        });
-        triggerElement.addEventListener('blur', () => {});
-      });
+      .forEach((formatSelectElement) =>
+        initializeFormatSelectElement(formatSelectElement)
+      );
 
     setTimeout(() => {
       Array.from(document.querySelectorAll('.messages .message')).forEach(

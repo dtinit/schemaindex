@@ -59,10 +59,6 @@ class SchemaRefForm(ReferenceItemForm):
         help_text=f"Accepted formats: {', '.join(sorted(EXPLICITLY_SUPPORTED_FILE_EXTENSIONS))}"
     )
 
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def clean_url(self):
         if not self.cleaned_data['url']:
             return None
@@ -102,6 +98,10 @@ class DocumentationItemForm(ReferenceItemForm):
         label="Format",
         initial=''
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['format'].widget.attrs['data-url-format-selector-for'] = self['url'].id_for_label
 
 
 DocumentationItemFormsetFactory = forms.formset_factory(DocumentationItemForm, extra=0)
