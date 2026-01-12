@@ -108,7 +108,8 @@
       return;
     }
     const triggerElement = document.getElementById(triggerElementId);
-    if (!(triggerElement instanceof HTMLInputElement)) {
+    // If the URL input already has a value (like when editing an existing entity), bail.
+    if (!(triggerElement instanceof HTMLInputElement) || triggerElement.value) {
       return;
     }
     // Get the available formats and filter by the ones we know extensions for
@@ -119,10 +120,8 @@
         /** @type {(value: string) => value is keyof FORMAT_OPTION_VALUE_EXTENSIONS } */
         (value) => value in FORMAT_OPTION_VALUE_EXTENSIONS
       );
-    /**
-     * When the input element changes, we'll try to match its extension.
-     * If there's a match, we'll select it in the format dropdown.
-     */
+    // When the input element changes, we'll try to match its extension.
+    // If there's a match, we'll select it in the format dropdown.
     const handleTriggerElementInput = () => {
       try {
         const url = new URL(triggerElement.value);
@@ -140,11 +139,9 @@
       }
     };
     triggerElement.addEventListener('input', handleTriggerElementInput);
-    /**
-     * If the user manually changes the format selection,
-     * stop trying to set it for them.
-     * 'change' events do *not* fire when we set the value programmatically
-     */
+    // If the user manually changes the format selection,
+    // stop trying to set it for them.
+    // 'change' events do *not* fire when we set the value programmatically
     const handleFormatSelectElementChange = () => {
       triggerElement.removeEventListener('input', handleTriggerElementInput);
       formatSelectElement.removeEventListener(
