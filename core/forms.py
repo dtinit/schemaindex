@@ -59,10 +59,6 @@ class SchemaRefForm(ReferenceItemForm):
         help_text=f"Accepted formats: {', '.join(sorted(EXPLICITLY_SUPPORTED_FILE_EXTENSIONS))}"
     )
 
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def clean_url(self):
         if not self.cleaned_data['url']:
             return None
@@ -103,6 +99,10 @@ class DocumentationItemForm(ReferenceItemForm):
         initial=''
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['format'].widget.attrs['data-url-format-selector-for'] = self['url'].id_for_label
+
 
 DocumentationItemFormsetFactory = forms.formset_factory(DocumentationItemForm, extra=0)
 
@@ -122,7 +122,8 @@ class SchemaForm(forms.Form):
         choices=[('', 'Other')] + list(DocumentationItem.DocumentationItemFormat.choices),
         required=False,
         label="README format",
-        help_text="Markdown and Plaintext READMEs are displayed on Schemas.Pub"
+        help_text="Markdown and Plaintext READMEs are displayed on Schemas.Pub",
+        widget=forms.Select(attrs={'data-url-format-selector-for': 'id_readme_url'})
     )
     license_url = forms.URLField(
         label="License URL",
@@ -132,6 +133,7 @@ class SchemaForm(forms.Form):
 
     def __init__(self, *args, schema = None, **kwargs):
         super().__init__(*args, **kwargs)
+
         if schema == None:
             self.additional_documentation_items_formset = DocumentationItemFormsetFactory(prefix="documentation_items", *args, **kwargs)
             SchemaRefFormsetFactory = forms.formset_factory(SchemaRefForm, extra=1)
