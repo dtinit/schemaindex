@@ -510,10 +510,20 @@ a.button--primary:hover {
   padding-top: 0;
 }
 
-.formset .formset__close-trigger {
+.formset--collapsed button[data-formset-expand-collapse-toggle] {
+  transform: rotate(180deg);
+}
+
+.formset--collapsed .formset-content--collapsible {
+  display: none;
+}
+
+.schema-ref-formset__actions {
   position: absolute;
   right: 0.75rem;
-  top: 0.75rem;
+  top: 1rem;
+  display: flex;
+  gap: 1rem;
 }
 
 .formset-controls {
