@@ -23,12 +23,22 @@
 
   /** @param {HTMLElement} formsetElement */
   const attachFormsetControlHandlers = (formsetElement) => {
-    const closeTriggerElements = Array.from(
-      formsetElement.getElementsByClassName('formset__close-trigger')
-    );
-    closeTriggerElements.forEach((element) => {
+    Array.from(
+      formsetElement.querySelectorAll('[data-formset-close-trigger]')
+    ).forEach((element) => {
       element.addEventListener('click', () => {
         formsetElement.remove();
+      });
+    });
+    Array.from(
+      formsetElement.querySelectorAll('[data-formset-expand-collapse-toggle]')
+    ).forEach((element) => {
+      element.addEventListener('click', () => {
+        if (formsetElement.classList.contains('formset--collapsed')) {
+          formsetElement.classList.remove('formset--collapsed');
+          return;
+        }
+        formsetElement.classList.add('formset--collapsed');
       });
     });
   };
@@ -45,7 +55,7 @@
    *
    * @param {HTMLElement} formsetListElement
    */
-  const initializeFormsetListManagementForm = (formsetListElement) => {
+  const initializeFormsetList = (formsetListElement) => {
     const formsetListId = formsetListElement.getAttribute(
       'data-formset-list-id'
     );
@@ -73,14 +83,32 @@
           );
           return;
         }
-        totalFormInput.value = formsetListElement
-          .getElementsByClassName('formset')
-          .length.toString();
-        // If nodes were not added, we're done. Otherwise, wire up the handlers.
+        const formsetElements =
+          formsetListElement.getElementsByClassName('formset');
+        totalFormInput.value = formsetElements.length.toString();
+        // If the number of formset items changed,
+        // insert the new count for each.
+        if (
+          (mutation.addedNodes && mutation.addedNodes.length) ||
+          (mutation.removedNodes && mutation.removedNodes.length)
+        ) {
+          Array.from(formsetElements).forEach((formsetElement, index) => {
+            const count = (index + 1).toString();
+            formsetElement
+              .querySelectorAll('[data-formset-count]')
+              .forEach((countElement) => {
+                if (countElement instanceof HTMLElement) {
+                  countElement.innerText = count;
+                }
+              });
+          });
+        }
+        // If nodes were not added, we're done.
+        // Otherwise, wire up the handlers and insert the correct count.
         if (!mutation.addedNodes || !mutation.addedNodes.length) {
           return;
         }
-        mutation.addedNodes.forEach((node) => {
+        Array.from(mutation.addedNodes).forEach((node) => {
           if (
             node instanceof HTMLElement &&
             node.classList.contains('formset')
@@ -202,7 +230,7 @@
         if (!(formsetListElement instanceof HTMLElement)) {
           return;
         }
-        initializeFormsetListManagementForm(formsetListElement);
+        initializeFormsetList(formsetListElement);
         Array.from(
           formsetListElement.getElementsByClassName('formset')
         ).forEach((formsetElement) => {

@@ -1,8 +1,16 @@
-<li class="formset form-container">
-  <button class="button formset__close-trigger" type="button">
-    <i data-lucide="x" class="icon--md"></i>
-  </button>
-  <div class="split-field-container split-field-container--50-50">
+<li class="formset form-container schema-ref-formset{% if form.url.value %} formset--collapsed{% endif %}">
+  <div class="schema-ref-formset__actions">
+    <button class="button" type="button" data-formset-close-trigger>
+      <i data-lucide="x" class="icon--md"></i>
+    </button>
+    <button class="button" type="button" data-formset-expand-collapse-toggle>
+      <i data-lucide="chevron-up" class="icon--md"></i>
+    </button>
+  </div>
+  <div>
+    Schema <span data-formset-count>{{ count }}</span>
+  </div>
+  <div class="split-field-container split-field-container--50-50 formset-content--collapsible">
     {% include "core/manage/field.html" with field=form.name %}
     {% include "core/manage/field.html" with field=form.url %}
   </div>

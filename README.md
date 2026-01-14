@@ -31,7 +31,10 @@ We have JavaScript support for dynamic formsets as part of a form. For an exampl
 1. Pass a custom `prefix` to the formset, e.g: `formset = FormsetFactory(prefix="<Some custom formset id>")`.
 2. Create a `ul` element for the formset elements with the attribute `data-formset-list-id="<The formset prefix>"`.
 3. Render the formset's `empty_form` somewhere on the page inside an element with the attribute `data-formset-template-for-id="<The formset prefix>"`.
-4. To use buttons to add and remove formset items to and from the formset, use the attribute `data-formset-append-to-list-id="<The formset prefix>"` on the append button and `data-formset-remove-from-list-id="<The formset prefix>"` on the remove button.
+4. Formset item templates should be fully contained within an element with the ".formset" class.
+5. To use buttons to add and remove formset items to and from the formset, use the attribute `data-formset-append-to-list-id="<The formset prefix>"` on the append button and `data-formset-remove-from-list-id="<The formset prefix>"` on the remove button.
+6. Inside a formset item, elements with the `data-formset-count` attribute will have their contents replaced with the current count of the formset item (e.g. "1" for the first formset item, "2" for the second, etc).
+7. To make formset items collapsible, add the `data-formset-expand-collapse-toggle` to some clickable element. This will toggle the ".formset--collapsible" class on the formset. Items within the formset which should be hidden when collapsed should have the ".formset-content--collapsible" class.
 
 ### URL Format Select Field
 
