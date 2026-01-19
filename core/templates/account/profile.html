@@ -44,6 +44,20 @@ Account
     {% endif %}
     <a href="{% url 'manage_schema_new' %}" class="button button--prominent">Add schema</a>
   </section>
+  {% if request.user.primary_account_of.count %}
+  <section class="text--secondary">
+    <h1>Organization{{ request.user.primary_account_of.count|pluralize }}</h1>
+    <ul>
+      {% for organization in request.user.primary_account_of.all %}
+      <li>
+        <a href="{% url 'organization_detail' organization_id=organization.id %}">
+          {{ organization.name }}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
   <section class="text--secondary">
     <h1>Account</h1>
     Email: {{ request.user.email }}
