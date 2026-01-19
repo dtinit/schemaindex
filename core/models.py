@@ -207,6 +207,7 @@ class GitHubURLInfo(URLProviderInfo):
         normal_path = "/".join([user, repo, "blob", branch] + filepath)
         return f"https://{self.REPO_NETLOC}/{normal_path}"
 
+
 class ReferenceItem(BaseModel):
     class Meta:
         abstract = True
@@ -271,4 +272,17 @@ class DocumentationItem(ReferenceItem):
     @property
     def language(self):
         return guess_language_by_extension(self.url, ['markdown'])
+
+
+class Organization(BaseModel):
+    name = models.CharField(max_length=200)
+    primary_account = models.ForeignKey(User, on_delete=models.RESTRICT, related_name="primary_account_of")
+    url_path_segment = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def public_schemas(self):
+        return Schema.public_objects.filter(created_by=self.primary_account)
 
