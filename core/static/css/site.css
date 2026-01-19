@@ -904,3 +904,12 @@ a.badge--w3c {
   padding: 1rem;
   gap: 1rem;
 }
+
+/* Organization detail */
+.organization-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  gap: 1rem;
+}

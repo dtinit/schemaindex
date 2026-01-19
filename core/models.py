@@ -282,6 +282,12 @@ class Organization(BaseModel):
     def __str__(self):
         return self.name
 
+    @property
+    def public_schemas(self):
+        return Schema.public_objects.filter(
+            created_by_id__in=self.profile_set.values_list("user_id", flat=True)
+        )
+
 
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
