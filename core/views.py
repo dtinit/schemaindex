@@ -13,7 +13,8 @@ import bleach
 from .models import (Schema,
                      DocumentationItem,
                      SchemaRef,
-                     DocumentationItem)
+                     DocumentationItem,
+                     Organization)
 from .forms import SchemaForm, DocumentationItemForm
 
 
@@ -301,3 +302,10 @@ def manage_schema_publish(request, schema_id):
 
 def about(request):
     return render(request, "core/about.html")
+
+
+def organization_detail(request, organization_id):
+    organization = get_object_or_404(Organization, id=organization_id)
+    return render(request, "core/organizations/detail.html", {
+        'organization': organization,
+    })
