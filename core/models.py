@@ -59,6 +59,10 @@ class Schema(BaseModel):
         }
         return provider_names
 
+    @property
+    def organization(self):
+        return self.created_by.profile.organization
+
     def _latest_documentation_item_of_type(self, role):
         return self.documentationitem_set.filter(role=role).order_by('-created_at').first()
 
