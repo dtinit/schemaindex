@@ -58,6 +58,16 @@ class Schema(BaseModel):
         }
         return provider_names
 
+    @property
+    def organization(self):
+        # TODO: In theory a User could be the primary_account_of multiple Organizations,
+        # in which case we won't know which of that Users' schemas 
+        # belong to which Organizations.
+        # For now, we'll assume users (as in "person using Schemas.Pub")
+        # only manage one organization per User (model)
+        # and list all their schemas under that one organization.
+        return Organization.objects.filter(primary_account=self.created_by).first()
+
     def _latest_documentation_item_of_type(self, role):
         return self.documentationitem_set.filter(role=role).order_by('-created_at').first()
 
