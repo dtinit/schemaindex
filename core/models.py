@@ -4,6 +4,9 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
+from django.core.validators import RegexValidator
 from urllib.parse import urlparse
 import requests
 from .utils import guess_specification_language_by_extension, guess_language_by_extension
@@ -21,6 +24,20 @@ class BaseModel(models.Model):
         return cls(created_by=created_by)
 
 
+class PermanentURL(BaseModel):
+    content_type = models.ForeignKey(ContentType, on_delete=models.RESTRICT)
+    object_id = models.PositiveBigIntegerField()
+    content_object = GenericForeignKey("content_type", "object_id")
+    url = models.URLField()
+
+    class Meta:
+        # As of writing, Django does *not* automatically create an index
+        # on the GenericForeignKey as it does with ForeignKey.
+        indexes = [
+            models.Index(fields=["content_type", "object_id"])
+        ]
+
+
 class PublicSchemaManager(models.Manager):
     def get_queryset(self):
         return (
@@ -36,6 +53,7 @@ class Schema(BaseModel):
     public_objects = PublicSchemaManager()
     name = models.CharField(max_length=200)
     published_at = models.DateTimeField(blank=True, null=True)
+    permanent_urls = GenericRelation(PermanentURL, related_query_name="schema")
 
     class Meta:
         indexes = [
@@ -248,6 +266,7 @@ class ReferenceItem(BaseModel):
 
 class SchemaRef(ReferenceItem):
     schema = models.ForeignKey(Schema, on_delete=models.CASCADE)
+    permanent_urls = GenericRelation(PermanentURL, related_query_name="schemaref")
 
     @property
     def language(self):
