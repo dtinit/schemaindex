@@ -25,7 +25,15 @@
     <div class="header__info">
       <span>Added on {{ schema.created_at | date }}</span>
       &bull;
-      <span>Managed by {{ schema.created_by }}</span>
+      <span>Managed by 
+        {% if schema.organization %}
+        <a href="{% url 'organization_detail' organization_id=schema.organization.id %}">
+          {{ schema.organization.name }}
+        </a>
+        {% else %}
+        {{ schema.created_by }}
+        {% endif %}
+      </span>
     </div>
   </div>
   <nav class="schema-layout__nav">

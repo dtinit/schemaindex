@@ -11,6 +11,7 @@ urlpatterns = [
     path("manage/schema/<int:schema_id>", views.manage_schema, name="manage_schema"),
     path("manage/schema/new", views.manage_schema, name="manage_schema_new"),
     path("manage/schema/<int:schema_id>/delete", views.manage_schema_delete, name="manage_schema_delete"),
-    path("manage/schema/<int:schema_id>/publish", views.manage_schema_publish, name="manage_schema_publish")
+    path("manage/schema/<int:schema_id>/publish", views.manage_schema_publish, name="manage_schema_publish"),
+    path("organization/<int:organization_id>", views.organization_detail, name="organization_detail")
 ]
 

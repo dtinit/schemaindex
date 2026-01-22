@@ -3,6 +3,7 @@ from django.db import models
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.conf import settings
 from urllib.parse import urlparse
 import requests
 from .utils import guess_specification_language_by_extension, guess_language_by_extension
@@ -57,6 +58,10 @@ class Schema(BaseModel):
             for reference_item in chain(documentation_items, schema_refs)
         }
         return provider_names
+
+    @property
+    def organization(self):
+        return self.created_by.profile.organization
 
     def _latest_documentation_item_of_type(self, role):
         return self.documentationitem_set.filter(role=role).order_by('-created_at').first()
@@ -207,6 +212,7 @@ class GitHubURLInfo(URLProviderInfo):
         normal_path = "/".join([user, repo, "blob", branch] + filepath)
         return f"https://{self.REPO_NETLOC}/{normal_path}"
 
+
 class ReferenceItem(BaseModel):
     class Meta:
         abstract = True
@@ -271,4 +277,23 @@ class DocumentationItem(ReferenceItem):
     @property
     def language(self):
         return guess_language_by_extension(self.url, ['markdown'])
+
+
+class Organization(BaseModel):
+    name = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True)
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def public_schemas(self):
+        return Schema.public_objects.filter(
+            created_by_id__in=self.profile_set.values_list("user_id", flat=True)
+        )
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    organization = models.ForeignKey(Organization, blank=True, null=True, on_delete=models.SET_NULL)
 

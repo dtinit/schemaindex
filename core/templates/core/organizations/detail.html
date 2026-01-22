@@ -1,0 +1,26 @@
+{% extends "core/layouts/base.html" %}
+{% block head_title %}
+{{ organization.name }} | Schemas.Pub 
+{% endblock %}
+
+{% block page_content %}
+<main class="organization-detail">
+  <h1>{{ organization.name }}</h1>
+  <div class="main-content">
+    {% if organization.public_schemas.count %}
+    <h2>Schema{{ organization.public_schemas.count|pluralize }}</h2>
+    <ul>
+      {% for schema in organization.public_schemas.all %}
+      <li>
+        <a href="{% url 'schema_detail' schema_id=schema.id %}">
+          {{ schema.name }}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>This organization has no schemas.</p>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}
