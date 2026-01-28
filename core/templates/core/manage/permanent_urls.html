@@ -1,0 +1,28 @@
+{% extends "core/layouts/base.html" %}
+{% load filters %}
+{% block head_title %}
+Permanent URLs for {{ schema.name }}
+{% endblock %}
+{% block page_content %}
+
+<main class="manage-permanent-urls">
+  <h1>Permanent URLs for "{{ schema.name }}"</h1>
+  <section class="form-container main-content">
+    <form action="{% url 'manage_schema_permanent_urls' schema_id=schema.id %}" method="POST">
+      {% csrf_token %}
+      {% for field in form %}
+        {% include "core/manage/field.html" with field=field input_prefix=prefix %}
+      {% endfor %}
+      {% for subform in form.schema_ref_permanent_url_formset %}
+        {% include "core/manage/field.html" with field=subform.slug input_prefix=prefix %}
+      {% endfor %}
+      {{ form.schema_ref_permanent_url_formset.management_form }}
+      <p>
+        <b class="text--warning">Once created, a permanent URL cannot be removed except by a Schemas.Pub administrator.</b>
+        However, you can create as many permanent URLs for a schema as you need.
+      </p>
+      <button type="submit" class="button button--warning">Add Permanent URLs</button>
+    </form>
+  </section>
+</main>
+{% endblock %}

@@ -23,13 +23,34 @@ class BaseModel(models.Model):
     def create(cls, created_by):
         return cls(created_by=created_by)
 
+class PermanentURLManager(models.Manager):
+    BASE_URL = 'https://id.schemas.pub/o/'
+
+    def get_url_for_slug(self, *, organization, slug):
+        return self.BASE_URL + organization.slug + '/' + slug
+
+    def create_from_slug(self, *, created_by, slug, **kwargs):
+        """
+        Computes the URL from the user's organization and a slug.
+        """
+        url = self.get_url_for_slug(
+            organization=created_by.profile.organization,
+            slug=slug
+        )
+        kwargs.update(
+            created_by=created_by,
+            url=url
+        )
+        return super().create(**kwargs)
+
 
 class PermanentURL(BaseModel):
+    objects = PermanentURLManager()
     content_type = models.ForeignKey(ContentType, on_delete=models.RESTRICT)
     object_id = models.PositiveBigIntegerField()
     content_object = GenericForeignKey("content_type", "object_id")
     url = models.URLField()
-
+    
     class Meta:
         # As of writing, Django does *not* automatically create an index
         # on the GenericForeignKey as it does with ForeignKey.

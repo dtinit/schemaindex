@@ -7,16 +7,22 @@ from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
+from django.http import Http404
 from functools import wraps
 import cmarkgfm
 import bleach
 from .models import (Schema,
-                     DocumentationItem,
-                     SchemaRef,
-                     DocumentationItem,
-                     Organization)
-from .forms import SchemaForm, DocumentationItemForm
-
+    DocumentationItem,
+    SchemaRef,
+    DocumentationItem,
+    Organization,
+    PermanentURL
+)
+from .forms import (
+    SchemaForm,
+    DocumentationItemForm,
+    PermanentURLsForm
+)
 
 MAX_SCHEMA_RESULT_COUNT = 30
 
@@ -308,4 +314,42 @@ def organization_detail(request, organization_id):
     organization = get_object_or_404(Organization, id=organization_id)
     return render(request, "core/organizations/detail.html", {
         'organization': organization,
+    })
+
+
+@login_required
+def manage_schema_permanent_urls(request, schema_id):
+    if not request.user.profile.organization:
+        raise Http404
+    schema = get_object_or_404(
+        Schema.public_objects,
+        id=schema_id,
+        created_by=request.user,
+    )
+    prefix = PermanentURL.objects.get_url_for_slug(
+        organization=request.user.profile.organization,
+        slug=''
+    )
+    if request.method == 'POST':
+        form = PermanentURLsForm(request.POST, schema=schema)
+        if form.is_valid():
+            PermanentURL.objects.create_from_slug(
+                created_by=request.user,
+                content_object=schema,
+                slug=form.cleaned_data['schema_slug']
+            )
+            for subform in form.schema_ref_permanent_url_formset:
+                PermanentURL.objects.create_from_slug(
+                    created_by=request.user,
+                    content_object=subform.schema_ref,
+                    slug=subform.cleaned_data['slug']
+                )
+            form = PermanentURLsForm(schema=schema)
+    else:
+        form = PermanentURLsForm(schema=schema)
+           
+    return render(request, "core/manage/permanent_urls.html", {
+        'schema': schema,
+        'form': form,
+        'prefix': prefix
     })
