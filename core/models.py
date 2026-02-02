@@ -24,7 +24,7 @@ class BaseModel(models.Model):
         return cls(created_by=created_by)
 
 class PermanentURLManager(models.Manager):
-    BASE_URL = 'https://id.schemas.pub/o/'
+    BASE_URL = f'https://{settings.PERMANENT_URL_HOST}/o/'
 
     def get_url_for_slug(self, *, organization, slug):
         return self.BASE_URL + organization.slug + '/' + slug

@@ -6,10 +6,12 @@ from google.oauth2 import service_account
 from .base import *
 
 DEBUG = False
+PERMANENT_URL_HOST = 'id.schemas.pub'
 ALLOWED_HOSTS = [ 
     'schemas.pub',
     'www.schemas.pub',
-    'schemaindex-prod-run-768243509223.us-central1.run.app'
+    'schemaindex-prod-run-768243509223.us-central1.run.app',
+    PERMANENT_URL_HOST
 ]
 SITE_URL = 'https://schemas.pub'
 CSRF_TRUSTED_ORIGINS = ['https://' + url for url in ALLOWED_HOSTS]

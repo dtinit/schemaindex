@@ -13,6 +13,7 @@ urlpatterns = [
     path("manage/schema/<int:schema_id>/delete", views.manage_schema_delete, name="manage_schema_delete"),
     path("manage/schema/<int:schema_id>/publish", views.manage_schema_publish, name="manage_schema_publish"),
     path("manage/schema/<int:schema_id>/permanent-urls", views.manage_schema_permanent_urls, name="manage_schema_permanent_urls"),
-    path("organization/<int:organization_id>", views.organization_detail, name="organization_detail")
+    path("organization/<int:organization_id>", views.organization_detail, name="organization_detail"),
+    path("<path:path>", views.permanent_url_redirect, name="permanent_url_redirect")
 ]
 

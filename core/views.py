@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
+from django.conf import settings
 from functools import wraps
 import cmarkgfm
 import bleach
@@ -353,3 +354,34 @@ def manage_schema_permanent_urls(request, schema_id):
         'form': form,
         'prefix': prefix
     })
+
+
+def permanent_url_redirect(request, path):
+    host = request.get_host()
+    # Get rid of any port number
+    host = host.split(':', 1)[0] 
+    if host != settings.PERMANENT_URL_HOST:
+        raise Http404
+
+    # This will match non-secure (http) requests
+    # to secure (https) values, but that's fine.
+    # We redirect all http to https in production
+    # and this way makes local testing easier.
+    full_url = f"https://{host}/{path}"
+    matching_url = get_object_or_404(
+        PermanentURL,
+        url=full_url
+    )
+    if isinstance(matching_url.content_object, Schema):
+        schema = matching_url.content_object
+        return redirect('schema_detail', schema_id=schema.id)
+    elif isinstance(matching_url.content_object, SchemaRef):
+        schema_ref = matching_url.content_object
+        return redirect(
+            'schema_ref_detail',
+            schema_id=schema_ref.schema.id,
+            schema_ref_id=schema_ref.id
+        )
+    else:
+        raise Http404
+
