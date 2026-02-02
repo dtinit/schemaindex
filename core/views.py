@@ -334,17 +334,21 @@ def manage_schema_permanent_urls(request, schema_id):
     if request.method == 'POST':
         form = PermanentURLsForm(request.POST, schema=schema)
         if form.is_valid():
-            PermanentURL.objects.create_from_slug(
-                created_by=request.user,
-                content_object=schema,
-                slug=form.cleaned_data['schema_slug']
-            )
-            for subform in form.schema_ref_permanent_url_formset:
+            schema_slug = form.cleaned_data.get('schema_slug')
+            if schema_slug:
                 PermanentURL.objects.create_from_slug(
                     created_by=request.user,
-                    content_object=subform.schema_ref,
-                    slug=subform.cleaned_data['slug']
+                    content_object=schema,
+                    slug=schema_slug
                 )
+            for subform in form.schema_ref_permanent_url_formset:
+                schema_ref_slug = subform.cleaned_data.get('slug')
+                if schema_ref_slug:
+                    PermanentURL.objects.create_from_slug(
+                        created_by=request.user,
+                        content_object=subform.schema_ref,
+                        slug=schema_ref_slug
+                    )
             form = PermanentURLsForm(schema=schema)
     else:
         form = PermanentURLsForm(schema=schema)
