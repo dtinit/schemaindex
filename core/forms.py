@@ -227,9 +227,9 @@ class SchemaRefPermanentURLForm(forms.Form):
 
     def set_schema_ref(self, schema_ref, fallback_name):
         self.schema_ref = schema_ref
+        self.name = schema_ref.name or fallback_name
         self.fields['slug'].help_text = "This URL will route to the Schemas.Pub listing for " + schema_ref.url
-        schema_name = schema_ref.name or fallback_name
-        self.fields['slug'].label = "New unique URL for " + schema_name
+        self.fields['slug'].label = "New unique URL for " + self.name
 
     def clean_slug(self):
         return clean_permanent_url_slug(
@@ -262,7 +262,7 @@ class PermanentURLsForm(forms.Form):
             **kwargs
         )
         for index, schema_ref_form in enumerate(self.schema_ref_permanent_url_formset):
-            schema_ref_form.set_schema_ref(schema_refs[index], f"definition {index + 1}")
+            schema_ref_form.set_schema_ref(schema_refs[index], f"Definition {index + 1}")
 
     def clean_slug(self):
         return clean_permanent_url_slug(

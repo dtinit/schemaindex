@@ -8,6 +8,34 @@ Permanent URLs for {{ schema.name }}
 <main class="manage-permanent-urls">
   <h1>Permanent URLs for "{{ schema.name }}"</h1>
   <section class="form-container main-content">
+    <p>Permanent URLs can only be removed by a Schemas.Pub administrator.</p>
+    <h2>Existing URLs</h2>
+    {% if schema.permanent_urls.count > 0 %}
+    <ul>
+      {% for permanent_url in schema.permanent_urls.all %}
+      <li><a href="{{ permanent_url.url }}">{{ permanent_url.url }}</a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>None</p>
+    {% endif %}
+    {% for schema_ref in schema.schemaref_set.all %}
+    {% if schema_ref.permanent_urls.count > 0 %}
+    <h3>
+      {% if schema_ref.name %}
+        {{ schema_ref.name }}
+      {% else %}
+        Definition {{ forloop.counter }}
+      {% endif %}
+    </h3>
+    <ul>
+      {% for permanent_url in schema_ref.permanent_urls.all %}
+      <li><a href="{{ permanent_url.url }}">{{ permanent_url.url }}</a></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% endfor %}
+    <h2>Create URLs</h2>
     <form action="{% url 'manage_schema_permanent_urls' schema_id=schema.id %}" method="POST">
       {% csrf_token %}
       {% for field in form %}
@@ -17,11 +45,7 @@ Permanent URLs for {{ schema.name }}
         {% include "core/manage/field.html" with field=subform.slug input_prefix=prefix %}
       {% endfor %}
       {{ form.schema_ref_permanent_url_formset.management_form }}
-      <p>
-        <b class="text--warning">Once created, a permanent URL cannot be removed except by a Schemas.Pub administrator.</b>
-        However, you can create as many permanent URLs for a schema as you need.
-      </p>
-      <button type="submit" class="button button--warning">Add Permanent URLs</button>
+      <button type="submit" class="button button--prominent">Create Permanent URLs</button>
     </form>
   </section>
 </main>
