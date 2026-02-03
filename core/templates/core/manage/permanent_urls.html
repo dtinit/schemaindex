@@ -45,6 +45,7 @@ Permanent URLs for {{ schema.name }}
         {% include "core/manage/field.html" with field=subform.slug input_prefix=prefix %}
       {% endfor %}
       {{ form.schema_ref_permanent_url_formset.management_form }}
+      {{ form.non_field_errors }}
       <button type="submit" class="button button--prominent">Create Permanent URLs</button>
     </form>
   </section>

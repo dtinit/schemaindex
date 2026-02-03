@@ -271,11 +271,17 @@ class PermanentURLsForm(forms.Form):
         )
 
     def clean(self):
-        # TODO: make sure there are no duplicate slugs
         self.schema_ref_permanent_url_formset.clean()
         cleaned_data = super().clean()
+        # Make sure none of the slugs are the same
+        schema_slug = cleaned_data.get('schema_slug')
+        slugs = {schema_slug} if schema_slug else set()
+        for schema_ref_form in self.schema_ref_permanent_url_formset:
+            schema_ref_slug = schema_ref_form.cleaned_data.get('slug')
+            if schema_ref_slug in slugs:
+                raise ValidationError('Each URL must be unique')
+            
         return cleaned_data
 
     def is_valid(self):
-        is_form_valid = super().is_valid()
-        return is_form_valid and self.schema_ref_permanent_url_formset.is_valid()
+        return self.schema_ref_permanent_url_formset.is_valid() and super().is_valid()
