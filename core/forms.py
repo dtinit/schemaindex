@@ -264,7 +264,7 @@ class PermanentURLsForm(forms.Form):
         for index, schema_ref_form in enumerate(self.schema_ref_permanent_url_formset):
             schema_ref_form.set_schema_ref(schema_refs[index], f"Definition {index + 1}")
 
-    def clean_slug(self):
+    def clean_schema_slug(self):
         return clean_permanent_url_slug(
             organization=self.schema.created_by.profile.organization,
             slug=self.cleaned_data['schema_slug']
@@ -279,7 +279,7 @@ class PermanentURLsForm(forms.Form):
         for schema_ref_form in self.schema_ref_permanent_url_formset:
             schema_ref_slug = schema_ref_form.cleaned_data.get('slug')
             if schema_ref_slug in slugs:
-                raise ValidationError('Each URL must be unique')
+                raise ValidationError('Each URL must be unique.')
             
         return cleaned_data
 
