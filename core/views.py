@@ -360,7 +360,7 @@ def manage_schema_permanent_urls(request, schema_id):
     })
 
 
-def permanent_url_redirect(request, path):
+def permanent_url_redirect(request, partial_path):
     host = request.get_host()
     # Get rid of any port number
     host = host.split(':', 1)[0] 
@@ -371,7 +371,7 @@ def permanent_url_redirect(request, path):
     # to secure (https) values, but that's fine.
     # We redirect all http to https in production
     # and this way makes local testing easier.
-    full_url = f"https://{host}/{path}"
+    full_url = f"https://{host}{request.path}"
     matching_url = get_object_or_404(
         PermanentURL,
         url=full_url

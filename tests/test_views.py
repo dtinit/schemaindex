@@ -1,8 +1,12 @@
 import pytest
 import requests_mock
 from tests.factories import (
-    SchemaFactory, UserFactory, SchemaRefFactory,
-    DocumentationItemFactory
+    SchemaFactory,
+    UserFactory,
+    SchemaRefFactory,
+    DocumentationItemFactory,
+    OrganizationSchemaFactory,
+    PermanentURLFactory
 )
 from core.models import Schema, DocumentationItem
 from django.test import Client
@@ -172,4 +176,21 @@ def test_published_schemas_cannot_be_deleted():
     post_response = client.post(f'/manage/schema/{schema.id}/delete', follow=True)
     assert post_response.status_code == 403
     assert Schema.objects.filter(id=schema.id).exists()
-                        
+
+
+@pytest.mark.django_db
+def test_invalid_permanent_urls_404():
+    client = Client()
+    response = client.get('/o/bad/path')
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_matching_permanent_urls_redirect():
+    slug = 'test'
+    schema = OrganizationSchemaFactory()
+    permanent_url = PermanentURLFactory(content_object=schema, slug=slug)
+    client = Client()
+    response = client.get(f'/o/{schema.created_by.profile.organization.slug}/{slug}', follow=True)
+    assert response.status_code == 200
+
