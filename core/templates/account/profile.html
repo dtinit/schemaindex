@@ -28,7 +28,7 @@ Account
           <a href="{% url 'manage_schema' schema_id=schema.pk %}">
             <i data-lucide="square-pen" class="icon--md"></i>
           </a>
-          {% if request.user.profile.organization %}
+          {% if request.user.profile.organization and schema.published_at|exists_and_is_in_past %}
           <a href="{% url 'manage_schema_permanent_urls' schema_id=schema.id %}">
             <i data-lucide="link" class="icon--md"></i>
           </a>
