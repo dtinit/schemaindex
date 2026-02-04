@@ -45,8 +45,8 @@ class OrganizationFactory(BaseModelFactory):
     class Meta:
         model = Organization
 
-    name = factory.Faker('bs')
-    slug = factory.Faker('slug')
+    name = factory.Faker('company')
+    slug = factory.Sequence(lambda n: f'orgslug-{n}')
 
 
 class OrganizationProfileFactory(ProfileFactory):
@@ -64,7 +64,7 @@ class SchemaFactory(BaseModelFactory):
     class Meta:
          model = Schema
     
-    name = factory.Faker('bs')
+    name = factory.Faker('catch_phrase')
     published_at = factory.Faker("past_datetime", tzinfo=timezone.utc)
 
 
@@ -95,7 +95,7 @@ class DocumentationItemFactory(ReferenceItemFactory):
     class Meta:
         model = DocumentationItem
 
-    name = factory.Faker('bs')
+    name = factory.Faker('words', nb=3)
     description = factory.Faker('paragraph')
     schema = factory.SubFactory(SchemaFactory)
     role = factory.Iterator(DocumentationItem.DocumentationItemRole.values)
@@ -108,7 +108,7 @@ class PermanentURLFactory(DjangoModelFactory):
     class Meta:
         model = PermanentURL
 
-    slug = factory.Faker('slug')
+    slug = factory.Sequence(lambda n: f'permanenturlslug-{n}')
 
     @classmethod
     def _create(cls, model_class, *args, **kwargs):

@@ -6,10 +6,12 @@ from tests.factories import (
     SchemaRefFactory,
     DocumentationItemFactory,
     OrganizationSchemaFactory,
+    OrganizationSchemaRefFactory,
     PermanentURLFactory
 )
 from core.models import Schema, DocumentationItem
 from django.test import Client
+from pytest_django.asserts import assertRedirects
 
 
 @pytest.mark.django_db
@@ -186,11 +188,34 @@ def test_invalid_permanent_urls_404():
 
 
 @pytest.mark.django_db
-def test_matching_permanent_urls_redirect():
+def test_matching_permanent_urls_redirect_to_schemas():
     slug = 'test'
     schema = OrganizationSchemaFactory()
     permanent_url = PermanentURLFactory(content_object=schema, slug=slug)
     client = Client()
     response = client.get(f'/o/{schema.created_by.profile.organization.slug}/{slug}', follow=True)
     assert response.status_code == 200
+    assertRedirects(response, f'/schemas/{schema.id}')
+
+
+@pytest.mark.django_db
+def test_matching_permanent_urls_redirect_to_schema_refs():
+    slug = 'test'
+    schema_ref = OrganizationSchemaRefFactory()
+    permanent_url = PermanentURLFactory(content_object=schema_ref, slug=slug)
+    client = Client()
+    with requests_mock.Mocker() as m:
+        m.get(schema_ref.url, text='{}')
+        response = client.get(f'/o/{schema_ref.created_by.profile.organization.slug}/{slug}', follow=True)
+        assert response.status_code == 200
+        assertRedirects(response, f'/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}')
+
+
+@pytest.mark.django_db
+def test_permanent_urlmanagement_form_404_for_private_schema():
+    schema = SchemaFactory(published_at=None)
+    client = Client()
+    client.force_login(schema.created_by)
+    response = client.get(f'/schemas/{schema.id}/permanent-urls', follow=True)
+    assert response.status_code == 404
 
