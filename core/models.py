@@ -4,6 +4,9 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
+from django.core.validators import RegexValidator
 from urllib.parse import urlparse
 import requests
 from .utils import guess_specification_language_by_extension, guess_language_by_extension
@@ -19,6 +22,41 @@ class BaseModel(models.Model):
     @classmethod
     def create(cls, created_by):
         return cls(created_by=created_by)
+
+class PermanentURLManager(models.Manager):
+    BASE_URL = f'https://{settings.PERMANENT_URL_HOST}/o/'
+
+    def get_url_for_slug(self, *, organization, slug):
+        return self.BASE_URL + organization.slug + '/' + slug
+
+    def create_from_slug(self, *, created_by, slug, **kwargs):
+        """
+        Computes the URL from the user's organization and a slug.
+        """
+        url = self.get_url_for_slug(
+            organization=created_by.profile.organization,
+            slug=slug
+        )
+        kwargs.update(
+            created_by=created_by,
+            url=url
+        )
+        return super().create(**kwargs)
+
+
+class PermanentURL(BaseModel):
+    objects = PermanentURLManager()
+    content_type = models.ForeignKey(ContentType, on_delete=models.RESTRICT)
+    object_id = models.PositiveBigIntegerField()
+    content_object = GenericForeignKey("content_type", "object_id")
+    url = models.URLField()
+    
+    class Meta:
+        # As of writing, Django does *not* automatically create an index
+        # on the GenericForeignKey as it does with ForeignKey.
+        indexes = [
+            models.Index(fields=["content_type", "object_id"])
+        ]
 
 
 class PublicSchemaManager(models.Manager):
@@ -36,6 +74,7 @@ class Schema(BaseModel):
     public_objects = PublicSchemaManager()
     name = models.CharField(max_length=200)
     published_at = models.DateTimeField(blank=True, null=True)
+    permanent_urls = GenericRelation(PermanentURL, related_query_name="schema")
 
     class Meta:
         indexes = [
@@ -248,6 +287,7 @@ class ReferenceItem(BaseModel):
 
 class SchemaRef(ReferenceItem):
     schema = models.ForeignKey(Schema, on_delete=models.CASCADE)
+    permanent_urls = GenericRelation(PermanentURL, related_query_name="schemaref")
 
     @property
     def language(self):

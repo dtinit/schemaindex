@@ -28,8 +28,13 @@ Account
           <a href="{% url 'manage_schema' schema_id=schema.pk %}">
             <i data-lucide="square-pen" class="icon--md"></i>
           </a>
+          {% if request.user.profile.organization and schema.published_at|exists_and_is_in_past %}
+          <a href="{% url 'manage_schema_permanent_urls' schema_id=schema.id %}">
+            <i data-lucide="link" class="icon--md"></i>
+          </a>
+          {% endif %}
           {% if not schema.published_at|exists_and_is_in_past %}
-          <a href="{% url 'manage_schema_delete' schema_id=schema.pk %}">
+          <a href="{% url 'manage_schema_delete' schema_id=schema.id %}">
             <i data-lucide="trash" class="icon--md"></i>
           </a>
           {% endif %}
@@ -47,13 +52,9 @@ Account
   {% if request.user.profile.organization %}
   <section class="text--secondary">
     <h1>Organization</h1>
-    <ul>
-      <li>
-        <a href="{% url 'organization_detail' organization_id=request.user.profile.organization.id %}">
-          {{ request.user.profile.organization.name }}
-        </a>
-      </li>
-    </ul>
+    <a href="{% url 'organization_detail' organization_id=request.user.profile.organization.id %}">
+      {{ request.user.profile.organization.name }}
+    </a>
   </section>
   {% endif %}
   <section class="text--secondary">

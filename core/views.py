@@ -7,16 +7,23 @@ from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
+from django.http import Http404
+from django.conf import settings
 from functools import wraps
 import cmarkgfm
 import bleach
 from .models import (Schema,
-                     DocumentationItem,
-                     SchemaRef,
-                     DocumentationItem,
-                     Organization)
-from .forms import SchemaForm, DocumentationItemForm
-
+    DocumentationItem,
+    SchemaRef,
+    DocumentationItem,
+    Organization,
+    PermanentURL
+)
+from .forms import (
+    SchemaForm,
+    DocumentationItemForm,
+    PermanentURLsForm
+)
 
 MAX_SCHEMA_RESULT_COUNT = 30
 
@@ -309,3 +316,76 @@ def organization_detail(request, organization_id):
     return render(request, "core/organizations/detail.html", {
         'organization': organization,
     })
+
+
+@login_required
+def manage_schema_permanent_urls(request, schema_id):
+    if not request.user.profile.organization:
+        raise Http404
+    schema = get_object_or_404(
+        Schema.public_objects,
+        id=schema_id,
+        created_by=request.user,
+    )
+    prefix = PermanentURL.objects.get_url_for_slug(
+        organization=request.user.profile.organization,
+        slug=''
+    )
+    if request.method == 'POST':
+        form = PermanentURLsForm(request.POST, schema=schema)
+        if form.is_valid():
+            schema_slug = form.cleaned_data.get('schema_slug')
+            if schema_slug:
+                PermanentURL.objects.create_from_slug(
+                    created_by=request.user,
+                    content_object=schema,
+                    slug=schema_slug
+                )
+            for subform in form.schema_ref_permanent_url_formset:
+                schema_ref_slug = subform.cleaned_data.get('slug')
+                if schema_ref_slug:
+                    PermanentURL.objects.create_from_slug(
+                        created_by=request.user,
+                        content_object=subform.schema_ref,
+                        slug=schema_ref_slug
+                    )
+            form = PermanentURLsForm(schema=schema)
+    else:
+        form = PermanentURLsForm(schema=schema)
+           
+    return render(request, "core/manage/permanent_urls.html", {
+        'schema': schema,
+        'form': form,
+        'prefix': prefix
+    })
+
+
+def permanent_url_redirect(request, partial_path):
+    host = request.get_host()
+    # Get rid of any port number
+    host = host.split(':', 1)[0] 
+    if host != settings.PERMANENT_URL_HOST:
+        raise Http404
+
+    # This will match non-secure (http) requests
+    # to secure (https) values, but that's fine.
+    # We redirect all http to https in production
+    # and this way makes local testing easier.
+    full_url = f"https://{host}{request.path}"
+    matching_url = get_object_or_404(
+        PermanentURL,
+        url=full_url
+    )
+    if isinstance(matching_url.content_object, Schema):
+        schema = matching_url.content_object
+        return redirect('schema_detail', schema_id=schema.id)
+    elif isinstance(matching_url.content_object, SchemaRef):
+        schema_ref = matching_url.content_object
+        return redirect(
+            'schema_ref_detail',
+            schema_id=schema_ref.schema.id,
+            schema_ref_id=schema_ref.id
+        )
+    else:
+        raise Http404
+

@@ -47,5 +47,15 @@ Activity
     <div class="detail-list-item__label">Added on</div>
     <div class="detail-list-item__value">{{ schema_ref.created_at|date }}</div>
   </li>
+  {% if schema_ref.permanent_urls.count > 0 %}
+  <li>
+    <div class="detail-list-item__label">Permanent URL{{ schema_ref.permanent_urls.count|pluralize }}</div>
+    <ul class="detail-list-item__value">
+      {% for permanent_url in schema_ref.permanent_urls.all %}  
+      <li><a href="{{ permanent_url.url }}">{{ permanent_url.url }}</a></li>
+      {% endfor %}
+    </ul>
+  </li>
+  {% endif %}
 </ul>
 {% endblock %}

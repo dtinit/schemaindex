@@ -5,7 +5,8 @@ from .models import (
     SchemaRef,
     DocumentationItem,
     Organization,
-    Profile
+    Profile,
+    PermanentURL
 )
 
 
@@ -32,3 +33,8 @@ class OrganizationAdmin(admin.ModelAdmin):
 @register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'organization']
+
+
+@register(PermanentURL)
+class PermanentURLAdmin(admin.ModelAdmin):
+    list_display = ['content_object', 'url']
