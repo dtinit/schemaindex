@@ -22,7 +22,7 @@
   };
 
   /** @param {HTMLElement} formsetElement */
-  const attachFormsetControlHandlers = (formsetElement) => {
+  const initializeFormsetElement = (formsetElement) => {
     Array.from(
       formsetElement.querySelectorAll('[data-formset-close-trigger]')
     ).forEach((element) => {
@@ -41,6 +41,13 @@
         formsetElement.classList.add('formset--collapsed');
       });
     });
+    Array.from(
+      formsetElement.querySelectorAll('[data-url-format-selector-for]')
+    )
+      .filter((element) => element instanceof HTMLSelectElement)
+      .forEach((formatSelectElement) => {
+        initializeFormatSelectElement(formatSelectElement);
+      });
   };
 
   /**
@@ -87,7 +94,7 @@
           formsetListElement.getElementsByClassName('formset');
         totalFormInput.value = formsetElements.length.toString();
         // If the number of formset items changed,
-        // insert the new count for each.
+        // update any index-based values
         if (
           (mutation.addedNodes && mutation.addedNodes.length) ||
           (mutation.removedNodes && mutation.removedNodes.length)
@@ -101,21 +108,16 @@
                   countElement.innerText = count;
                 }
               });
+            // Rename any attributes with the current formset index
+            formsetElement.innerHTML = formsetElement.innerHTML.replace(
+              new RegExp(`${formsetListId}-[\\d+]`, 'g'),
+              `${formsetListId}-${index}`
+            );
+            if (formsetElement instanceof HTMLElement) {
+              initializeFormsetElement(formsetElement);
+            }
           });
         }
-        // If nodes were not added, we're done.
-        // Otherwise, wire up the handlers and insert the correct count.
-        if (!mutation.addedNodes || !mutation.addedNodes.length) {
-          return;
-        }
-        Array.from(mutation.addedNodes).forEach((node) => {
-          if (
-            node instanceof HTMLElement &&
-            node.classList.contains('formset')
-          ) {
-            attachFormsetControlHandlers(node);
-          }
-        });
       });
     });
     mutationObserver.observe(formsetListElement, { childList: true });
@@ -235,7 +237,7 @@
           formsetListElement.getElementsByClassName('formset')
         ).forEach((formsetElement) => {
           if (formsetElement instanceof HTMLElement) {
-            attachFormsetControlHandlers(formsetElement);
+            initializeFormsetElement(formsetElement);
           }
         });
       }
@@ -270,16 +272,6 @@
           currentFormItemCount.toString()
         );
         formsetListElement.insertAdjacentHTML('beforeend', nextFormItemHtml);
-        const formsetItems = formsetListElement.querySelectorAll('.formset');
-        Array.from(
-          formsetItems[formsetItems.length - 1].querySelectorAll(
-            '[data-url-format-selector-for]'
-          )
-        )
-          .filter((element) => element instanceof HTMLSelectElement)
-          .forEach((formatSelectElement) => {
-            initializeFormatSelectElement(formatSelectElement);
-          });
       });
     });
 
