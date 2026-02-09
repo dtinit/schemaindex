@@ -224,7 +224,7 @@ def manage_schema(request, schema_id=None):
             previous_documentation_items = schema.documentationitem_set.exclude(role__in=[
                 DocumentationItem.DocumentationItemRole.README,
                 DocumentationItem.DocumentationItemRole.License
-            ])
+            ]).all()
             previous_documentation_items_by_id = {
                 item.id: item for item in previous_documentation_items
             }

@@ -9,7 +9,8 @@ from tests.factories import (
     SchemaRefFactory,
     OrganizationSchemaRefFactory,
     OrganizationSchemaFactory,
-    PermanentURLFactory
+    PermanentURLFactory,
+    DocumentationItemFactory
 )
 from core.models import DocumentationItem
 
@@ -115,7 +116,6 @@ def test_schema_management_form_prevents_duplicate_schema_ref_urls():
         assert not form.is_valid()
         error = form.non_field_errors()[0]
         assert error == 'Each schema definition URL must be unique'
-
 
 
 @pytest.mark.django_db

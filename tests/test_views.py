@@ -219,3 +219,38 @@ def test_permanent_urlmanagement_form_404_for_private_schema():
     response = client.get(f'/schemas/{schema.id}/permanent-urls', follow=True)
     assert response.status_code == 404
 
+
+@pytest.mark.django_db
+def test_saving_schemas_preserves_existing_reference_items():
+    schema = SchemaFactory()
+    schema_ref = SchemaRefFactory(schema=schema, url='https://examle.com/file.json')
+    documentation_item = DocumentationItemFactory(
+        schema=schema,
+        role=None
+    )
+    client = Client()
+    client.force_login(schema.created_by)
+    new_schema_ref_name = 'NEW ' + schema_ref.name if schema_ref.name else 'NEW NAME'
+    new_documentation_item_name = 'NEW ' + documentation_item.name
+    with requests_mock.Mocker() as m:
+        m.get(schema_ref.url, text='{}')
+        m.get('https://example.com', text='{}')
+        client.post(f'/manage/schema/{schema.id}', {
+            'name': schema.name,
+            'schema_refs-0-id': schema_ref.id,
+            'schema_refs-0-url': schema_ref.url,
+            'schema_refs-0-name': new_schema_ref_name,
+            'readme_url': 'https://example.com',
+            'documentation_items-0-id': documentation_item.id,
+            'documentation_items-0-name': new_documentation_item_name,
+            'documentation_items-0-url': documentation_item.url,
+            'documentation_items-TOTAL_FORMS': 1,
+            'documentation_items-INITIAL_FORMS': 1,
+            'schema_refs-TOTAL_FORMS': 1,
+            'schema_refs-INITIAL_FORMS': 1
+        })
+    schema_ref.refresh_from_db()
+    documentation_item.refresh_from_db()
+    assert schema_ref.name == new_schema_ref_name
+    assert documentation_item.name == new_documentation_item_name
+    
