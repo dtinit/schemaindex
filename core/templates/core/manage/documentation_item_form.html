@@ -10,6 +10,7 @@
   <div>
     Documentation Item <span data-formset-count>{{ count }}</span>
   </div>
+  {{ form.id }}
   <div class="split-field-container split-field-container--67-33 formset-content--collapsible">
     {% include "core/manage/field.html" with field=form.name %}
     {% include "core/manage/field.html" with field=form.role %}

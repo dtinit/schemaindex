@@ -198,13 +198,22 @@ class SchemaForm(forms.Form):
         self.additional_documentation_items_formset.clean()
         self.schema_refs_formset.clean()
         cleaned_data = super().clean()
+        # Make sure none of the schema refs have the same URL
+        schema_ref_urls = set()
+        for schema_ref_form in self.schema_refs_formset:
+            schema_ref_urls.add(schema_ref_form.cleaned_data.get('url'))
+        if len(schema_ref_urls) < len(self.schema_refs_formset):
+            raise ValidationError('Each schema definition URL must be unique')
 
         return cleaned_data
 
     def is_valid(self):
-        is_form_valid = super().is_valid()
         is_documentation_items_formset_valid = self.additional_documentation_items_formset.is_valid()
         is_schema_refs_formset_valid = self.schema_refs_formset.is_valid()
+        # This must be called after the two above,
+        # as the clean method requires access
+        # to formset cleaned_data
+        is_form_valid = super().is_valid()
         return is_form_valid and is_documentation_items_formset_valid and is_schema_refs_formset_valid
 
 
@@ -280,8 +289,12 @@ class PermanentURLsForm(forms.Form):
             schema_ref_slug = schema_ref_form.cleaned_data.get('slug')
             if schema_ref_slug in slugs:
                 raise ValidationError('Each URL must be unique.')
+            if schema_ref_slug:
+                slugs.add(schema_ref_slug)
             
         return cleaned_data
 
     def is_valid(self):
+        # This order is important, as self.clean()
+        # requires access to the formset's cleaned_data
         return self.schema_ref_permanent_url_formset.is_valid() and super().is_valid()

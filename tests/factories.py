@@ -95,7 +95,7 @@ class DocumentationItemFactory(ReferenceItemFactory):
     class Meta:
         model = DocumentationItem
 
-    name = factory.Faker('words', nb=3)
+    name = factory.Faker('catch_phrase')
     description = factory.Faker('paragraph')
     schema = factory.SubFactory(SchemaFactory)
     role = factory.Iterator(DocumentationItem.DocumentationItemRole.values)

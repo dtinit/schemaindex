@@ -9,7 +9,8 @@ from tests.factories import (
     SchemaRefFactory,
     OrganizationSchemaRefFactory,
     OrganizationSchemaFactory,
-    PermanentURLFactory
+    PermanentURLFactory,
+    DocumentationItemFactory
 )
 from core.models import DocumentationItem
 
@@ -95,6 +96,29 @@ def test_schema_management_form_requires_one_schema_ref():
 
 
 @pytest.mark.django_db
+def test_schema_management_form_prevents_duplicate_schema_ref_urls():
+    spec_url = 'http://example.com/schema.json'
+    with requests_mock.Mocker() as m:
+        m.get('http://example.com', text='{}')
+        m.get(spec_url, text='{}')
+        form = SchemaForm(data={
+            'name': 'New schema',
+            'readme_url': 'http://example.com',
+            'name': 'New schema',
+            'schema_refs-0-url': spec_url,
+            'schema_refs-1-url': spec_url,
+            'readme_url': 'http://example.com',
+            'documentation_items-TOTAL_FORMS': 0,
+            'documentation_items-INITIAL_FORMS': 0,
+            'schema_refs-TOTAL_FORMS': 2,
+            'schema_refs-INITIAL_FORMS': 0
+        })
+        assert not form.is_valid()
+        error = form.non_field_errors()[0]
+        assert error == 'Each schema definition URL must be unique'
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     "attempted_slug_field_name",
     ["schema_slug", "form-0-slug"]
@@ -134,6 +158,27 @@ def test_schema_permanent_url_form_prevents_new_duplicate_urls():
         'form-INITIAL_FORMS': 1
     }
     form = PermanentURLsForm(schema=managed_schema_ref.schema, data=form_data)
+    assert not form.is_valid()
+    error = form.non_field_errors()[0]
+    assert error == 'Each URL must be unique.'
+
+
+@pytest.mark.django_db
+def test_schema_permanent_url_form_prevents_new_duplicate_schema_ref_urls():
+    managed_schema_ref_1 = OrganizationSchemaRefFactory()
+    managed_schema_ref_2 = SchemaRefFactory(
+        created_by=managed_schema_ref_1.created_by,
+        schema=managed_schema_ref_1.schema
+    )
+    duplicate_slug_value = 'duplicate_slug'
+    form_data = {
+        'schema_slug': '',
+        'form-0-slug': duplicate_slug_value,
+        'form-1-slug': duplicate_slug_value,
+        'form-TOTAL_FORMS': 2,
+        'form-INITIAL_FORMS': 2
+    }
+    form = PermanentURLsForm(schema=managed_schema_ref_1.schema, data=form_data)
     assert not form.is_valid()
     error = form.non_field_errors()[0]
     assert error == 'Each URL must be unique.'
