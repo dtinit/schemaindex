@@ -77,7 +77,7 @@ class SchemaRefForm(ReferenceItemForm):
             schema__in=Schema.public_objects.exclude(id=self.schema_id)
         )
         for schema_ref in schema_refs:
-            if schema_ref.has_same_domain_and_path(data):
+            if schema_ref.url_provider_info.is_same_resource(data):
                 raise ValidationError("The provided URL is already in use by another Schema")
         return data
 

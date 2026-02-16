@@ -123,11 +123,38 @@ def test_published_schemas_searchable_by_name():
 
 
 @pytest.mark.django_db
-def test_private_schemas_with_duplicate_urls_cannot_be_published():
+def test_private_schemas_with_published_urls_cannot_be_published():
     public_schema = SchemaFactory()
     public_schema_ref = SchemaRefFactory(schema=public_schema)
     private_schema = SchemaFactory(published_at=None)
     private_schema_ref = SchemaRefFactory(schema=private_schema, url=public_schema_ref.url)
+    client = Client()
+    client.force_login(private_schema.created_by)
+    get_response = client.get(f'/manage/schema/{private_schema.id}/publish')
+    assert get_response.status_code == 200
+    assert "Schema definition already in use" in str(get_response.content)
+    post_response = client.post(f'/manage/schema/{private_schema.id}/publish')
+    assert post_response.status_code == 403
+    assert private_schema.published_at == None
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("existing_url, attempted_url", [
+    [
+        "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
+        "https://raw.githubusercontent.com/userorg/reponame/refs/heads/branch/path/to/file.json"
+    ],
+    [
+        "https://raw.githubusercontent.com/userorg/reponame/refs/heads/branch/path/to/file.json",
+        "https://github.com/userorg/reponame/blob/branch/path/to/file.json"
+    ],
+
+])
+def test_private_schemas_with_equivalent_published_github_urls_cannot_be_published(existing_url, attempted_url):
+    public_schema = SchemaFactory()
+    public_schema_ref = SchemaRefFactory(schema=public_schema, url=existing_url)
+    private_schema = SchemaFactory(published_at=None)
+    private_schema_ref = SchemaRefFactory(schema=private_schema, url=attempted_url)
     client = Client()
     client.force_login(private_schema.created_by)
     get_response = client.get(f'/manage/schema/{private_schema.id}/publish')

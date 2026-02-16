@@ -134,7 +134,7 @@ class ReferenceItemManager(models.Manager):
         )
         matching_published_schema_ref_ids = [
             schema_ref.id for schema_ref in published_schema_refs
-            if schema_ref.has_same_domain_and_path(url)
+            if schema_ref.url_provider_info.is_same_resource(url)
         ]
         # Custom manager methods like this typically return a QuerySet.
         # In this case, we already retrieved these items from the db,
@@ -161,6 +161,11 @@ class URLProviderInfo:
             return GitHubURLInfo(url)
 
         return cls(url)
+
+    def is_same_resource(self, url):
+        parsed_url_1 = urlparse(self.url)
+        parsed_url_2 = urlparse(url)
+        return parsed_url_1.netloc == parsed_url_2.netloc and parsed_url_1.path == parsed_url_2.path
 
 
 class GitHubURLInfo(URLProviderInfo):
@@ -251,6 +256,25 @@ class GitHubURLInfo(URLProviderInfo):
         normal_path = "/".join([user, repo, "blob", branch] + filepath)
         return f"https://{self.REPO_NETLOC}/{normal_path}"
 
+    def is_same_resource(self, url):
+        # If the url isn't even known to be hosted by GitHub,
+        # there's no point trying to compare it with more complicated logic.
+        if not self.matches(url):
+            return False
+
+        url_provider_info = GitHubURLInfo(url) 
+        # If either raw_url or repo_url has a value, compare 'url' to them.
+        if self.raw_url is not None or self.repo_url is not None:
+            return (
+                self.raw_url == url_provider_info.raw_url or
+                self.repo_url == url_provider_info.repo_url
+            )
+
+        # Otherwise, fallback to the parent implementation.
+        # If this happens, it probably means our repo_url or raw_url
+        # logic needs to be updated to handle this self.url better.
+        return super().is_same_resource(url)
+
 
 class ReferenceItem(BaseModel):
     class Meta:
@@ -278,11 +302,6 @@ class ReferenceItem(BaseModel):
     @property
     def url_provider_info(self):
         return URLProviderInfo.from_url(self.url) 
-
-    def has_same_domain_and_path(self, other_url):
-        parsed_url_1 = urlparse(self.url)
-        parsed_url_2 = urlparse(other_url)
-        return parsed_url_1.netloc == parsed_url_2.netloc and parsed_url_1.path == parsed_url_2.path
 
 
 class SchemaRef(ReferenceItem):
