@@ -284,7 +284,7 @@ def manage_schema_publish(request, schema_id):
     conflicting_published_schema_ref = None
     for schema_ref in schema.schemaref_set.all():
         for published_schema_ref in published_schema_refs:
-            if published_schema_ref.has_same_domain_and_path(schema_ref.url):
+            if published_schema_ref.url_provider_info.is_same_resource(schema_ref.url):
                 conflicting_published_schema_ref = published_schema_ref
                 break;
         if conflicting_published_schema_ref:
