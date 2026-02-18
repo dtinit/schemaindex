@@ -1,4 +1,4 @@
-<li class="formset form-container{% if form.url.value %} formset--collapsed{% endif %}">
+<li class="formset form-container{% if form.url.value and not form.errors %} formset--collapsed{% endif %}">
   <div class="schema-ref-formset__actions">
     <button class="button" type="button" data-formset-close-trigger>
       <i data-lucide="x" class="icon--md"></i>
