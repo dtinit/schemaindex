@@ -1,12 +1,10 @@
 from itertools import chain
 from django.db import models
-from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.core.validators import RegexValidator
 from urllib.parse import urlparse
 import requests
 from .utils import guess_specification_language_by_extension, guess_language_by_extension
@@ -86,7 +84,7 @@ class Schema(BaseModel):
 
     @property
     def is_published(self):
-        return self.published_at and self.published_at >= timezone.now()
+        return self.published_at is not None and self.published_at <= timezone.now()
 
     @property
     def url_providers(self):
