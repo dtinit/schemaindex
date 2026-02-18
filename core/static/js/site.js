@@ -51,6 +51,31 @@
   };
 
   /**
+   * Recursively updates attributes like "id=id_<formsetListId>_<index>"
+   * with a new index.
+   *
+   * @param {Element} element
+   * @param {{ formsetListId: string, index: number }} options
+   */
+  const updateFormsetIndexAttributes = (element, { formsetListId, index }) => {
+    const attributeValuePattern = new RegExp(`${formsetListId}-[\\d+]`);
+    Array.from(element.attributes).forEach(({ name, value }) => {
+      const match = attributeValuePattern.exec(value);
+      if (!match) {
+        return;
+      }
+      const newValue = value.replace(match[0], `${formsetListId}-${index}`);
+      element.setAttribute(name, newValue);
+    });
+    Array.from(element.children)
+      // We assume SVG elements and their children never have relevant attributes.
+      .filter(({ nodeName }) => nodeName.toUpperCase() !== 'SVG')
+      .forEach((child) => {
+        updateFormsetIndexAttributes(child, { formsetListId, index });
+      });
+  };
+
+  /**
    * Django formsets have an internal "management form" which tracks
    * the number of forms inside the formset. Rather than updating these
    * values manually as we add or remove forms, here we start watching
@@ -108,16 +133,17 @@
                   countElement.innerText = count;
                 }
               });
-            // Rename any attributes with the current formset index
-            formsetElement.innerHTML = formsetElement.innerHTML.replace(
-              new RegExp(`${formsetListId}-[\\d+]`, 'g'),
-              `${formsetListId}-${index}`
-            );
-            if (formsetElement instanceof HTMLElement) {
-              initializeFormsetElement(formsetElement);
-            }
+            updateFormsetIndexAttributes(formsetElement, {
+              formsetListId,
+              index,
+            });
           });
         }
+        Array.from(mutation.addedNodes || []).forEach((formsetElement) => {
+          if (formsetElement instanceof HTMLElement) {
+            initializeFormsetElement(formsetElement);
+          }
+        });
       });
     });
     mutationObserver.observe(formsetListElement, { childList: true });
