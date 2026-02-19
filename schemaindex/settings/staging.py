@@ -1,6 +1,7 @@
 from .production import *
 
 ALLOWED_HOSTS = ['schemaindex-stg-run-799626592344.us-central1.run.app']
+PERMANENT_URL_HOST = ALLOWED_HOSTS[0]
 SITE_URL = 'https://schemaindex-stg-run-799626592344.us-central1.run.app'
 CSRF_TRUSTED_ORIGINS = ['https://' + url for url in ALLOWED_HOSTS]
 GS_BUCKET_NAME = 'schemaindex-stg-storage'

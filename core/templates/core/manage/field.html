@@ -4,7 +4,16 @@
     class="{% if field.field.required %}field__label--is-required{% endif %}">
     {{ field.label }}
   </label>
+  {% if input_prefix %}
+  <div class="input-group">
+    <div class="input-group__prefix">
+      {{ input_prefix }}
+    </div>
+    {{ field }}
+  </div>
+  {% else %}
   {{ field }}  
+  {% endif %}
   {% if field.help_text %} 
   <div class="field__help-text">
     {{ field.help_text }}

@@ -1,6 +1,11 @@
 (() => {
   // This needs to match the animation duration in site.css
   const MESSAGE_TIMEOUT_MS = 10 * 1000;
+  // These keys need to match the values of DocumentationItemFormat
+  const FORMAT_OPTION_VALUE_EXTENSIONS = {
+    markdown: ['md', 'markdown'],
+    plaintext: ['txt'],
+  };
 
   /**
    * @param {(...args: any) => any} fn
@@ -17,15 +22,57 @@
   };
 
   /** @param {HTMLElement} formsetElement */
-  const attachFormsetControlHandlers = (formsetElement) => {
-    const closeTriggerElements = Array.from(
-      formsetElement.getElementsByClassName('formset__close-trigger')
-    );
-    closeTriggerElements.forEach((element) => {
+  const initializeFormsetElement = (formsetElement) => {
+    Array.from(
+      formsetElement.querySelectorAll('[data-formset-close-trigger]')
+    ).forEach((element) => {
       element.addEventListener('click', () => {
         formsetElement.remove();
       });
     });
+    Array.from(
+      formsetElement.querySelectorAll('[data-formset-expand-collapse-toggle]')
+    ).forEach((element) => {
+      element.addEventListener('click', () => {
+        if (formsetElement.classList.contains('formset--collapsed')) {
+          formsetElement.classList.remove('formset--collapsed');
+          return;
+        }
+        formsetElement.classList.add('formset--collapsed');
+      });
+    });
+    Array.from(
+      formsetElement.querySelectorAll('[data-url-format-selector-for]')
+    )
+      .filter((element) => element instanceof HTMLSelectElement)
+      .forEach((formatSelectElement) => {
+        initializeFormatSelectElement(formatSelectElement);
+      });
+  };
+
+  /**
+   * Recursively updates attributes like "id=id_<formsetListId>_<index>"
+   * with a new index.
+   *
+   * @param {Element} element
+   * @param {{ formsetListId: string, index: number }} options
+   */
+  const updateFormsetIndexAttributes = (element, { formsetListId, index }) => {
+    const attributeValuePattern = new RegExp(`${formsetListId}-[\\d+]`);
+    Array.from(element.attributes).forEach(({ name, value }) => {
+      const match = attributeValuePattern.exec(value);
+      if (!match) {
+        return;
+      }
+      const newValue = value.replace(match[0], `${formsetListId}-${index}`);
+      element.setAttribute(name, newValue);
+    });
+    Array.from(element.children)
+      // We assume SVG elements and their children never have relevant attributes.
+      .filter(({ nodeName }) => nodeName.toUpperCase() !== 'SVG')
+      .forEach((child) => {
+        updateFormsetIndexAttributes(child, { formsetListId, index });
+      });
   };
 
   /**
@@ -40,7 +87,7 @@
    *
    * @param {HTMLElement} formsetListElement
    */
-  const initializeFormsetListManagementForm = (formsetListElement) => {
+  const initializeFormsetList = (formsetListElement) => {
     const formsetListId = formsetListElement.getAttribute(
       'data-formset-list-id'
     );
@@ -68,24 +115,100 @@
           );
           return;
         }
-        totalFormInput.value = formsetListElement
-          .getElementsByClassName('formset')
-          .length.toString();
-        // If nodes were not added, we're done. Otherwise, wire up the handlers.
-        if (!mutation.addedNodes || !mutation.addedNodes.length) {
-          return;
+        const formsetElements =
+          formsetListElement.getElementsByClassName('formset');
+        totalFormInput.value = formsetElements.length.toString();
+        // If the number of formset items changed,
+        // update any index-based values
+        if (
+          (mutation.addedNodes && mutation.addedNodes.length) ||
+          (mutation.removedNodes && mutation.removedNodes.length)
+        ) {
+          Array.from(formsetElements).forEach((formsetElement, index) => {
+            const count = (index + 1).toString();
+            formsetElement
+              .querySelectorAll('[data-formset-count]')
+              .forEach((countElement) => {
+                if (countElement instanceof HTMLElement) {
+                  countElement.innerText = count;
+                }
+              });
+            updateFormsetIndexAttributes(formsetElement, {
+              formsetListId,
+              index,
+            });
+          });
         }
-        mutation.addedNodes.forEach((node) => {
-          if (
-            node instanceof HTMLElement &&
-            node.classList.contains('formset')
-          ) {
-            attachFormsetControlHandlers(node);
+        Array.from(mutation.addedNodes || []).forEach((formsetElement) => {
+          if (formsetElement instanceof HTMLElement) {
+            initializeFormsetElement(formsetElement);
           }
         });
       });
     });
     mutationObserver.observe(formsetListElement, { childList: true });
+  };
+
+  /**
+   * Pass a `select` element containing a list of file formats
+   * for a paired URL field. When the URL field is changed,
+   * the `select` will be updated to a matching format if possible.
+   *
+   * @param {HTMLSelectElement} formatSelectElement
+   */
+  const initializeFormatSelectElement = (formatSelectElement) => {
+    const triggerElementId = formatSelectElement.getAttribute(
+      'data-url-format-selector-for'
+    );
+    if (!triggerElementId) {
+      return;
+    }
+    const triggerElement = document.getElementById(triggerElementId);
+    // If the URL input already has a value (like when editing an existing entity), bail.
+    if (!(triggerElement instanceof HTMLInputElement) || triggerElement.value) {
+      return;
+    }
+    // Get the available formats and filter by the ones we know extensions for
+    /** @type {(keyof FORMAT_OPTION_VALUE_EXTENSIONS)[]} */
+    const availableFormats = Array.from(formatSelectElement.options)
+      .map(({ value }) => value)
+      .filter(
+        /** @type {(value: string) => value is keyof FORMAT_OPTION_VALUE_EXTENSIONS } */
+        (value) => value in FORMAT_OPTION_VALUE_EXTENSIONS
+      );
+    // When the input element changes, we'll try to match its extension.
+    // If there's a match, we'll select it in the format dropdown.
+    const handleTriggerElementInput = () => {
+      try {
+        const url = new URL(triggerElement.value);
+        const matchingFormat = availableFormats.find((value) =>
+          FORMAT_OPTION_VALUE_EXTENSIONS[value].find((extension) =>
+            url.pathname.toLowerCase().endsWith('.' + extension)
+          )
+        );
+        if (matchingFormat) {
+          formatSelectElement.value = matchingFormat;
+        }
+        // eslint-disable-next-line no-unused-vars
+      } catch (err) {
+        // Fine; don't mess with the select element
+      }
+    };
+    triggerElement.addEventListener('input', handleTriggerElementInput);
+    // If the user manually changes the format selection,
+    // stop trying to set it for them.
+    // 'change' events do *not* fire when we set the value programmatically
+    const handleFormatSelectElementChange = () => {
+      triggerElement.removeEventListener('input', handleTriggerElementInput);
+      formatSelectElement.removeEventListener(
+        'change',
+        handleFormatSelectElementChange
+      );
+    };
+    formatSelectElement.addEventListener(
+      'change',
+      handleFormatSelectElementChange
+    );
   };
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -135,12 +258,12 @@
         if (!(formsetListElement instanceof HTMLElement)) {
           return;
         }
-        initializeFormsetListManagementForm(formsetListElement);
+        initializeFormsetList(formsetListElement);
         Array.from(
           formsetListElement.getElementsByClassName('formset')
         ).forEach((formsetElement) => {
           if (formsetElement instanceof HTMLElement) {
-            attachFormsetControlHandlers(formsetElement);
+            initializeFormsetElement(formsetElement);
           }
         });
       }
@@ -177,6 +300,15 @@
         formsetListElement.insertAdjacentHTML('beforeend', nextFormItemHtml);
       });
     });
+
+    Array.from(document.querySelectorAll('[data-url-format-selector-for]'))
+      .filter(
+        (formatSelectElement) =>
+          formatSelectElement instanceof HTMLSelectElement
+      )
+      .forEach((formatSelectElement) =>
+        initializeFormatSelectElement(formatSelectElement)
+      );
 
     setTimeout(() => {
       Array.from(document.querySelectorAll('.messages .message')).forEach(

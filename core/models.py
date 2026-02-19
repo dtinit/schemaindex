@@ -1,9 +1,12 @@
 from itertools import chain
 from django.db import models
-from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from urllib.parse import urlparse
+import requests
 from .utils import guess_specification_language_by_extension, guess_language_by_extension
 
 class BaseModel(models.Model):
@@ -17,6 +20,41 @@ class BaseModel(models.Model):
     @classmethod
     def create(cls, created_by):
         return cls(created_by=created_by)
+
+class PermanentURLManager(models.Manager):
+    BASE_URL = f'https://{settings.PERMANENT_URL_HOST}/o/'
+
+    def get_url_for_slug(self, *, organization, slug):
+        return self.BASE_URL + organization.slug + '/' + slug
+
+    def create_from_slug(self, *, created_by, slug, **kwargs):
+        """
+        Computes the URL from the user's organization and a slug.
+        """
+        url = self.get_url_for_slug(
+            organization=created_by.profile.organization,
+            slug=slug
+        )
+        kwargs.update(
+            created_by=created_by,
+            url=url
+        )
+        return super().create(**kwargs)
+
+
+class PermanentURL(BaseModel):
+    objects = PermanentURLManager()
+    content_type = models.ForeignKey(ContentType, on_delete=models.RESTRICT)
+    object_id = models.PositiveBigIntegerField()
+    content_object = GenericForeignKey("content_type", "object_id")
+    url = models.URLField()
+    
+    class Meta:
+        # As of writing, Django does *not* automatically create an index
+        # on the GenericForeignKey as it does with ForeignKey.
+        indexes = [
+            models.Index(fields=["content_type", "object_id"])
+        ]
 
 
 class PublicSchemaManager(models.Manager):
@@ -34,6 +72,7 @@ class Schema(BaseModel):
     public_objects = PublicSchemaManager()
     name = models.CharField(max_length=200)
     published_at = models.DateTimeField(blank=True, null=True)
+    permanent_urls = GenericRelation(PermanentURL, related_query_name="schema")
 
     class Meta:
         indexes = [
@@ -45,7 +84,7 @@ class Schema(BaseModel):
 
     @property
     def is_published(self):
-        return self.published_at and self.published_at >= timezone.now()
+        return self.published_at is not None and self.published_at <= timezone.now()
 
     @property
     def url_providers(self):
@@ -56,6 +95,10 @@ class Schema(BaseModel):
             for reference_item in chain(documentation_items, schema_refs)
         }
         return provider_names
+
+    @property
+    def organization(self):
+        return self.created_by.profile.organization
 
     def _latest_documentation_item_of_type(self, role):
         return self.documentationitem_set.filter(role=role).order_by('-created_at').first()
@@ -89,7 +132,7 @@ class ReferenceItemManager(models.Manager):
         )
         matching_published_schema_ref_ids = [
             schema_ref.id for schema_ref in published_schema_refs
-            if schema_ref.has_same_domain_and_path(url)
+            if schema_ref.url_provider_info.is_same_resource(url)
         ]
         # Custom manager methods like this typically return a QuerySet.
         # In this case, we already retrieved these items from the db,
@@ -116,6 +159,11 @@ class URLProviderInfo:
             return GitHubURLInfo(url)
 
         return cls(url)
+
+    def is_same_resource(self, url):
+        parsed_url_1 = urlparse(self.url)
+        parsed_url_2 = urlparse(url)
+        return parsed_url_1.netloc == parsed_url_2.netloc and parsed_url_1.path == parsed_url_2.path
 
 
 class GitHubURLInfo(URLProviderInfo):
@@ -206,6 +254,26 @@ class GitHubURLInfo(URLProviderInfo):
         normal_path = "/".join([user, repo, "blob", branch] + filepath)
         return f"https://{self.REPO_NETLOC}/{normal_path}"
 
+    def is_same_resource(self, url):
+        # If the url isn't even known to be hosted by GitHub,
+        # there's no point trying to compare it with more complicated logic.
+        if not self.matches(url):
+            return False
+
+        url_provider_info = GitHubURLInfo(url) 
+        # If either raw_url or repo_url has a value, compare 'url' to them.
+        if self.raw_url is not None or self.repo_url is not None:
+            return (
+                self.raw_url == url_provider_info.raw_url or
+                self.repo_url == url_provider_info.repo_url
+            )
+
+        # Otherwise, fallback to the parent implementation.
+        # If this happens, it probably means our repo_url or raw_url
+        # logic needs to be updated to handle this self.url better.
+        return super().is_same_resource(url)
+
+
 class ReferenceItem(BaseModel):
     class Meta:
         abstract = True
@@ -217,18 +285,26 @@ class ReferenceItem(BaseModel):
     def __str__(self):
         return self.url
 
+    # TODO: Cache content and add optional param to force a refresh (GitHub issue #157)
+    def get_content(self):
+        if (
+            self.url_provider_info.provider_name == GitHubURLInfo.provider_name and
+            self.url_provider_info.raw_url
+        ):
+            content_url = self.url_provider_info.raw_url
+        else:
+            content_url = self.url
+        response = requests.get(content_url)
+        return response.text
+
     @property
     def url_provider_info(self):
         return URLProviderInfo.from_url(self.url) 
 
-    def has_same_domain_and_path(self, other_url):
-        parsed_url_1 = urlparse(self.url)
-        parsed_url_2 = urlparse(other_url)
-        return parsed_url_1.netloc == parsed_url_2.netloc and parsed_url_1.path == parsed_url_2.path
-
 
 class SchemaRef(ReferenceItem):
     schema = models.ForeignKey(Schema, on_delete=models.CASCADE)
+    permanent_urls = GenericRelation(PermanentURL, related_query_name="schemaref")
 
     @property
     def language(self):
@@ -258,4 +334,23 @@ class DocumentationItem(ReferenceItem):
     @property
     def language(self):
         return guess_language_by_extension(self.url, ['markdown'])
+
+
+class Organization(BaseModel):
+    name = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True)
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def public_schemas(self):
+        return Schema.public_objects.filter(
+            created_by_id__in=self.profile_set.values_list("user_id", flat=True)
+        )
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    organization = models.ForeignKey(Organization, blank=True, null=True, on_delete=models.SET_NULL)
 

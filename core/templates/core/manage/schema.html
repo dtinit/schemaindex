@@ -24,7 +24,7 @@ Edit Schema
       <ul class="formsets" data-formset-list-id="schema_refs">
       {{ form.schema_refs_formset.management_form }}
       {% for subform in form.schema_refs_formset %}
-        {% include "core/manage/schema_ref_form.html" with form=subform %}
+        {% include "core/manage/schema_ref_form.html" with form=subform count=forloop.counter %}
       {% endfor %}
       </ul>
       <div class="formset-controls">
@@ -42,7 +42,7 @@ Edit Schema
       <ul class="formsets" data-formset-list-id="documentation_items">
       {{ form.additional_documentation_items_formset.management_form }}
       {% for subform in form.additional_documentation_items_formset %}
-        {% include "core/manage/documentation_item_form.html" with form=subform %}
+        {% include "core/manage/documentation_item_form.html" with form=subform count=forloop.counter %}
       {% endfor %}
       </ul>
       <div class="formset-controls">

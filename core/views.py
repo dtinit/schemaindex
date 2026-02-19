@@ -7,16 +7,23 @@ from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
+from django.http import Http404
+from django.conf import settings
 from functools import wraps
-import requests
 import cmarkgfm
 import bleach
 from .models import (Schema,
-                     DocumentationItem,
-                     SchemaRef,
-                     DocumentationItem)
-from .forms import SchemaForm, DocumentationItemForm
-
+    DocumentationItem,
+    SchemaRef,
+    DocumentationItem,
+    Organization,
+    PermanentURL
+)
+from .forms import (
+    SchemaForm,
+    DocumentationItemForm,
+    PermanentURLsForm
+)
 
 MAX_SCHEMA_RESULT_COUNT = 30
 
@@ -113,7 +120,7 @@ def schema_detail(request, schema):
     latest_readme = schema.latest_readme()
     latest_readme_content = None
     if latest_readme:
-        response_text = requests.get(latest_readme.url).text
+        response_text = latest_readme.get_content()
         if latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
             latest_readme_content = render_markdown(response_text)
         elif latest_readme.format == DocumentationItem.DocumentationItemFormat.PlainText:
@@ -134,9 +141,7 @@ def schema_detail(request, schema):
 @lookup_schema
 def schema_ref_detail(request, schema, schema_ref_id):
     schema_ref = get_object_or_404(schema.schemaref_set.filter(id=schema_ref_id))
-    # TODO: I feel like we can do better here- e.g. put the get request in the model and
-    # pull from cache
-    text_content = requests.get(schema_ref.url).text
+    text_content = schema_ref.get_content()
     if schema_ref.language == "markdown":
         schema_ref.markdown = render_markdown(text_content)
     else:
@@ -219,7 +224,7 @@ def manage_schema(request, schema_id=None):
             previous_documentation_items = schema.documentationitem_set.exclude(role__in=[
                 DocumentationItem.DocumentationItemRole.README,
                 DocumentationItem.DocumentationItemRole.License
-            ])
+            ]).all()
             previous_documentation_items_by_id = {
                 item.id: item for item in previous_documentation_items
             }
@@ -279,7 +284,7 @@ def manage_schema_publish(request, schema_id):
     conflicting_published_schema_ref = None
     for schema_ref in schema.schemaref_set.all():
         for published_schema_ref in published_schema_refs:
-            if published_schema_ref.has_same_domain_and_path(schema_ref.url):
+            if published_schema_ref.url_provider_info.is_same_resource(schema_ref.url):
                 conflicting_published_schema_ref = published_schema_ref
                 break;
         if conflicting_published_schema_ref:
@@ -304,3 +309,83 @@ def manage_schema_publish(request, schema_id):
 
 def about(request):
     return render(request, "core/about.html")
+
+
+def organization_detail(request, organization_id):
+    organization = get_object_or_404(Organization, id=organization_id)
+    return render(request, "core/organizations/detail.html", {
+        'organization': organization,
+    })
+
+
+@login_required
+def manage_schema_permanent_urls(request, schema_id):
+    if not request.user.profile.organization:
+        raise Http404
+    schema = get_object_or_404(
+        Schema.public_objects,
+        id=schema_id,
+        created_by=request.user,
+    )
+    prefix = PermanentURL.objects.get_url_for_slug(
+        organization=request.user.profile.organization,
+        slug=''
+    )
+    if request.method == 'POST':
+        form = PermanentURLsForm(request.POST, schema=schema)
+        if form.is_valid():
+            schema_slug = form.cleaned_data.get('schema_slug')
+            if schema_slug:
+                PermanentURL.objects.create_from_slug(
+                    created_by=request.user,
+                    content_object=schema,
+                    slug=schema_slug
+                )
+            for subform in form.schema_ref_permanent_url_formset:
+                schema_ref_slug = subform.cleaned_data.get('slug')
+                if schema_ref_slug:
+                    PermanentURL.objects.create_from_slug(
+                        created_by=request.user,
+                        content_object=subform.schema_ref,
+                        slug=schema_ref_slug
+                    )
+            form = PermanentURLsForm(schema=schema)
+    else:
+        form = PermanentURLsForm(schema=schema)
+           
+    return render(request, "core/manage/permanent_urls.html", {
+        'schema': schema,
+        'form': form,
+        'prefix': prefix
+    })
+
+
+def permanent_url_redirect(request, partial_path):
+    host = request.get_host()
+    # Get rid of any port number
+    host = host.split(':', 1)[0] 
+    if host != settings.PERMANENT_URL_HOST:
+        raise Http404
+
+    # This will match non-secure (http) requests
+    # to secure (https) values, but that's fine.
+    # We redirect all http to https in production
+    # and this way makes local testing easier.
+    full_url = f"https://{host}{request.path}"
+    matching_url = get_object_or_404(
+        PermanentURL,
+        url=full_url
+    )
+    if isinstance(matching_url.content_object, Schema):
+        schema = matching_url.content_object
+        return redirect('schema_detail', schema_id=schema.id)
+    elif isinstance(matching_url.content_object, SchemaRef):
+        schema_ref = matching_url.content_object
+        return redirect(
+            'schema_ref_detail',
+            schema_id=schema_ref.schema.id,
+            schema_ref_id=schema_ref.id
+        )
+    else:
+        raise Http404
+

@@ -3,7 +3,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 import requests
-from .models import DocumentationItem, SchemaRef, Schema
+from .models import DocumentationItem, SchemaRef, Schema, PermanentURL
 from .utils import guess_specification_language_by_extension
 
 
@@ -59,10 +59,6 @@ class SchemaRefForm(ReferenceItemForm):
         help_text=f"Accepted formats: {', '.join(sorted(EXPLICITLY_SUPPORTED_FILE_EXTENSIONS))}"
     )
 
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def clean_url(self):
         if not self.cleaned_data['url']:
             return None
@@ -81,7 +77,7 @@ class SchemaRefForm(ReferenceItemForm):
             schema__in=Schema.public_objects.exclude(id=self.schema_id)
         )
         for schema_ref in schema_refs:
-            if schema_ref.has_same_domain_and_path(data):
+            if schema_ref.url_provider_info.is_same_resource(data):
                 raise ValidationError("The provided URL is already in use by another Schema")
         return data
 
@@ -103,8 +99,11 @@ class DocumentationItemForm(ReferenceItemForm):
         initial=''
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['format'].widget.attrs['data-url-format-selector-for'] = self['url'].id_for_label
 
-SchemaRefFormsetFactory = forms.formset_factory(SchemaRefForm, extra=0)
+
 DocumentationItemFormsetFactory = forms.formset_factory(DocumentationItemForm, extra=0)
 
 class SchemaForm(forms.Form):
@@ -123,7 +122,8 @@ class SchemaForm(forms.Form):
         choices=[('', 'Other')] + list(DocumentationItem.DocumentationItemFormat.choices),
         required=False,
         label="README format",
-        help_text="Markdown and Plaintext READMEs are displayed on Schemas.Pub"
+        help_text="Markdown and Plaintext READMEs are displayed on Schemas.Pub",
+        widget=forms.Select(attrs={'data-url-format-selector-for': 'id_readme_url'})
     )
     license_url = forms.URLField(
         label="License URL",
@@ -133,8 +133,10 @@ class SchemaForm(forms.Form):
 
     def __init__(self, *args, schema = None, **kwargs):
         super().__init__(*args, **kwargs)
+
         if schema == None:
             self.additional_documentation_items_formset = DocumentationItemFormsetFactory(prefix="documentation_items", *args, **kwargs)
+            SchemaRefFormsetFactory = forms.formset_factory(SchemaRefForm, extra=1)
             self.schema_refs_formset = SchemaRefFormsetFactory(prefix="schema_refs", *args, **kwargs)
             return
 
@@ -162,6 +164,9 @@ class SchemaForm(forms.Form):
             'name': schema_ref.name,
             'url': schema_ref.url,
         } for schema_ref in schema.schemaref_set.all()]
+        # If there aren't any schema_refs, render the formset with an extra empty formset item
+        extra_formset_item_count = max(1 - len(initial_schema_refs_formset_data), 0)
+        SchemaRefFormsetFactory = forms.formset_factory(SchemaRefForm, extra=extra_formset_item_count)
         self.schema_refs_formset = SchemaRefFormsetFactory(prefix="schema_refs", initial=initial_schema_refs_formset_data, *args, **kwargs)
         for schema_ref_form in self.schema_refs_formset:
             schema_ref_form.schema_id = schema.id
@@ -193,13 +198,103 @@ class SchemaForm(forms.Form):
         self.additional_documentation_items_formset.clean()
         self.schema_refs_formset.clean()
         cleaned_data = super().clean()
+        # Make sure none of the schema refs have the same URL
+        schema_ref_urls = set()
+        for schema_ref_form in self.schema_refs_formset:
+            schema_ref_urls.add(schema_ref_form.cleaned_data.get('url'))
+        if len(schema_ref_urls) < len(self.schema_refs_formset):
+            raise ValidationError('Each schema definition URL must be unique')
 
         return cleaned_data
 
     def is_valid(self):
-        is_form_valid = super().is_valid()
         is_documentation_items_formset_valid = self.additional_documentation_items_formset.is_valid()
         is_schema_refs_formset_valid = self.schema_refs_formset.is_valid()
+        # This must be called after the two above,
+        # as the clean method requires access
+        # to formset cleaned_data
+        is_form_valid = super().is_valid()
         return is_form_valid and is_documentation_items_formset_valid and is_schema_refs_formset_valid
 
 
+def clean_permanent_url_slug(organization, slug):
+    proposed_url = PermanentURL.objects.get_url_for_slug(
+        organization=organization,
+        slug=slug
+    )
+    if PermanentURL.objects.filter(url=proposed_url).exists():
+        raise ValidationError('This URL is already in use.')
+    return slug
+
+
+class SchemaRefPermanentURLForm(forms.Form):
+    slug = forms.SlugField(
+        max_length=300,
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'})
+    )
+
+    def set_schema_ref(self, schema_ref, fallback_name):
+        self.schema_ref = schema_ref
+        self.name = schema_ref.name or fallback_name
+        self.fields['slug'].help_text = "This URL will route to the Schemas.Pub listing for " + schema_ref.url
+        self.fields['slug'].label = "New unique URL for " + self.name
+
+    def clean_slug(self):
+        return clean_permanent_url_slug(
+            organization=self.schema_ref.created_by.profile.organization,
+            slug=self.cleaned_data['slug']
+        )
+
+
+class PermanentURLsForm(forms.Form):
+    schema_slug = forms.SlugField(
+        label="New unique URL for schema",
+        max_length=300,
+        help_text="This URL will route to the Schemas.Pub listing for your schema.",
+        widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'}),
+        required=False
+    )
+
+    def __init__(self, *args, schema, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.schema = schema
+        schema_refs = self.schema.schemaref_set.all()
+        # Create a formset with one form per SchemaRef
+        SchemaRefPermanentURLFormsetFactory = forms.formset_factory(
+            SchemaRefPermanentURLForm,
+            extra=len(schema_refs),
+            max_num=len(schema_refs),
+        )
+        self.schema_ref_permanent_url_formset = SchemaRefPermanentURLFormsetFactory(
+            *args,
+            **kwargs
+        )
+        for index, schema_ref_form in enumerate(self.schema_ref_permanent_url_formset):
+            schema_ref_form.set_schema_ref(schema_refs[index], f"Definition {index + 1}")
+
+    def clean_schema_slug(self):
+        return clean_permanent_url_slug(
+            organization=self.schema.created_by.profile.organization,
+            slug=self.cleaned_data['schema_slug']
+        )
+
+    def clean(self):
+        self.schema_ref_permanent_url_formset.clean()
+        cleaned_data = super().clean()
+        # Make sure none of the slugs are the same
+        schema_slug = cleaned_data.get('schema_slug')
+        slugs = {schema_slug} if schema_slug else set()
+        for schema_ref_form in self.schema_ref_permanent_url_formset:
+            schema_ref_slug = schema_ref_form.cleaned_data.get('slug')
+            if schema_ref_slug in slugs:
+                raise ValidationError('Each URL must be unique.')
+            if schema_ref_slug:
+                slugs.add(schema_ref_slug)
+            
+        return cleaned_data
+
+    def is_valid(self):
+        # This order is important, as self.clean()
+        # requires access to the formset's cleaned_data
+        return self.schema_ref_permanent_url_formset.is_valid() and super().is_valid()

@@ -6,6 +6,7 @@ from google.oauth2 import service_account
 from .base import *
 
 DEBUG = False
+PERMANENT_URL_HOST = 'id.schemas.pub'
 ALLOWED_HOSTS = [ 
     'schemas.pub',
     'www.schemas.pub',

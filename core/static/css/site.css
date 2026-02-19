@@ -8,6 +8,9 @@ html {
   --danger-color: #b91c1c;
   --danger-color-highlight: #991b1b;
   --danger-color-text: #f87171;
+  --warning-color: #a16207;
+  --warning-color-highlight: #854d0e;
+  --warning-color-text: #facc15;
   --logo-color: #fde047;
   --text-link-color: #818cf8;
   --text-link-color-highlight: #a5b4fc;
@@ -58,13 +61,18 @@ a:hover {
 }
 
 input,
+select,
+.input-group .input-group__prefix {
+  padding: 0.5rem;
+  border: 1px solid #666;
+  background: #444;
+}
+
+input,
 select {
   border-radius: 8px;
-  padding: 0.5rem;
-  background: #444;
   color: var(--text-primary);
   width: 100%;
-  border: 1px solid #666;
 }
 
 .nav-header {
@@ -214,6 +222,10 @@ select {
   color: var(--text-secondary);
 }
 
+.text--warning {
+  color: var(--warning-color-text);
+}
+
 .account-page {
   width: 100%;
   max-width: 30rem;
@@ -275,7 +287,8 @@ a.button--primary:hover {
 
 .button--prominent,
 .button--confirm,
-.button--danger {
+.button--danger,
+.button--warning {
   padding: 0.5rem 1rem;
   border-radius: 6px;
   box-shadow: 0 4px 4px -1px rgba(0, 0, 0, 0.1);
@@ -292,6 +305,15 @@ a.button--primary:hover {
 
 .button--danger:hover {
   background: var(--danger-color-highlight);
+  color: var(--text-primary);
+}
+
+.button--warning {
+  background: var(--warning-color);
+}
+
+.button--warning:hover {
+  background: var(--warning-color-highlight);
   color: var(--text-primary);
 }
 
@@ -376,6 +398,24 @@ a.button--primary:hover {
 
 .field--checkbox label {
   cursor: pointer;
+}
+
+.field .input-group {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.field .input-group .input-group__prefix {
+  white-space: nowrap;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  border-right-width: 0;
+}
+
+.field .input-group input {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 .split-field-container {
@@ -510,10 +550,20 @@ a.button--primary:hover {
   padding-top: 0;
 }
 
-.formset .formset__close-trigger {
+.formset--collapsed button[data-formset-expand-collapse-toggle] {
+  transform: rotate(180deg);
+}
+
+.formset--collapsed .formset-content--collapsible {
+  display: none;
+}
+
+.schema-ref-formset__actions {
   position: absolute;
   right: 0.75rem;
-  top: 0.75rem;
+  top: 1rem;
+  display: flex;
+  gap: 1rem;
 }
 
 .formset-controls {
@@ -888,6 +938,24 @@ a.badge--w3c {
 
 /* About page */
 .about-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+/* Organization detail */
+.organization-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+/* Permanent URL management page */
+.manage-permanent-urls {
   display: flex;
   flex-direction: column;
   align-items: center;

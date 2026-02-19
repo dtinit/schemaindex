@@ -1,11 +1,17 @@
 import pytest
 import requests_mock
 from tests.factories import (
-    SchemaFactory, UserFactory, SchemaRefFactory,
-    DocumentationItemFactory
+    SchemaFactory,
+    UserFactory,
+    SchemaRefFactory,
+    DocumentationItemFactory,
+    OrganizationSchemaFactory,
+    OrganizationSchemaRefFactory,
+    PermanentURLFactory
 )
 from core.models import Schema, DocumentationItem
 from django.test import Client
+from pytest_django.asserts import assertRedirects
 
 
 @pytest.mark.django_db
@@ -117,11 +123,38 @@ def test_published_schemas_searchable_by_name():
 
 
 @pytest.mark.django_db
-def test_private_schemas_with_duplicate_urls_cannot_be_published():
+def test_private_schemas_with_published_urls_cannot_be_published():
     public_schema = SchemaFactory()
     public_schema_ref = SchemaRefFactory(schema=public_schema)
     private_schema = SchemaFactory(published_at=None)
     private_schema_ref = SchemaRefFactory(schema=private_schema, url=public_schema_ref.url)
+    client = Client()
+    client.force_login(private_schema.created_by)
+    get_response = client.get(f'/manage/schema/{private_schema.id}/publish')
+    assert get_response.status_code == 200
+    assert "Schema definition already in use" in str(get_response.content)
+    post_response = client.post(f'/manage/schema/{private_schema.id}/publish')
+    assert post_response.status_code == 403
+    assert private_schema.published_at == None
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("existing_url, attempted_url", [
+    [
+        "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
+        "https://raw.githubusercontent.com/userorg/reponame/refs/heads/branch/path/to/file.json"
+    ],
+    [
+        "https://raw.githubusercontent.com/userorg/reponame/refs/heads/branch/path/to/file.json",
+        "https://github.com/userorg/reponame/blob/branch/path/to/file.json"
+    ],
+
+])
+def test_private_schemas_with_equivalent_published_github_urls_cannot_be_published(existing_url, attempted_url):
+    public_schema = SchemaFactory()
+    public_schema_ref = SchemaRefFactory(schema=public_schema, url=existing_url)
+    private_schema = SchemaFactory(published_at=None)
+    private_schema_ref = SchemaRefFactory(schema=private_schema, url=attempted_url)
     client = Client()
     client.force_login(private_schema.created_by)
     get_response = client.get(f'/manage/schema/{private_schema.id}/publish')
@@ -172,4 +205,79 @@ def test_published_schemas_cannot_be_deleted():
     post_response = client.post(f'/manage/schema/{schema.id}/delete', follow=True)
     assert post_response.status_code == 403
     assert Schema.objects.filter(id=schema.id).exists()
-                        
+
+
+@pytest.mark.django_db
+def test_invalid_permanent_urls_404():
+    client = Client()
+    response = client.get('/o/bad/path')
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_matching_permanent_urls_redirect_to_schemas():
+    slug = 'test'
+    schema = OrganizationSchemaFactory()
+    permanent_url = PermanentURLFactory(content_object=schema, slug=slug)
+    client = Client()
+    response = client.get(f'/o/{schema.created_by.profile.organization.slug}/{slug}', follow=True)
+    assert response.status_code == 200
+    assertRedirects(response, f'/schemas/{schema.id}')
+
+
+@pytest.mark.django_db
+def test_matching_permanent_urls_redirect_to_schema_refs():
+    slug = 'test'
+    schema_ref = OrganizationSchemaRefFactory()
+    permanent_url = PermanentURLFactory(content_object=schema_ref, slug=slug)
+    client = Client()
+    with requests_mock.Mocker() as m:
+        m.get(schema_ref.url, text='{}')
+        response = client.get(f'/o/{schema_ref.created_by.profile.organization.slug}/{slug}', follow=True)
+        assert response.status_code == 200
+        assertRedirects(response, f'/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}')
+
+
+@pytest.mark.django_db
+def test_permanent_urlmanagement_form_404_for_private_schema():
+    schema = SchemaFactory(published_at=None)
+    client = Client()
+    client.force_login(schema.created_by)
+    response = client.get(f'/schemas/{schema.id}/permanent-urls', follow=True)
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_saving_schemas_preserves_existing_reference_items():
+    schema = SchemaFactory()
+    schema_ref = SchemaRefFactory(schema=schema, url='https://examle.com/file.json')
+    documentation_item = DocumentationItemFactory(
+        schema=schema,
+        role=None
+    )
+    client = Client()
+    client.force_login(schema.created_by)
+    new_schema_ref_name = 'NEW ' + schema_ref.name if schema_ref.name else 'NEW NAME'
+    new_documentation_item_name = 'NEW ' + documentation_item.name
+    with requests_mock.Mocker() as m:
+        m.get(schema_ref.url, text='{}')
+        m.get('https://example.com', text='{}')
+        client.post(f'/manage/schema/{schema.id}', {
+            'name': schema.name,
+            'schema_refs-0-id': schema_ref.id,
+            'schema_refs-0-url': schema_ref.url,
+            'schema_refs-0-name': new_schema_ref_name,
+            'readme_url': 'https://example.com',
+            'documentation_items-0-id': documentation_item.id,
+            'documentation_items-0-name': new_documentation_item_name,
+            'documentation_items-0-url': documentation_item.url,
+            'documentation_items-TOTAL_FORMS': 1,
+            'documentation_items-INITIAL_FORMS': 1,
+            'schema_refs-TOTAL_FORMS': 1,
+            'schema_refs-INITIAL_FORMS': 1
+        })
+    schema_ref.refresh_from_db()
+    documentation_item.refresh_from_db()
+    assert schema_ref.name == new_schema_ref_name
+    assert documentation_item.name == new_documentation_item_name
+    
