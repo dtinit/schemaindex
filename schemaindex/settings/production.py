@@ -9,6 +9,7 @@ DEBUG = False
 ALLOWED_HOSTS = [ 
     'schemas.pub',
     'www.schemas.pub',
+    'id.schemas.pub',
     'schemaindex-prod-run-768243509223.us-central1.run.app'
 ]
 SITE_URL = 'https://schemas.pub'
