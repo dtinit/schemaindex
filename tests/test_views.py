@@ -274,7 +274,9 @@ def test_saving_schemas_preserves_existing_reference_items():
             'documentation_items-TOTAL_FORMS': 1,
             'documentation_items-INITIAL_FORMS': 1,
             'schema_refs-TOTAL_FORMS': 1,
-            'schema_refs-INITIAL_FORMS': 1
+            'schema_refs-INITIAL_FORMS': 1,
+            'implementations-TOTAL_FORMS': 0,
+            'implementations-INITIAL_FORMS': 0
         })
     schema_ref.refresh_from_db()
     documentation_item.refresh_from_db()

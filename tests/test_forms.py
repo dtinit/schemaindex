@@ -28,7 +28,9 @@ def test_schema_management_form_prevents_duplicate_published_urls():
             'documentation_items-TOTAL_FORMS': 0,
             'documentation_items-INITIAL_FORMS': 0,
             'schema_refs-TOTAL_FORMS': 1,
-            'schema_refs-INITIAL_FORMS': 0
+            'schema_refs-INITIAL_FORMS': 0,
+            'implementations-TOTAL_FORMS': 0,
+            'implementations-INITIAL_FORMS': 0
         })
         assert not form.is_valid()
         error = form.schema_refs_formset.errors[0]['url'][0] # Form 0, error list for 'url', error 0
@@ -51,7 +53,9 @@ def test_schema_management_form_allows_duplicate_private_urls():
             'documentation_items-TOTAL_FORMS': 0,
             'documentation_items-INITIAL_FORMS': 0,
             'schema_refs-TOTAL_FORMS': 1,
-            'schema_refs-INITIAL_FORMS': 0
+            'schema_refs-INITIAL_FORMS': 0,
+            'implementations-TOTAL_FORMS': 0,
+            'implementations-INITIAL_FORMS': 0
         })
         assert form.is_valid()
 
@@ -73,7 +77,9 @@ def test_clean_url(spec_url, expect_success):
             'documentation_items-TOTAL_FORMS': 0,
             'documentation_items-INITIAL_FORMS': 0,
             'schema_refs-TOTAL_FORMS': 1,
-            'schema_refs-INITIAL_FORMS': 0
+            'schema_refs-INITIAL_FORMS': 0,
+            'implementations-TOTAL_FORMS': 0,
+            'implementations-INITIAL_FORMS': 0
         })
         assert expect_success == form.is_valid()
 
@@ -88,7 +94,9 @@ def test_schema_management_form_requires_one_schema_ref():
             'documentation_items-TOTAL_FORMS': 0,
             'documentation_items-INITIAL_FORMS': 0,
             'schema_refs-TOTAL_FORMS': 0,
-            'schema_refs-INITIAL_FORMS': 0
+            'schema_refs-INITIAL_FORMS': 0,
+            'implementations-TOTAL_FORMS': 0,
+            'implementations-INITIAL_FORMS': 0
         })
         assert not form.is_valid()
         error = form.non_field_errors()[0]
@@ -111,7 +119,9 @@ def test_schema_management_form_prevents_duplicate_schema_ref_urls():
             'documentation_items-TOTAL_FORMS': 0,
             'documentation_items-INITIAL_FORMS': 0,
             'schema_refs-TOTAL_FORMS': 2,
-            'schema_refs-INITIAL_FORMS': 0
+            'schema_refs-INITIAL_FORMS': 0,
+            'implementations-TOTAL_FORMS': 0,
+            'implementations-INITIAL_FORMS': 0
         })
         assert not form.is_valid()
         error = form.non_field_errors()[0]
