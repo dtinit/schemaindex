@@ -1,4 +1,7 @@
-<div class="field{% if field.errors %} field--has-errors{% endif %} {% if field.is_hidden %} field--is-hidden{% endif %}">
+<div class="field{% if field.errors %} field--has-errors{% endif %} {% if field.is_hidden %} field--is-hidden{% endif %} field--{{ field.field.widget.input_type }}">
+  {% if field.field.widget.input_type == 'checkbox' %}
+  {{ field }}
+  {% endif %}
   <label
     for="{{ field.id_for_label }}"
     class="{% if field.field.required %}field__label--is-required{% endif %}">
@@ -11,7 +14,7 @@
     </div>
     {{ field }}
   </div>
-  {% else %}
+  {% elif field.field.widget.input_type != 'checkbox' %}
   {{ field }}  
   {% endif %}
   {% if field.help_text %} 
