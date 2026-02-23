@@ -169,7 +169,7 @@ def _sync_formset_to_reference_items(schema, existing_items_queryset, formset, m
     }
     updated_item_ids = set()
 
-    # Create/update schema_refs
+    # Create/update items
     for form in formset:
         id = form.cleaned_data.get('id')
         if id:
@@ -181,7 +181,7 @@ def _sync_formset_to_reference_items(schema, existing_items_queryset, formset, m
             setattr(db_item, attribute, form.cleaned_data.get(attribute))
         db_item.save()
 
-    # Delete schema refs that were removed
+    # Delete items that were removed
     for item in existing_items_queryset:
         if not item.id in updated_item_ids:
             item.delete()
