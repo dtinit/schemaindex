@@ -17,7 +17,8 @@ from .models import (Schema,
     SchemaRef,
     DocumentationItem,
     Organization,
-    PermanentURL
+    PermanentURL,
+    Implementation
 )
 from .forms import (
     SchemaForm,
@@ -162,6 +163,30 @@ def account_profile(request):
     })
 
 
+def _sync_formset_to_reference_items(schema, existing_items_queryset, formset, model, attributes, created_by):
+    existing_items_by_id = {
+        item.id: item for item in existing_items_queryset
+    }
+    updated_item_ids = set()
+
+    # Create/update items
+    for form in formset:
+        id = form.cleaned_data.get('id')
+        if id:
+            db_item = existing_items_by_id[id]
+            updated_item_ids.add(id)
+        else:
+            db_item = model.objects.create(schema=schema, created_by=created_by)
+        for attribute in attributes:
+            setattr(db_item, attribute, form.cleaned_data.get(attribute))
+        db_item.save()
+
+    # Delete items that were removed
+    for item in existing_items_queryset:
+        if not item.id in updated_item_ids:
+            item.delete()
+
+
 @login_required
 def manage_schema(request, schema_id=None):
     schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id) if schema_id else None
@@ -172,28 +197,15 @@ def manage_schema(request, schema_id=None):
             schema = schema if schema else Schema.objects.create(created_by=request.user)
             schema.name = form.cleaned_data['name']
             schema.save()
-            
-            previous_schema_refs = schema.schemaref_set.all()
-            previous_schema_refs_by_id = {
-                schema_ref.id: schema_ref for schema_ref in previous_schema_refs
-            }
-            updated_schema_ref_ids = set()
-            # Create/update schema_refs
-            for schema_ref_form in form.schema_refs_formset:
-                schema_ref_id = schema_ref_form.cleaned_data.get('id')
-                if schema_ref_id:
-                    db_item = previous_schema_refs_by_id[schema_ref_id]
-                    updated_schema_ref_ids.add(schema_ref_id)
-                else:
-                    db_item = SchemaRef.objects.create(schema=schema, created_by=request.user)
-                db_item.name = schema_ref_form.cleaned_data.get('name')
-                db_item.url = schema_ref_form.cleaned_data.get('url')
-                db_item.save()
 
-            # Delete schema refs that were removed
-            for schema_ref in previous_schema_refs:
-                if not schema_ref.id in updated_schema_ref_ids:
-                    schema_ref.delete()
+            _sync_formset_to_reference_items(
+                schema=schema,
+                existing_items_queryset=schema.schemaref_set.all(),
+                formset=form.schema_refs_formset,
+                model=SchemaRef,
+                attributes=['name', 'url'],
+                created_by=request.user
+            ) 
 
             latest_readme = schema.latest_readme()
             if latest_readme == None:
@@ -225,29 +237,24 @@ def manage_schema(request, schema_id=None):
                 DocumentationItem.DocumentationItemRole.README,
                 DocumentationItem.DocumentationItemRole.License
             ]).all()
-            previous_documentation_items_by_id = {
-                item.id: item for item in previous_documentation_items
-            }
-            
-            updated_item_ids = set()
-            # Create/update documentation items
-            for documentation_item_form in form.additional_documentation_items_formset:
-                item_id = documentation_item_form.cleaned_data.get('id')
-                if item_id:
-                    db_item = previous_documentation_items_by_id[item_id]
-                    updated_item_ids.add(item_id)
-                else:
-                    db_item = DocumentationItem.objects.create(schema=schema, created_by=request.user)
-                db_item.name = documentation_item_form.cleaned_data.get('name')
-                db_item.url = documentation_item_form.cleaned_data.get('url')
-                db_item.role = documentation_item_form.cleaned_data.get('role')
-                db_item.format = documentation_item_form.cleaned_data.get('format')
-                db_item.save()
 
-            # Delete documentation items that were removed
-            for previous_item in previous_documentation_items:
-                if not previous_item.id in updated_item_ids:
-                    previous_item.delete()
+            _sync_formset_to_reference_items(
+                schema=schema,
+                existing_items_queryset=previous_documentation_items.all(),
+                formset=form.additional_documentation_items_formset,
+                model=DocumentationItem,
+                attributes=['name', 'url', 'role', 'format'],
+                created_by=request.user
+            )
+
+            _sync_formset_to_reference_items(
+                schema=schema,
+                existing_items_queryset=schema.implementation_set.all(),
+                formset=form.implementation_formset,
+                model=Implementation,
+                attributes=['url', 'is_open_source'],
+                created_by=request.user
+            )
 
             return redirect('schema_detail', schema_id=schema.id)
 

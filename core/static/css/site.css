@@ -60,6 +60,12 @@ a:hover {
   gap: 0.25rem;
 }
 
+.ellipsize {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
 input,
 select,
 .input-group .input-group__prefix {
@@ -502,6 +508,7 @@ a.button--primary:hover {
   align-items: flex-start;
   justify-content: center;
   margin: 0 auto;
+  width: 100%;
 }
 
 .form-container h1 {
@@ -558,7 +565,7 @@ a.button--primary:hover {
   display: none;
 }
 
-.schema-ref-formset__actions {
+.formset__actions {
   position: absolute;
   right: 0.75rem;
   top: 1rem;

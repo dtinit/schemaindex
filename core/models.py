@@ -336,6 +336,11 @@ class DocumentationItem(ReferenceItem):
         return guess_language_by_extension(self.url, ['markdown'])
 
 
+class Implementation(ReferenceItem):
+    is_open_source = models.BooleanField(default=False)
+    schema = models.ForeignKey(Schema, on_delete=models.CASCADE)
+
+
 class Organization(BaseModel):
     name = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)

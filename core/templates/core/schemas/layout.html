@@ -66,6 +66,22 @@
         {% endfor %}
       </ul>
       {% endif %}
+      {% if schema.implementation_set.count %}
+      <li class="nav-group__section-header">
+        <i data-lucide="layers-2" class="icon--sm"></i>
+        Implementations
+      </li>
+      <ul class="nav-group">
+        {% for implementation in schema.implementation_set.all %}
+         <li>
+          <a href="{{ implementation.url }}">
+            <span class="ellipsize">{{ implementation.url }}</span>
+            {{ implementation|branded_external_link_icon_for_reference_item }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
     </ul>
     <hr />
     <div class="nav-group-label">

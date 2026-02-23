@@ -18,10 +18,10 @@ EXPLICITLY_SUPPORTED_FILE_EXTENSIONS = [
     '.cddl'
 ]
 
+
 class ReferenceItemForm(forms.Form):
     id = forms.IntegerField(widget=forms.HiddenInput(), required=False)
     url = forms.URLField(label="URL")
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -29,6 +29,7 @@ class ReferenceItemForm(forms.Form):
         # even if it has required fields!
         # This undoes that
         self.empty_permitted = False
+
 
 def clean_url(url):
     try:
@@ -106,6 +107,14 @@ class DocumentationItemForm(ReferenceItemForm):
 
 DocumentationItemFormsetFactory = forms.formset_factory(DocumentationItemForm, extra=0)
 
+
+class ImplementationForm(ReferenceItemForm):
+    is_open_source = forms.BooleanField(label="This implementation is open source", required=False)
+
+
+ImplementationFormsetFactory = forms.formset_factory(ImplementationForm, extra=0)
+
+
 class SchemaForm(forms.Form):
     id = None
 
@@ -135,9 +144,14 @@ class SchemaForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         if schema == None:
-            self.additional_documentation_items_formset = DocumentationItemFormsetFactory(prefix="documentation_items", *args, **kwargs)
+            self.additional_documentation_items_formset = DocumentationItemFormsetFactory(
+                prefix="documentation_items",
+                *args,
+                **kwargs
+            )
             SchemaRefFormsetFactory = forms.formset_factory(SchemaRefForm, extra=1)
             self.schema_refs_formset = SchemaRefFormsetFactory(prefix="schema_refs", *args, **kwargs)
+            self.implementation_formset = ImplementationFormsetFactory(prefix="implementations", *args, **kwargs)
             return
 
         latest_readme = schema.latest_readme()
@@ -155,7 +169,8 @@ class SchemaForm(forms.Form):
         self.additional_documentation_items_formset = DocumentationItemFormsetFactory(
             prefix="documentation_items",
             initial=initial_documentation_items_formset_data,
-            *args, **kwargs
+            *args,
+            **kwargs
         )
 
         initial_schema_refs_formset_data = [{
@@ -166,10 +181,31 @@ class SchemaForm(forms.Form):
         } for schema_ref in schema.schemaref_set.all()]
         # If there aren't any schema_refs, render the formset with an extra empty formset item
         extra_formset_item_count = max(1 - len(initial_schema_refs_formset_data), 0)
-        SchemaRefFormsetFactory = forms.formset_factory(SchemaRefForm, extra=extra_formset_item_count)
-        self.schema_refs_formset = SchemaRefFormsetFactory(prefix="schema_refs", initial=initial_schema_refs_formset_data, *args, **kwargs)
+        SchemaRefFormsetFactory = forms.formset_factory(
+            SchemaRefForm,
+            extra=extra_formset_item_count
+        )
+        self.schema_refs_formset = SchemaRefFormsetFactory(
+            prefix="schema_refs",
+            initial=initial_schema_refs_formset_data,
+            *args,
+            **kwargs
+        )
         for schema_ref_form in self.schema_refs_formset:
             schema_ref_form.schema_id = schema.id
+
+        
+        initial_implementation_formset_data = [{
+            'id': implementation.id,
+            'url': implementation.url,
+            'is_open_source': implementation.is_open_source,
+        } for implementation in schema.implementation_set.all()]
+        self.implementation_formset = ImplementationFormsetFactory(
+            prefix="implementations",
+            initial=initial_implementation_formset_data,
+            *args,
+            **kwargs
+        )
 
         self.initial = {
             'name': schema.name,
@@ -197,6 +233,7 @@ class SchemaForm(forms.Form):
 
         self.additional_documentation_items_formset.clean()
         self.schema_refs_formset.clean()
+        self.implementation_formset.clean()
         cleaned_data = super().clean()
         # Make sure none of the schema refs have the same URL
         schema_ref_urls = set()
@@ -204,17 +241,22 @@ class SchemaForm(forms.Form):
             schema_ref_urls.add(schema_ref_form.cleaned_data.get('url'))
         if len(schema_ref_urls) < len(self.schema_refs_formset):
             raise ValidationError('Each schema definition URL must be unique')
-
         return cleaned_data
 
     def is_valid(self):
         is_documentation_items_formset_valid = self.additional_documentation_items_formset.is_valid()
         is_schema_refs_formset_valid = self.schema_refs_formset.is_valid()
-        # This must be called after the two above,
+        is_implementation_formset_valid = self.implementation_formset.is_valid()
+        # This must be called *after* the formsets,
         # as the clean method requires access
         # to formset cleaned_data
         is_form_valid = super().is_valid()
-        return is_form_valid and is_documentation_items_formset_valid and is_schema_refs_formset_valid
+        return (
+            is_form_valid and
+            is_documentation_items_formset_valid and
+            is_schema_refs_formset_valid and
+            is_implementation_formset_valid
+        )
 
 
 def clean_permanent_url_slug(organization, slug):
