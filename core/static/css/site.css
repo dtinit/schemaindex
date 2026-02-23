@@ -60,6 +60,12 @@ a:hover {
   gap: 0.25rem;
 }
 
+.ellipsize {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
 input,
 select,
 .input-group .input-group__prefix {
