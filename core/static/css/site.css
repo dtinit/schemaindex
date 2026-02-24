@@ -458,6 +458,8 @@ a.button--primary:hover {
 
 .plaintext {
   font-family: 'Courier New';
+  padding: 1rem;
+  white-space: pre-wrap;
 }
 
 .markdown {
