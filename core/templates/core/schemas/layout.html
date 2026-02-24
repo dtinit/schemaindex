@@ -112,6 +112,27 @@
           </li>
         {% endfor %}
       </ul>
+      {% if schema.organization %}
+      <hr />
+      <div>
+        <i data-lucide="building" class="icon--sm"></i>
+        Organization
+      </div>
+      <ul class="nav-group nav-group--organization-schemas">
+        {% for org_schema in schema.organization.public_schemas|dictsort:"name" %}
+        <li>
+          <a href="{% url 'schema_detail' schema_id=org_schema.id %}"
+             {% if org_schema.id == schema.id %}
+             class="is-active"
+             {% endif %}
+             >
+            <i data-lucide="code" class="icon--sm"></i>
+            {{ org_schema.name }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
     </nav>
     <main class="schema-layout__content">
       {% block schema_content %}

@@ -807,6 +807,36 @@ a.badge--w3c {
   text-decoration: underline;
 }
 
+.schema-layout
+  .schema-layout__nav
+  .nav-group.nav-group--organization-schemas
+  li {
+  padding-left: 1.25rem;
+}
+
+.schema-layout
+  .schema-layout__nav
+  .nav-group.nav-group--organization-schemas
+  li
+  a {
+  border: 1px solid transparent;
+}
+
+.schema-layout
+  .schema-layout__nav
+  .nav-group.nav-group--organization-schemas
+  li
+  a:hover,
+.schema-layout
+  .schema-layout__nav
+  .nav-group.nav-group--organization-schemas
+  li
+  a.is-active {
+  background: #172554;
+  color: #bfdbfe;
+  border-color: #1e3a8a;
+}
+
 .schema-layout .schema-layout__nav .nav-group-label {
   color: #999;
   font-size: 12px;
