@@ -87,6 +87,8 @@ select {
   justify-content: flex-end;
   width: 100%;
   padding: 1rem;
+  max-width: 90rem;
+  margin: 0 auto;
 }
 
 .nav-header--with-home-link {
@@ -456,6 +458,8 @@ a.button--primary:hover {
 
 .plaintext {
   font-family: 'Courier New';
+  padding: 1rem;
+  white-space: pre-wrap;
 }
 
 .markdown {
@@ -589,7 +593,7 @@ a.button--primary:hover {
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  padding: 5rem 0 1rem;
+  padding: 2rem 0 1rem;
 }
 
 .badge {
@@ -697,9 +701,19 @@ a.badge--w3c {
 
 /* Schema detail */
 .schema-layout {
-  display: grid;
-  grid-template-columns: 17rem 1fr 17rem;
-  grid-template-rows: auto 1fr;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  border-bottom: 1px solid #444;
+}
+
+.schema-layout__columns {
+  flex-grow: 1;
+  display: flex;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 90rem;
 }
 
 .schema-layout .schema-layout__header {
@@ -711,19 +725,27 @@ a.badge--w3c {
   gap: 1rem;
 }
 
-.schema-layout .header__info {
+.schema-layout .header-info {
   background: #191919;
   border-bottom: 1px solid #444;
   border-top: 1px solid #444;
-  color: var(--text-secondary);
-  padding: 1rem 2rem;
-  text-align: left;
   display: flex;
   gap: 1rem;
   width: 100%;
 }
 
+.schema-layout .header-info .header-info-content {
+  padding: 1rem;
+  width: 100%;
+  max-width: 90rem;
+  text-align: left;
+  color: var(--text-secondary);
+  margin: 0 auto;
+}
+
 .schema-layout .schema-layout__nav {
+  flex-shrink: 0;
+  width: 17rem;
   padding: 1rem;
   color: var(--text-secondary);
   display: flex;
@@ -785,6 +807,36 @@ a.badge--w3c {
   text-decoration: underline;
 }
 
+.schema-layout
+  .schema-layout__nav
+  .nav-group.nav-group--organization-schemas
+  li {
+  padding-left: 1.25rem;
+}
+
+.schema-layout
+  .schema-layout__nav
+  .nav-group.nav-group--organization-schemas
+  li
+  a {
+  border: 1px solid transparent;
+}
+
+.schema-layout
+  .schema-layout__nav
+  .nav-group.nav-group--organization-schemas
+  li
+  a:hover,
+.schema-layout
+  .schema-layout__nav
+  .nav-group.nav-group--organization-schemas
+  li
+  a.is-active {
+  background: #172554;
+  color: #bfdbfe;
+  border-color: #1e3a8a;
+}
+
 .schema-layout .schema-layout__nav .nav-group-label {
   color: #999;
   font-size: 12px;
@@ -794,6 +846,7 @@ a.badge--w3c {
 }
 
 .schema-layout .schema-layout__content {
+  flex-grow: 1;
   background: #2a2a2a;
   border-left: 1px solid #444;
   border-right: 1px solid #444;
@@ -805,6 +858,8 @@ a.badge--w3c {
 }
 
 .schema-layout .schema-layout__extra {
+  flex-shrink: 0;
+  width: 17rem;
   padding: 1rem;
   display: flex;
   flex-direction: column;

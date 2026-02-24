@@ -22,134 +22,159 @@
       </a>
       {% endif %}
     </h1>
-    <div class="header__info">
-      <span>Added on {{ schema.created_at | date }}</span>
-      &bull;
-      <span>Managed by 
-        {% if schema.organization %}
-        <a href="{% url 'organization_detail' organization_id=schema.organization.id %}">
-          {{ schema.organization.name }}
-        </a>
-        {% else %}
-        {{ schema.created_by }}
-        {% endif %}
-      </span>
+    <div class="header-info">
+      <div class="header-info-content">
+        <span>Added on {{ schema.created_at | date }}</span>
+        &bull;
+        <span>Managed by 
+          {% if schema.organization %}
+          <a href="{% url 'organization_detail' organization_id=schema.organization.id %}">
+            {{ schema.organization.name }}
+          </a>
+          {% else %}
+          {{ schema.created_by }}
+          {% endif %}
+        </span>
+      </div>
     </div>
   </div>
-  <nav class="schema-layout__nav">
-    <ul class="nav-group">
-      {% if schema.latest_readme %}
-      <li>
-        <a href="{% url 'schema_detail' schema_id=schema.id %}"
-          {% if request.resolver_match.view_name == 'schema_detail' %}
-          class="is-active"
-          {% endif %}
-          >
-          <i data-lucide="file-text" class="icon--sm"></i>
-          README
-        </a>
-      </li>    
-      {% endif %}
-      {% if schema.additional_documentation_items.count > 0 %}
-      <li class="nav-group__section-header">
-        <i data-lucide="book" class="icon--sm"></i>
-        Documentation
-      </li>
+  <div class="schema-layout__columns">
+    <nav class="schema-layout__nav">
       <ul class="nav-group">
-        {% for documentation_item in schema.additional_documentation_items.all %}
+        {% if schema.latest_readme %}
         <li>
-          <a href="{{ documentation_item|try_github_repo_url }}">
-            {{ documentation_item.name }}
-            {{ documentation_item|branded_external_link_icon_for_reference_item }}
-          </a>
-        </li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-      {% if schema.implementation_set.count %}
-      <li class="nav-group__section-header">
-        <i data-lucide="layers-2" class="icon--sm"></i>
-        Implementations
-      </li>
-      <ul class="nav-group">
-        {% for implementation in schema.implementation_set.all %}
-         <li>
-          <a href="{{ implementation.url }}">
-            <span class="ellipsize">{{ implementation.url }}</span>
-            {{ implementation|branded_external_link_icon_for_reference_item }}
-          </a>
-        </li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-    </ul>
-    <hr />
-    <div class="nav-group-label">
-      <span>SCHEMAS</span>
-      <span>{{ schema.schemaref_set.count }}</span>
-    </div>
-    <ul class="nav-group">
-      {% for schema_ref in schema.schemaref_set.all %}
-        <li>
-          {% url 'schema_ref_detail' schema_id=schema.id schema_ref_id=schema_ref.id as schema_ref_url %}
-          <a href="{{ schema_ref_url }}"
-            {% if request.path == schema_ref_url %}
+          <a href="{% url 'schema_detail' schema_id=schema.id %}"
+            {% if request.resolver_match.view_name == 'schema_detail' %}
             class="is-active"
             {% endif %}
             >
+            <i data-lucide="file-text" class="icon--sm"></i>
+            README
+          </a>
+        </li>    
+        {% endif %}
+        {% if schema.additional_documentation_items.count > 0 %}
+        <li class="nav-group__section-header">
+          <i data-lucide="book" class="icon--sm"></i>
+          Documentation
+        </li>
+        <ul class="nav-group">
+          {% for documentation_item in schema.additional_documentation_items.all %}
+          <li>
+            <a href="{{ documentation_item|try_github_repo_url }}">
+              {{ documentation_item.name }}
+              {{ documentation_item|branded_external_link_icon_for_reference_item }}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if schema.implementation_set.count %}
+        <li class="nav-group__section-header">
+          <i data-lucide="layers-2" class="icon--sm"></i>
+          Implementations
+        </li>
+        <ul class="nav-group">
+          {% for implementation in schema.implementation_set.all %}
+           <li>
+            <a href="{{ implementation.url }}">
+              <span class="ellipsize">{{ implementation.url }}</span>
+              {{ implementation|branded_external_link_icon_for_reference_item }}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </ul>
+      <hr />
+      <div class="nav-group-label">
+        <span>SCHEMAS</span>
+        <span>{{ schema.schemaref_set.count }}</span>
+      </div>
+      <ul class="nav-group">
+        {% for schema_ref in schema.schemaref_set.all %}
+          <li>
+            {% url 'schema_ref_detail' schema_id=schema.id schema_ref_id=schema_ref.id as schema_ref_url %}
+            <a href="{{ schema_ref_url }}"
+              {% if request.path == schema_ref_url %}
+              class="is-active"
+              {% endif %}
+              >
+              <i data-lucide="code" class="icon--sm"></i>
+              {% if schema_ref.name %}
+              {{ schema_ref.name }}
+              {% elif schema.schemaref_set.count == 1 %}
+              {{ schema.name }}
+              {% else %}
+              Unnamed definition
+              {% endif %}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+      {% if schema.organization %}
+      <hr />
+      <div>
+        <i data-lucide="building" class="icon--sm"></i>
+        Organization
+      </div>
+      <ul class="nav-group nav-group--organization-schemas">
+        {% for org_schema in schema.organization.public_schemas|dictsort:"name" %}
+        <li>
+          <a href="{% url 'schema_detail' schema_id=org_schema.id %}"
+             {% if org_schema.id == schema.id %}
+             class="is-active"
+             {% endif %}
+             >
             <i data-lucide="code" class="icon--sm"></i>
-            {% if schema_ref.name %}
-            {{ schema_ref.name }}
-            {% elif schema.schemaref_set.count == 1 %}
-            {{ schema.name }}
-            {% else %}
-            Unnamed definition
-            {% endif %}
+            {{ org_schema.name }}
           </a>
         </li>
-      {% endfor %}
-    </ul>
-  </nav>
-  <main class="schema-layout__content">
-    {% block schema_content %}
-    {% endblock %}
-  </main>
-  <aside class="schema-layout__extra">
-    {% if schema.latest_rfc or schema.latest_w3c or 'GitHub' in schema.url_providers %}
-    <ul class="badges">
-      {% if 'GitHub' in schema.url_providers %}
-      <li class="badge badge--github">
-        {% include "core/icons/GitHub_Invertocat_Light.svg" %}
-      </li>
+        {% endfor %}
+      </ul>
       {% endif %}
-      {% if schema.latest_rfc %}
-      <li class="badge badge--rfc">
-        <i data-lucide="file-text" class="icon--sm"></i>
-        RFC
-      </li>
+    </nav>
+    <main class="schema-layout__content">
+      {% block schema_content %}
+      {% endblock %}
+    </main>
+    <aside class="schema-layout__extra">
+      {% if schema.latest_rfc or schema.latest_w3c or 'GitHub' in schema.url_providers %}
+      <ul class="badges">
+        {% if 'GitHub' in schema.url_providers %}
+        <li class="badge badge--github">
+          {% include "core/icons/GitHub_Invertocat_Light.svg" %}
+        </li>
+        {% endif %}
+        {% if schema.latest_rfc %}
+        <li class="badge badge--rfc">
+          <i data-lucide="file-text" class="icon--sm"></i>
+          RFC
+        </li>
+        {% endif %}
+        {% if schema.latest_w3c %}
+        <li class="badge badge--w3c">
+          <i data-lucide="file-text" class="icon--sm"></i>
+          W3C
+        </li>
+        {% endif %}
+      </ul>
       {% endif %}
-      {% if schema.latest_w3c %}
-      <li class="badge badge--w3c">
-        <i data-lucide="file-text" class="icon--sm"></i>
-        W3C
-      </li>
+      {% if latest_license %}
+      Details
+      <ul class="detail-list">
+        <li>
+          <a href="{{ latest_license|try_github_repo_url }}" class="text-with-icon">
+            License
+            {{ latest_license|branded_external_link_icon_for_reference_item }}
+          </a>
+        </li>
+      </ul>
+      <hr />
       {% endif %}
-    </ul>
-    {% endif %}
-    {% if latest_license %}
-    Details
-    <ul class="detail-list">
-      <li>
-        <a href="{{ latest_license|try_github_repo_url }}" class="text-with-icon">
-          License
-          {{ latest_license|branded_external_link_icon_for_reference_item }}
-        </a>
-      </li>
-    </ul>
-    <hr />
-    {% endif %}
-    {% block schema_extra %}
-    {% endblock %}
-  </aside>
-</div>
+      {% block schema_extra %}
+      {% endblock %}
+    </aside>
+  </div>
+ </div>
 {% endblock %}
