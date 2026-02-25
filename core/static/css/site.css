@@ -1007,6 +1007,10 @@ a.badge--w3c {
   gap: 1rem;
 }
 
+.about-page h2 {
+  color: var(--logo-color);
+}
+
 /* Organization detail */
 .organization-detail {
   display: flex;

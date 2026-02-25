@@ -6,7 +6,24 @@
 {% block page_content %}
 
   <main class="about-page">
-    <h1>About Schemas.Pub</h1>
+    <h1>Overview</h1>
+    <div class="main-content">
+      <h2>Linking and Indexing</h2>
+      <p>This site links to and indexes schemas from all kinds of places:
+        open source projects, standards organizations, consortiums, and
+        commercial organizations.  <a href="/account/signup">Join</a> to have your work
+        <em>listed and indexed</em>
+        so it can be found and used.</p>
+
+      <h2>Persistent Schema IDs</h2>
+      <p><em>Persistent Schema IDs</em> beginning with
+        <em>https://id.schemas.pub</em> can be registered here and used
+        in an "$id" keyword (JSON Schema) or similar.
+        <a href="https://docs.google.com/forms/d/1yPMuDri2VLWdv0WW6gj_GPA7xOSg-Nqc7_nfTJmabQg"
+        >Contact us</a> for an organizational
+      membership to get started.</p>
+    </div>
+    <h1>Background</h1>
     <div class="main-content">
       <p>
         Schemas.pub is a pilot project of the <a href="https://dtinit.org">Data
@@ -20,11 +37,9 @@
         standards for
         <a href="https://www.rfc-editor.org/rfc/rfc2445">calendar items</a>
         and <a href="https://www.rfc-editor.org/rfc/rfc2425">contacts</a>
-        were written in 1998, and since then, similar standards are not very
-        common.
-        If you take a look at those standards, they use a distinct data format,
-        which
-        made them a lot more work to define.
+        were written in 1998.  Those standards use a unique data
+        format which made them a lot more work to define, and the standards
+        consensus process took years.
       </p>
       <p>Since then, JSON and XML have made basic data formatting much more
         interoperable
@@ -37,25 +52,19 @@
           Language</a> does the same for XML.
       </p>
       <p>
-        Why has the emergence of such widespread data format standards and
-        schema
-        languages
-        not made it <i>easier</i> to define a standard? Why do we have no widely
+        Why have better data formats and schema languages
+        not made it <em>easier</em> to define a standard? Why do we have no widely
         interoperable standard for "an online photo album"
         or "a restaurant reservation"? Instead of making it easier to
-        define standards, XML/JSON and schema languages have encouraged the
+        define standards, modern tools have encouraged the
         proliferation of "unilateral" data definitions -- Web APIs with schemas
-        defined unilaterally by the designer and host
-        of that API. Thus, pretty much every service that hosts
+        defined unilaterally by the host
+        of that API. Thus, most services that host
         common data (like digital photos in albums, or restaurant info and
         reservation data!) uses different schemas.
-        (Sometimes parts of these APIs use <a
-          href="http://schema.org">schema.org</a>,
-        which is great and helps a lot with consistency, accessibility, and
-        internationalization of individual fields.)
       </p>
 
-      <p> Is this really a problem? In practice consumers of APIs just
+      <p> Is this really a problem? In practice API users just
         translate API data into their own format, sometimes aided by schema
         definitions and sometimes not. Yet, we think this could be made
         somewhat better by allowing organizations to publish schemas that
@@ -65,14 +74,11 @@
         or standards governance. We welcome your thoughts.
       </p>
 
-      <p> The pilot version of schemas.pub is a fraction of the functionality
-        and registry size that we envision eventually. We're building the site
+      <p>We're building the site
         as we learn about what's most useful to publishers of schemas
-        as well as implementers searching for solid information. We think
-        persistent URLs for schemas are difficult but useful and if
-        your organization could use persistent URLs for stable schemas,
+        as well as implementers searching for solid information.
         <a href="https://docs.google.com/forms/d/1yPMuDri2VLWdv0WW6gj_GPA7xOSg-Nqc7_nfTJmabQg"
-        >contact us</a>.
+        >Contact us</a> if you have feedback on functionality.
       </p>
 
       <p>To get started, search for a schema you're interested in and see
