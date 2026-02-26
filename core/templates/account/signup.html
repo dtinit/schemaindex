@@ -7,7 +7,7 @@
 {% endblock head_title %}
 {% block content %}
     {% element h1 %}
-        {% trans "Sign Up" %}
+        {% trans "Sign Up to register your schema" %}
     {% endelement %}
     {% if not SOCIALACCOUNT_ONLY %}
         {% url 'account_signup' as action_url %}
