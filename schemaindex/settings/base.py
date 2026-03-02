@@ -17,7 +17,7 @@ import environ
 from pathlib import Path
 
 PROJECT_NAME = 'SchemaIndex'
-SITE_URL = '[localhost]'
+SITE_URL = 'http://localhost:8000'
 SUPPORT_EMAIL = 'support@dtinit.org'
 
 env = environ.Env()
