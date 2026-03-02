@@ -222,7 +222,7 @@ def test_matching_permanent_urls_redirect_to_schemas():
     client = Client()
     response = client.get(f'/o/{schema.created_by.profile.organization.slug}/{slug}', follow=True)
     assert response.status_code == 200
-    assertRedirects(response, f'/schemas/{schema.id}')
+    assertRedirects(response, f'http://testserver/schemas/{schema.id}')
 
 
 @pytest.mark.django_db
@@ -235,7 +235,7 @@ def test_matching_permanent_urls_redirect_to_schema_refs():
         m.get(schema_ref.url, text='{}')
         response = client.get(f'/o/{schema_ref.created_by.profile.organization.slug}/{slug}', follow=True)
         assert response.status_code == 200
-        assertRedirects(response, f'/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}')
+        assertRedirects(response, f'http://testserver/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}')
 
 
 @pytest.mark.django_db
@@ -250,7 +250,7 @@ def test_permanent_urlmanagement_form_404_for_private_schema():
 @pytest.mark.django_db
 def test_saving_schemas_preserves_existing_reference_items():
     schema = SchemaFactory()
-    schema_ref = SchemaRefFactory(schema=schema, url='https://examle.com/file.json')
+    schema_ref = SchemaRefFactory(schema=schema, url='https://example.com/file.json')
     documentation_item = DocumentationItemFactory(
         schema=schema,
         role=None
