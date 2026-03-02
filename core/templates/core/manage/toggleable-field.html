@@ -1,0 +1,11 @@
+<div class="toggleable-field-container{% if field.value %} toggleable-field-container--is-visible{% endif %}">
+  {% include "core/manage/field.html" with field=field %}
+  <button type="button" class="toggle-field-button button button--link">
+    <span class="toggle-field-button__label toggle-field-button__label--add">
+      <i data-lucide="plus"></i> {{ label }}
+    </span>
+    <span class="toggle-field-button__label toggle-field-button__label--remove">
+      <i data-lucide="minus"></i>
+    </span>
+  </button>
+</div>

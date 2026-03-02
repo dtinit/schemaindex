@@ -285,14 +285,13 @@ class SchemaRefPermanentURLForm(forms.Form):
     slug = DotSlugField(
         max_length=300,
         required=False,
-        widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'})
+        widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'}),
+        label=''
     )
 
     def set_schema_ref(self, schema_ref, fallback_name):
         self.schema_ref = schema_ref
         self.name = schema_ref.name or fallback_name
-        self.fields['slug'].help_text = "This URL will route to the Schemas.Pub listing for " + schema_ref.url
-        self.fields['slug'].label = "New unique URL for " + self.name
 
     def clean_slug(self):
         return clean_permanent_url_slug(
@@ -303,9 +302,8 @@ class SchemaRefPermanentURLForm(forms.Form):
 
 class PermanentURLsForm(forms.Form):
     schema_slug = DotSlugField(
-        label="New unique URL for schema",
+        label='',
         max_length=300,
-        help_text="This URL will route to the Schemas.Pub listing for your schema.",
         widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'}),
         required=False
     )
