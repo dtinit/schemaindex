@@ -2,6 +2,7 @@ from urllib.parse import urlparse
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.core.validators import RegexValidator
 import requests
 from .models import DocumentationItem, SchemaRef, Schema, PermanentURL
 from .utils import guess_specification_language_by_extension
@@ -269,8 +270,19 @@ def clean_permanent_url_slug(organization, slug):
     return slug
 
 
+validate_dot_slug = RegexValidator(
+    regex=r"^[-a-zA-Z0-9_.]+$",
+    message='Enter a valid "slug" consisting of letters, numbers, underscores, hyphens, or periods.',
+    code="invalid_dot_slug",
+)
+
+
+class DotSlugField(forms.SlugField):
+    default_validators = [validate_dot_slug]
+
+
 class SchemaRefPermanentURLForm(forms.Form):
-    slug = forms.SlugField(
+    slug = DotSlugField(
         max_length=300,
         required=False,
         widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'})
@@ -290,7 +302,7 @@ class SchemaRefPermanentURLForm(forms.Form):
 
 
 class PermanentURLsForm(forms.Form):
-    schema_slug = forms.SlugField(
+    schema_slug = DotSlugField(
         label="New unique URL for schema",
         max_length=300,
         help_text="This URL will route to the Schemas.Pub listing for your schema.",
