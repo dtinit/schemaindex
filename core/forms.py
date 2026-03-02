@@ -270,19 +270,37 @@ def clean_permanent_url_slug(organization, slug):
     return slug
 
 
-validate_dot_slug = RegexValidator(
-    regex=r"^[-a-zA-Z0-9_.]+$",
-    message='Enter a valid "slug" consisting of letters, numbers, underscores, hyphens, or periods.',
+dot_slash_slug_character_validator = RegexValidator(
+    regex=r"^[a-zA-Z0-9_./-]+$",
+    message='Enter a valid "slug" consisting of letters, numbers, underscores, hyphens, slashes, or periods.',
     code="invalid_dot_slug",
 )
 
 
-class DotSlugField(forms.SlugField):
-    default_validators = [validate_dot_slug]
+no_double_slash_validator = RegexValidator(
+    regex=r'^(?!.*//).*$',
+    message="Double slashes ('//') are not allowed.",
+    code="double_slash_not_allowed"
+)
+
+
+no_edge_slash_validator = RegexValidator(
+    regex=r'^(?!/)(?!.*?/$).+$',
+    message="Cannot start or end with a slash ('/').",
+    code="edge_slash_not_allowed",
+)
+
+
+class DotSlashSlugField(forms.SlugField):
+    default_validators = [
+        dot_slash_slug_character_validator,
+        no_double_slash_validator,
+        no_edge_slash_validator
+    ]
 
 
 class SchemaRefPermanentURLForm(forms.Form):
-    slug = DotSlugField(
+    slug = DotSlashSlugField(
         max_length=300,
         required=False,
         widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'}),
@@ -301,7 +319,7 @@ class SchemaRefPermanentURLForm(forms.Form):
 
 
 class PermanentURLsForm(forms.Form):
-    schema_slug = DotSlugField(
+    schema_slug = DotSlashSlugField(
         label='',
         max_length=300,
         widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'}),
