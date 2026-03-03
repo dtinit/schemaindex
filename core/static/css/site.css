@@ -72,6 +72,7 @@ select,
   padding: 0.5rem;
   border: 1px solid #666;
   background: #444;
+  color: #ddd;
 }
 
 input,
@@ -450,6 +451,28 @@ a.button--primary:hover {
 
 .split-field-container--50-25-25 .field:first-child {
   width: 50%;
+}
+
+.toggleable-field-container {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+
+.toggleable-field-container .toggle-field-button__label {
+  display: flex;
+  gap: 0.1rem;
+}
+
+.toggleable-field-container .field,
+.toggleable-field-container .toggle-field-button__label--remove,
+.toggleable-field-container--is-visible .toggle-field-button__label--add {
+  display: none;
+}
+
+.toggleable-field-container--is-visible .field,
+.toggleable-field-container--is-visible .toggle-field-button__label--remove {
+  display: unset;
 }
 
 .errorlist {
@@ -1027,4 +1050,14 @@ a.badge--w3c {
   align-items: center;
   padding: 1rem;
   gap: 1rem;
+}
+
+.manage-permanent-urls form {
+  gap: 1.5rem;
+}
+
+.manage-permanent-urls .field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }

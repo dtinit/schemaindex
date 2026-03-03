@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.conf import settings
+from django.urls import reverse
 from functools import wraps
 import cmarkgfm
 import bleach
@@ -385,14 +386,17 @@ def permanent_url_redirect(request, partial_path):
     )
     if isinstance(matching_url.content_object, Schema):
         schema = matching_url.content_object
-        return redirect('schema_detail', schema_id=schema.id)
+        new_path = reverse('schema_detail', kwargs={'schema_id': schema.id})
+        redirect_url = settings.SITE_URL + new_path
+        return redirect(redirect_url)
     elif isinstance(matching_url.content_object, SchemaRef):
         schema_ref = matching_url.content_object
-        return redirect(
-            'schema_ref_detail',
-            schema_id=schema_ref.schema.id,
-            schema_ref_id=schema_ref.id
-        )
+        new_path = reverse('schema_ref_detail', kwargs={
+            'schema_id': schema_ref.schema.id,
+            'schema_ref_id': schema_ref.id
+        })
+        redirect_url = settings.SITE_URL + new_path
+        return redirect(redirect_url)
     else:
         raise Http404
 

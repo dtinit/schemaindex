@@ -2,6 +2,7 @@ from urllib.parse import urlparse
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.core.validators import RegexValidator
 import requests
 from .models import DocumentationItem, SchemaRef, Schema, PermanentURL
 from .utils import guess_specification_language_by_extension
@@ -269,18 +270,46 @@ def clean_permanent_url_slug(organization, slug):
     return slug
 
 
+dot_slash_slug_character_validator = RegexValidator(
+    regex=r"^[a-zA-Z0-9_./-]+$",
+    message='Enter a valid "slug" consisting of letters, numbers, underscores, hyphens, slashes, or periods.',
+    code="invalid_dot_slug",
+)
+
+
+no_double_slash_validator = RegexValidator(
+    regex=r'^(?!.*//).*$',
+    message="Double slashes ('//') are not allowed.",
+    code="double_slash_not_allowed"
+)
+
+
+no_edge_slash_validator = RegexValidator(
+    regex=r'^(?!/)(?!.*?/$).+$',
+    message="Cannot start or end with a slash ('/').",
+    code="edge_slash_not_allowed",
+)
+
+
+class DotSlashSlugField(forms.SlugField):
+    default_validators = [
+        dot_slash_slug_character_validator,
+        no_double_slash_validator,
+        no_edge_slash_validator
+    ]
+
+
 class SchemaRefPermanentURLForm(forms.Form):
-    slug = forms.SlugField(
+    slug = DotSlashSlugField(
         max_length=300,
         required=False,
-        widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'})
+        widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'}),
+        label=''
     )
 
     def set_schema_ref(self, schema_ref, fallback_name):
         self.schema_ref = schema_ref
         self.name = schema_ref.name or fallback_name
-        self.fields['slug'].help_text = "This URL will route to the Schemas.Pub listing for " + schema_ref.url
-        self.fields['slug'].label = "New unique URL for " + self.name
 
     def clean_slug(self):
         return clean_permanent_url_slug(
@@ -290,10 +319,9 @@ class SchemaRefPermanentURLForm(forms.Form):
 
 
 class PermanentURLsForm(forms.Form):
-    schema_slug = forms.SlugField(
-        label="New unique URL for schema",
+    schema_slug = DotSlashSlugField(
+        label='',
         max_length=300,
-        help_text="This URL will route to the Schemas.Pub listing for your schema.",
         widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'}),
         required=False
     )

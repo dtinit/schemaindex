@@ -310,6 +310,36 @@
         initializeFormatSelectElement(formatSelectElement)
       );
 
+    Array.from(
+      document.querySelectorAll('.toggleable-field-container')
+    ).forEach((toggleableFieldContainerElement) => {
+      if (!(toggleableFieldContainerElement instanceof HTMLElement)) {
+        return;
+      }
+      const toggleButtonElement = toggleableFieldContainerElement.querySelector(
+        '.toggle-field-button'
+      );
+      if (!(toggleButtonElement instanceof HTMLButtonElement)) {
+        console.error(new Error('.toggle-field-button not found'));
+        return;
+      }
+      toggleButtonElement.addEventListener('click', () => {
+        if (
+          toggleableFieldContainerElement.classList.contains(
+            'toggleable-field-container--is-visible'
+          )
+        ) {
+          toggleableFieldContainerElement.classList.remove(
+            'toggleable-field-container--is-visible'
+          );
+          return;
+        }
+        toggleableFieldContainerElement.classList.add(
+          'toggleable-field-container--is-visible'
+        );
+      });
+    });
+
     setTimeout(() => {
       Array.from(document.querySelectorAll('.messages .message')).forEach(
         (element) => {
