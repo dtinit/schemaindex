@@ -709,6 +709,7 @@ a.badge--w3c {
 .homepage .logo {
   display: flex;
   font-weight: 600;
+  font-size: 2.5rem;
 }
 
 .homepage .content-row {
