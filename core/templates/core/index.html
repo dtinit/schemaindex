@@ -64,7 +64,7 @@ Schemas.Pub - A public schema registry
             </li>
             {% endif %}
             {% if schema.implementation_set.count %}
-            <div title="Linked {% if schema.has_open_source_implementation %}open source {% endif %}implementations">
+            <div title="Linked {% if schema.has_open_source_implementation %}open source {% endif %}implementations" class="badge--implementations">
               <i
                 data-lucide="layers-2"
                 class="icon--sm

@@ -106,9 +106,7 @@ def index(request):
         if any(schema_ref.language == specification_file_type for schema_ref in schema.schemaref_set.all())
     ] if specification_file_type else filtered_by_name
 
-
     return render(request, "core/index.html", {
-        "total_schema_count": defined_schemas.count(),
         "schemas": filtered_by_specification_file_type[:MAX_SCHEMA_RESULT_COUNT],
         "documentation_roles": [
             DocumentationItem.DocumentationItemRole.RFC,

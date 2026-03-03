@@ -657,6 +657,12 @@ a.badge--w3c {
   height: 1.5rem;
 }
 
+.badge--implementations {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .implementation-icon--open-source {
   color: #16a34a;
 }
@@ -765,6 +771,7 @@ a.badge--w3c {
 .homepage .schema__badges {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
 }
 
