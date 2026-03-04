@@ -100,6 +100,10 @@ class Schema(BaseModel):
     def organization(self):
         return self.created_by.profile.organization
 
+    @property
+    def has_open_source_implementation(self):
+        return self.implementation_set.filter(is_open_source=True).exists()
+
     def _latest_documentation_item_of_type(self, role):
         return self.documentationitem_set.filter(role=role).order_by('-created_at').first()
 
