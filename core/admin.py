@@ -16,7 +16,7 @@ def format_date_only(obj, date_field):
 class SchemaAdmin(admin.ModelAdmin):
     list_display = ['name', 'formatted_is_published', 'get_org', 'formatted_created_at']
     list_filter = ('created_at', 'published_at')
-    readonly_fields = ('is_published',)
+    readonly_fields = ('is_published', 'get_org')
 
     @admin.display(description="Created At", ordering='created_at')
     def formatted_created_at(self, obj):
@@ -33,11 +33,14 @@ class SchemaAdmin(admin.ModelAdmin):
 @register(SchemaRef)
 class SchemaRefAdmin(admin.ModelAdmin):
     list_display = ['name', 'schema', 'url']
+    search_fields = ['schema__name', 'schema__created_by__profile__organization__name']
 
 
 @register(DocumentationItem)
 class DocumentationItemAdmin(admin.ModelAdmin):
     list_display = ['schema', 'name', 'url']
+    search_fields = ['name', 'schema__name', 'schema__created_by__profile__organization__name']
+    list_filter = ['role']
 
 
 @register(Organization)
