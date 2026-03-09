@@ -70,6 +70,19 @@ def lookup_schema(function):
     return _wrap_request
 
 
+def require_permanent_url_host(function):
+    @wraps(function)
+    def _wrap_request(request, *args, **kwargs):
+        host = request.get_host()
+        # Get rid of any port number
+        host = host.split(':', 1)[0] 
+        if host != settings.PERMANENT_URL_HOST:
+            raise Http404
+
+        return function(request, host, *args, **kwargs)
+    return _wrap_request
+
+
 # ---- Helpers ----
 
 def render_markdown(markdown_source_text):
@@ -366,21 +379,10 @@ def manage_schema_permanent_urls(request, schema_id):
     })
 
 
-def permanent_url_redirect(request, partial_path):
-    host = request.get_host()
-    # Get rid of any port number
-    host = host.split(':', 1)[0] 
-    if host != settings.PERMANENT_URL_HOST:
-        raise Http404
-
-    # This will match non-secure (http) requests
-    # to secure (https) values, but that's fine.
-    # We redirect all http to https in production
-    # and this way makes local testing easier.
-    full_url = f"https://{host}{request.path}"
+def _permanent_url_redirect(request, permanent_url_query):
     matching_url = get_object_or_404(
         PermanentURL,
-        url=full_url
+        url=permanent_url_query
     )
     if isinstance(matching_url.content_object, Schema):
         schema = matching_url.content_object
@@ -398,3 +400,22 @@ def permanent_url_redirect(request, partial_path):
     else:
         raise Http404
 
+
+# All these views match non-secure (http) requests
+# to secure (https) values, but that's fine.
+# We redirect all http to https in production
+# and this way makes local testing easier.
+@require_permanent_url_host
+def permanent_org_url_redirect(request, host, partial_path):
+    full_url = f"https://{host}{request.path}"
+    return _permanent_url_redirect(request, full_url)
+
+
+def permanent_uuid_url_redirect(request, id):
+    full_url = f"https://{host}/u/{id}"
+    return _permanent_url_redirect(request, full_url)
+
+
+def permanent_email_url_redirect(request, email, partial_path):
+    full_url = f"https://{host}/e/{email}{partial_path}"
+    return _permanent_url_redirect(request, full_url)
