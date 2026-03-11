@@ -6,51 +6,21 @@ Permanent URLs for {{ schema.name }}
 {% block page_content %}
 
 <main class="manage-permanent-urls">
-  <h1>Permanent URLs for "{{ schema.name }}"</h1>
+  <h1>Add permanent URL for "{{ schema.name }}"</h1>
   <section class="form-container main-content">
     <form action="{% url 'manage_schema_permanent_urls' schema_id=schema.id %}" method="POST">
       {% csrf_token %}
-      <div class="field-group">
-        <h2>Permanent URLs for <a href="{% url 'schema_detail' schema_id=form.schema.id %}">
-            {{ form.schema.name }}
-          </a>
-        </h2>
-        {% if form.schema.permanent_urls.count > 0 %}
-        <ul>
-          {% for permanent_url in form.schema.permanent_urls.all %}
-          <li><a href="{{ permanent_url.url }}">{{ permanent_url.url }}</a></li>
-          {% endfor %}
-        </ul>
+      {% for field in form %}
+        {% if field == form.link_type %} 
+          {% include "core/manage/field.html" with field=field class="js-autorefresh-with-value" %}
+        {% elif field == form.suffix %}
+        {% include "core/manage/field.html" with field=field input_prefix=form.link_prefix %}
+        {% else %}
+          {% include "core/manage/field.html" with field=field %}
         {% endif %}
-        {% for field in form %}
-          {% include "core/manage/toggleable-field.html" with field=field input_prefix=prefix label="Add Permanent URL" %}
-        {% endfor %}
-      </div>
-      {% for subform in form.schema_ref_permanent_url_formset %}
-      <div class="field-group">
-        <h2>
-          Permanent URLs for <a href="{% url 'schema_ref_detail' schema_id=form.schema.id schema_ref_id=subform.schema_ref.id %}">
-            {% if subform.schema_ref.name %}
-              {{ subform.schema_ref.name }}
-            {% else %}
-              Definition {{ forloop.counter }}
-            {% endif %}
-          </a>
-        </h2>
-        {% if subform.schema_ref.permanent_urls.count > 0 %}
-        <ul>
-          {% for permanent_url in subform.schema_ref.permanent_urls.all %}
-          <li><a href="{{ permanent_url.url }}">{{ permanent_url.url }}</a></li>
-          {% endfor %}
-        </ul>
-        {% endif %}
-        {% include "core/manage/toggleable-field.html" with field=subform.slug input_prefix=prefix label="Add Permanent URL" %}
-      </div>
       {% endfor %}
-      {{ form.schema_ref_permanent_url_formset.management_form }}
-      {{ form.non_field_errors }}
       <p>Permanent URLs can only be removed by a Schemas.Pub administrator.</p>
-      <button type="submit" class="button button--prominent">Save Changes</button>
+      <button type="submit" class="button button--prominent">Create URL</button>
     </form>
   </section>
 </main>

@@ -319,11 +319,20 @@ class SchemaRefPermanentURLForm(forms.Form):
 
 
 class PermanentURLsForm(forms.Form):
+    PREFIX_TYPE_CHOICES = [
+        ('id', 'Unique ID'),
+        ('email', 'Email'),
+        ('org', 'Organization')
+    ]
     schema_slug = DotSlashSlugField(
         label='',
         max_length=300,
         widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'}),
         required=False
+    )
+    prefix_type = forms.ChoiceField(
+        choices=PREFIX_TYPE_CHOICES,
+        label="URL Type",
     )
 
     def __init__(self, *args, schema, **kwargs):
@@ -368,3 +377,60 @@ class PermanentURLsForm(forms.Form):
         # This order is important, as self.clean()
         # requires access to the formset's cleaned_data
         return self.schema_ref_permanent_url_formset.is_valid() and super().is_valid()
+
+
+class PermanentURLForm(forms.Form):
+    class LinkType:
+        UUID = 'uuid'
+        EMAIL = 'email'
+        ORGANIZATION = 'organization'
+
+    target = forms.ChoiceField(
+        label="Link to"
+    )
+    link_type = forms.ChoiceField(
+        label="Format"
+    )
+    suffix = DotSlashSlugField(
+        label="URL",
+        max_length=300,
+        widget=forms.TextInput(attrs={'placeholder': 'my/schema.json'}),
+        help_text="Your URL can include letters, numbers, spaces, underscores (_), hyphens (-), and slashes (/)."
+    )
+
+    def __init__(self, schema, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.schema = schema
+
+        target_choices = [(f"schema:{schema.id}", f"{schema.name} (Schema)")]
+        for schema_ref in schema.schemaref_set.all():
+            target_choices.append((f"schemaref:{schema_ref.id}", f"{schema_ref.name if schema_ref.name else schema_ref.url} (Definition)"))
+        self.fields['target'].choices = target_choices
+        
+        link_type_choices = [
+            (self.LinkType.UUID, 'schemas.pub/u/[random ID]'),
+            (self.LinkType.EMAIL, f"schemas.pub/e/{schema.created_by.email}/[custom path]")
+        ]
+        if schema.created_by.profile.organization:
+            link_type_choices.append(
+                (self.LinkType.ORGANIZATION, f'schemas.pub/o/{schema.created_by.profile.organization.slug}/[custom path]')
+            )
+        self.fields['link_type'].choices = link_type_choices
+
+        link_type = self.data.get('link_type') or self.initial.get('link_type')
+        if link_type == self.LinkType.UUID:
+            self.fields['suffix'].widget = forms.HiddenInput()
+            self.fields['suffix'].required = False
+            self.fields['link_type'].help_text = 'A unique URL with a random ID will be generated for you.'
+
+    @property
+    def link_prefix(self):
+        link_type = self.data.get('link_type') or self.initial.get('link_type')
+        if link_type == self.LinkType.UUID:
+            return "schemas.pub/u/"
+        elif link_type == self.LinkType.EMAIL:
+            return f"schemas.pub/e/{self.schema.created_by.email}/"
+        elif link_type == self.LinkType.ORGANIZATION:
+            return f"schemas.pub/o/{self.schema.created_by.profile.organization.slug}"
+        return None
+

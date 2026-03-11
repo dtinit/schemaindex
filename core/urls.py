@@ -16,6 +16,6 @@ urlpatterns = [
     path("organization/<int:organization_id>", views.organization_detail, name="organization_detail"),
     path("o/<path:partial_path>", views.permanent_org_url_redirect, name="permanent_org_url_redirect"),
     path("u/<uuid:id>", views.permanent_uuid_url_redirect, name="permanent_uuid_url_redirect"),
-    path("e/<str:email>/<path:partial_path", views.permanent_email_url_redirect, name="permanent_email_url_redirect")
+    path("e/<str:email>/<path:partial_path>", views.permanent_email_url_redirect, name="permanent_email_url_redirect")
 ]
 
