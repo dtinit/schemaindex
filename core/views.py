@@ -420,18 +420,18 @@ def _permanent_url_redirect(request, permanent_url_query):
 # We redirect all http to https in production
 # and this way makes local testing easier.
 @require_permanent_url_host
-def permanent_org_url_redirect(request, host, partial_path):
-    full_url = f"https://{host}{request.path}"
+def permanent_org_url_redirect(request, host, org_slug, partial_path):
+    full_url = f"https://{host}/o/{org_slug}/{partial_path}"
     return _permanent_url_redirect(request, full_url)
 
 
 @require_permanent_url_host
-def permanent_uuid_url_redirect(request, host, id):
-    full_url = f"https://{host}/u/{id}"
+def permanent_uuid_url_redirect(request, host, uuid):
+    full_url = f"https://{host}/u/{uuid}"
     return _permanent_url_redirect(request, full_url)
 
 
 @require_permanent_url_host
 def permanent_email_url_redirect(request, host, email, partial_path):
-    full_url = f"https://{host}/e/{email}{partial_path}"
+    full_url = f"https://{host}/e/{email}/{partial_path}"
     return _permanent_url_redirect(request, full_url)

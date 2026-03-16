@@ -2,7 +2,7 @@ import pytest
 import requests_mock
 from urllib.parse import urlparse, urlunparse
 from django.contrib.contenttypes.models import ContentType
-from core.forms import SchemaForm, clean_url, PermanentURLsForm
+from core.forms import SchemaForm, clean_url, PermanentURLForm
 from core.models import Schema
 from tests.factories import (
     SchemaFactory,
@@ -130,66 +130,32 @@ def test_schema_management_form_prevents_duplicate_schema_ref_urls():
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "attempted_slug_field_name",
-    ["schema_slug", "form-0-slug"]
+    "link_type",
+    ["organization", "email"]
 )
-def test_schema_permanent_url_form_prevents_duplicate_urls(attempted_slug_field_name):
-    managed_schema_ref = OrganizationSchemaRefFactory()
-    other_schema = SchemaFactory(created_by=managed_schema_ref.schema.created_by)
-    duplicate_slug_value = 'duplicate_slug'
+def test_permanent_url_form_prevents_duplicate_urls(link_type):
+    managed_schema = OrganizationSchemaFactory()
+    other_schema = SchemaFactory(created_by=managed_schema.created_by)
+    duplicate_suffix_value = 'duplicate_suffix'
     other_schema_permanent_url = PermanentURLFactory(
         content_object=other_schema,
-        slug=duplicate_slug_value
+        link_type=link_type,
+        suffix=duplicate_suffix_value
     )
     form_data = {
-        'schema_slug': '',
-        'form-0-slug': '',
-        'form-TOTAL_FORMS': 1,
-        'form-INITIAL_FORMS': 1
+        'target': f'schema:{managed_schema.id}',
+        'link_type': link_type,
+        'suffix': duplicate_suffix_value
     }
-    form_data[attempted_slug_field_name] = duplicate_slug_value
-    form = PermanentURLsForm(schema=managed_schema_ref.schema, data=form_data)
+    form = PermanentURLForm(schema=managed_schema, data=form_data)
     assert not form.is_valid()
-    if attempted_slug_field_name == 'schema_slug':
-        error = form['schema_slug'].errors[0]
-    else:
-        error = form.schema_ref_permanent_url_formset.errors[0]['slug'][0]
+    error = form.non_field_errors()[0]
     assert error == 'This URL is already in use.'
 
 
 @pytest.mark.django_db
-def test_schema_permanent_url_form_prevents_new_duplicate_urls():
-    managed_schema_ref = OrganizationSchemaRefFactory()
-    duplicate_slug_value = 'duplicate_slug'
-    form_data = {
-        'schema_slug': duplicate_slug_value,
-        'form-0-slug': duplicate_slug_value,
-        'form-TOTAL_FORMS': 1,
-        'form-INITIAL_FORMS': 1
-    }
-    form = PermanentURLsForm(schema=managed_schema_ref.schema, data=form_data)
-    assert not form.is_valid()
-    error = form.non_field_errors()[0]
-    assert error == 'Each URL must be unique.'
-
-
-@pytest.mark.django_db
-def test_schema_permanent_url_form_prevents_new_duplicate_schema_ref_urls():
-    managed_schema_ref_1 = OrganizationSchemaRefFactory()
-    managed_schema_ref_2 = SchemaRefFactory(
-        created_by=managed_schema_ref_1.created_by,
-        schema=managed_schema_ref_1.schema
-    )
-    duplicate_slug_value = 'duplicate_slug'
-    form_data = {
-        'schema_slug': '',
-        'form-0-slug': duplicate_slug_value,
-        'form-1-slug': duplicate_slug_value,
-        'form-TOTAL_FORMS': 2,
-        'form-INITIAL_FORMS': 2
-    }
-    form = PermanentURLsForm(schema=managed_schema_ref_1.schema, data=form_data)
-    assert not form.is_valid()
-    error = form.non_field_errors()[0]
-    assert error == 'Each URL must be unique.'
-
+def test_permanent_url_form_hides_org_url_option_for_non_org_users():
+    managed_schema = SchemaFactory()
+    form = PermanentURLForm(schema=managed_schema)
+    choice_ids = {value for value, label in form.fields['link_type'].choices}
+    assert PermanentURLForm.LinkType.ORGANIZATION not in choice_ids

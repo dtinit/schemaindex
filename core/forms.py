@@ -373,10 +373,10 @@ class PermanentURLForm(forms.Form):
                 email_address=self.schema.created_by.email,
                 suffix=cleaned_data.get('suffix')
             )
-        else: # link_type == self.LinkType.ORGANIZATION
+        elif self.schema.created_by.profile.organization: # link_type == self.LinkType.ORGANIZATION
             proposed_url = PermanentURL.objects.get_org_url_for_suffix(
-                organization=organization,
-                slug=slug
+                organization=self.schema.created_by.profile.organization,
+                suffix=cleaned_data.get('suffix')
             )
         if PermanentURL.objects.filter(url=proposed_url).exists():
             raise ValidationError('This URL is already in use.')

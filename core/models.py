@@ -53,7 +53,7 @@ class PermanentURLManager(models.Manager):
             suffix=suffix
         )
         kwargs.update(
-            createdy_by=created_by,
+            created_by=created_by,
             url=url
         )
         return super().create(**kwargs)
