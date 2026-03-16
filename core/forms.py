@@ -314,6 +314,8 @@ class PermanentURLForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.schema = schema
 
+        # Add the schema and all schemaRefs as target options.
+        # We use "[modelType]:[id]" as the select values.
         target_choices = [(f"schema:{schema.id}", f"{schema.name} (Schema)")]
         for schema_ref in schema.schemaref_set.all():
             target_choices.append((f"schemaref:{schema_ref.id}", f"{schema_ref.name or schema_ref.url} (Definition)"))
@@ -323,12 +325,15 @@ class PermanentURLForm(forms.Form):
             (self.LinkType.UUID, 'schemas.pub/u/'),
             (self.LinkType.EMAIL, f"schemas.pub/e/{schema.created_by.email}/")
         ]
+        # Only users in an org can create org URLs
         if schema.created_by.profile.organization:
             link_type_choices.append(
                 (self.LinkType.ORGANIZATION, f'schemas.pub/o/{schema.created_by.profile.organization.slug}/')
             )
         self.fields['link_type'].choices = link_type_choices
 
+        # When creating a UUID, change the suffix field to an uneditable placeholder.
+        # We'll generate a UUID on submission.
         link_type = self.data.get('link_type') or self.initial.get('link_type')
         if link_type == self.LinkType.UUID:
             self.fields['suffix'] = forms.CharField(
@@ -343,17 +348,6 @@ class PermanentURLForm(forms.Form):
                 )
             )
 
-    @property
-    def link_prefix(self):
-        link_type = self.data.get('link_type') or self.initial.get('link_type')
-        if link_type == self.LinkType.UUID:
-            return "schemas.pub/u/"
-        elif link_type == self.LinkType.EMAIL:
-            return f"schemas.pub/e/{self.schema.created_by.email}/"
-        elif link_type == self.LinkType.ORGANIZATION:
-            return f"schemas.pub/o/{self.schema.created_by.profile.organization.slug}"
-        return None
-
     def clean_target(self):
         data = self.cleaned_data['target']
         target_type, target_id = data.split(':', 1)
@@ -361,6 +355,8 @@ class PermanentURLForm(forms.Form):
         if (target_type != 'schema' and target_type != 'schemaref') or \
            (target_type == 'schema' and not Schema.objects.filter(id=target_id).exists()) or \
            (target_type == 'schemaref' and not SchemaRef.objects.filter(id=target_id).exists()):
+            # This can only happen if the target value isn't one we provided (user shennanigans),
+            # or if the target was deleted sometime between loading and submitting the form (unlikely).
             raise forms.ValidationError('Invalid target.')
 
         return data

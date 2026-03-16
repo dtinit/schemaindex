@@ -380,13 +380,11 @@ def manage_schema_permanent_urls(request, schema_id):
             return redirect('schema_detail', schema_id=schema_id)
 
     else:
-        link_type_param = request.GET.get('link_type', PermanentURLForm.LinkType.UUID)
-        link_type_options = {PermanentURLForm.LinkType.UUID, PermanentURLForm.LinkType.EMAIL}
-        if request.user.profile.organization:
-            link_type_options.add(PermanentURLForm.LinkType.ORGANIZATION)
-        link_type = link_type_param if link_type_param in link_type_options else PermanentURLForm.LinkType.UUID
+        link_type_param = request.GET.get('link_type', None)
+        if link_type_param == PermanentURLForm.LinkType.ORGANIZATION and not request.user.profile.organization:
+            link_type_param = None
         target_param = request.GET.get('target', None)
-        form = PermanentURLForm(schema=schema, initial={'link_type': link_type, 'target': target_param})
+        form = PermanentURLForm(schema=schema, initial={'link_type': link_type_param, 'target': target_param})
            
     return render(request, "core/manage/permanent_urls.html", {
         'schema': schema,
