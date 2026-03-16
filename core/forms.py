@@ -19,6 +19,7 @@ EXPLICITLY_SUPPORTED_FILE_EXTENSIONS = [
     '.cddl'
 ]
 
+MAX_PERMANENT_URL_COUNT_PER_USER = 100
 
 class ReferenceItemForm(forms.Form):
     id = forms.IntegerField(widget=forms.HiddenInput(), required=False)
@@ -365,6 +366,10 @@ class PermanentURLForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
+        
+        if PermanentURL.objects.filter(created_by=self.schema.created_by).count() >= MAX_PERMANENT_URL_COUNT_PER_USER:
+            raise ValidationError(f"You have reached the limit of {MAX_PERMANENT_URL_COUNT_PER_USER} permanent URLs for your account.")
+
         link_type = cleaned_data.get('link_type')
         if link_type == self.LinkType.UUID:
             return

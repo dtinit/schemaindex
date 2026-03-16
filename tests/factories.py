@@ -15,6 +15,7 @@ from core.models import (
     Profile,
     PermanentURL
 )
+from core.forms import PermanentURLForm
 
 class ProfileFactory(DjangoModelFactory):
     class Meta: 
@@ -113,26 +114,26 @@ class PermanentURLFactory(DjangoModelFactory):
         model = PermanentURL
 
     suffix = factory.Sequence(lambda n: f'permanentOrgUrlSuffix-{n}')
-    link_type = 'uuid'
+    link_type = PermanentURLForm.LinkType.UUID
 
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
-        link_type = kwargs.pop('link_type', 'uuid')
+        link_type = kwargs.pop('link_type', PermanentURLForm.LinkType.UUID)
         suffix = kwargs.pop('suffix', None)
         content_object=kwargs.get('content_object')
-        if link_type == 'uuid':
+        if link_type == PermanentURLForm.LinkType.UUID:
             return model_class.objects.create_from_uuid(
                 created_by=content_object.created_by,
                 uuid=uuid.uuid4(),
                 **kwargs
             )
-        elif link_type == 'email':
+        elif link_type == PermanentURLForm.LinkType.EMAIL:
             return model_class.objects.create_from_email_suffix(
                 created_by=content_object.created_by,
                 suffix=suffix,
                 **kwargs
             ) 
-        elif link_type == 'organization':
+        elif link_type == PermanentURLForm.LinkType.ORGANIZATION:
             return model_class.objects.create_from_org_suffix(
                 created_by=content_object.created_by,
                 suffix=suffix,

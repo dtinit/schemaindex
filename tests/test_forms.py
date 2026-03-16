@@ -131,7 +131,7 @@ def test_schema_management_form_prevents_duplicate_schema_ref_urls():
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "link_type",
-    ["organization", "email"]
+    [PermanentURLForm.LinkType.ORGANIZATION, PermanentURLForm.LinkType.EMAIL]
 )
 def test_permanent_url_form_prevents_duplicate_urls(link_type):
     managed_schema = OrganizationSchemaFactory()
@@ -159,3 +159,21 @@ def test_permanent_url_form_hides_org_url_option_for_non_org_users():
     form = PermanentURLForm(schema=managed_schema)
     choice_ids = {value for value, label in form.fields['link_type'].choices}
     assert PermanentURLForm.LinkType.ORGANIZATION not in choice_ids
+
+
+@pytest.mark.django_db
+def test_user_max_permanent_url_limit():
+    managed_schema = SchemaFactory()
+    for i in range(100):
+        PermanentURLFactory(
+            content_object=managed_schema,
+            link_type=PermanentURLForm.LinkType.UUID,
+        )
+    form = PermanentURLForm(schema=managed_schema, data={
+        'target': f'schema:{managed_schema.id}',
+        'link_type': PermanentURLForm.LinkType.UUID
+    })
+    assert not form.is_valid()
+    error = form.non_field_errors()[0]
+    assert error == "You have reached the limit of 100 permanent URLs for your account."
+

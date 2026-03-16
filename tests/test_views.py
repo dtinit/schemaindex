@@ -11,6 +11,7 @@ from tests.factories import (
     PermanentURLFactory
 )
 from core.models import Schema, DocumentationItem
+from core.forms import PermanentURLForm
 from django.test import Client
 from pytest_django.asserts import assertRedirects
 
@@ -218,9 +219,9 @@ def test_invalid_permanent_urls_404():
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     'link_type,suffix',
-    [['uuid', 'unused'],
-     ['email', 'test_suffix'],
-     ['organization', 'test_suffix']]
+    [[PermanentURLForm.LinkType.UUID, 'unused'],
+     [PermanentURLForm.LinkType.EMAIL, 'test_suffix'],
+     [PermanentURLForm.LinkType.ORGANIZATION, 'test_suffix']]
 )
 def test_matching_permanent_urls_redirect_to_schemas(link_type, suffix):
     schema = OrganizationSchemaFactory()
@@ -236,9 +237,9 @@ def test_matching_permanent_urls_redirect_to_schemas(link_type, suffix):
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     'link_type,suffix',
-    [['uuid', 'unused'],
-     ['email', 'test_suffix'],
-     ['organization', 'test_suffix']]
+    [[PermanentURLForm.LinkType.UUID, 'unused'],
+     [PermanentURLForm.LinkType.EMAIL, 'test_suffix'],
+     [PermanentURLForm.LinkType.ORGANIZATION, 'test_suffix']]
 )
 def test_matching_permanent_urls_redirect_to_schema_refs(link_type, suffix):
     schema_ref = OrganizationSchemaRefFactory()
