@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Count, Q
@@ -344,18 +345,46 @@ def manage_schema_permanent_urls(request, schema_id):
         id=schema_id,
         created_by=request.user,
     )
-    link_type_param = request.GET.get('link_type', PermanentURLForm.LinkType.UUID)
-    link_type_options = {PermanentURLForm.LinkType.UUID, PermanentURLForm.LinkType.EMAIL}
-    if request.user.profile.organization:
-        link_type_options.add(PermanentURLForm.LinkType.ORGANIZATION)
-    link_type = link_type_param if link_type_param in link_type_options else PermanentURLForm.LinkType.UUID
     
     if request.method == 'POST':
         form = PermanentURLForm(request.POST, schema=schema)
         if form.is_valid():
-            # TODO
-            form = PermanentURLForm(schema=schema)
+            link_type = form.cleaned_data.get('link_type')
+            target = form.cleaned_data.get('target')
+            target_type, target_id = target.split(':', 1)
+            target = schema if target_type == 'schema' else get_object_or_404(
+                SchemaRef,
+                schema=schema,
+                id=target_id
+            )
+            if link_type == form.LinkType.UUID:
+                PermanentURL.objects.create_from_uuid(
+                    created_by=request.user,
+                    content_object=target,
+                    uuid=uuid.uuid4()
+                )
+            elif link_type == form.LinkType.EMAIL:
+                PermanentURL.objects.create_from_email_suffix(
+                    created_by=request.user,
+                    content_object=target,
+                    suffix=form.cleaned_data.get('suffix')
+                )
+            elif request.user.profile.organization: # link_type == form.LinkType.Organization
+                PermanentURL.objects.create_from_org_suffix(
+                    created_by=request.user,
+                    content_object=target,
+                    suffix=form.cleaned_data.get('suffix')
+                )
+            if target_type == 'schemaref':
+                return redirect('schema_ref_detail', schema_id=schema_id, schema_ref_id=target_id)
+            return redirect('schema_detail', schema_id=schema_id)
+
     else:
+        link_type_param = request.GET.get('link_type', PermanentURLForm.LinkType.UUID)
+        link_type_options = {PermanentURLForm.LinkType.UUID, PermanentURLForm.LinkType.EMAIL}
+        if request.user.profile.organization:
+            link_type_options.add(PermanentURLForm.LinkType.ORGANIZATION)
+        link_type = link_type_param if link_type_param in link_type_options else PermanentURLForm.LinkType.UUID
         form = PermanentURLForm(schema=schema, initial={'link_type': link_type})
            
     return render(request, "core/manage/permanent_urls.html", {
@@ -396,11 +425,13 @@ def permanent_org_url_redirect(request, host, partial_path):
     return _permanent_url_redirect(request, full_url)
 
 
-def permanent_uuid_url_redirect(request, id):
+@require_permanent_url_host
+def permanent_uuid_url_redirect(request, host, id):
     full_url = f"https://{host}/u/{id}"
     return _permanent_url_redirect(request, full_url)
 
 
-def permanent_email_url_redirect(request, email, partial_path):
+@require_permanent_url_host
+def permanent_email_url_redirect(request, host, email, partial_path):
     full_url = f"https://{host}/e/{email}{partial_path}"
     return _permanent_url_redirect(request, full_url)

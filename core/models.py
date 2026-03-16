@@ -25,7 +25,7 @@ class PermanentURLManager(models.Manager):
     BASE_URL = f'https://{settings.PERMANENT_URL_HOST}/'
 
     def get_org_url_for_suffix(self, organization, suffix):
-        return self.BASE_URL + '/o/' + organization.slug + '/' + suffix
+        return self.BASE_URL + 'o/' + organization.slug + '/' + suffix
 
     def create_from_org_suffix(self, created_by, suffix, **kwargs):
         """
@@ -42,7 +42,7 @@ class PermanentURLManager(models.Manager):
         return super().create(**kwargs)
 
     def get_email_url_for_suffix(self, email_address, suffix):
-        return self.BASE_URL + '/e/' + email_address + '/' + suffix;
+        return self.BASE_URL + 'e/' + email_address + '/' + suffix
 
     def create_from_email_suffix(self, created_by, suffix, **kwargs):
         """
@@ -54,6 +54,13 @@ class PermanentURLManager(models.Manager):
         )
         kwargs.update(
             createdy_by=created_by,
+            url=url
+        )
+        return super().create(**kwargs)
+
+    def create_from_uuid(self, uuid, **kwargs):
+        url = self.BASE_URL + 'u/' + str(uuid)
+        kwargs.update(
             url=url
         )
         return super().create(**kwargs)

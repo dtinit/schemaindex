@@ -308,13 +308,13 @@ class PermanentURLForm(forms.Form):
         help_text="Your URL can include letters, numbers, spaces, underscores (_), hyphens (-), and slashes (/)."
     )
 
-    def __init__(self, schema, *args, **kwargs):
+    def __init__(self, *args, schema, **kwargs):
         super().__init__(*args, **kwargs)
         self.schema = schema
 
         target_choices = [(f"schema:{schema.id}", f"{schema.name} (Schema)")]
         for schema_ref in schema.schemaref_set.all():
-            target_choices.append((f"schemaref:{schema_ref.id}", f"{schema_ref.name if schema_ref.name else schema_ref.url} (Definition)"))
+            target_choices.append((f"schemaref:{schema_ref.id}", f"{schema_ref.name or schema_ref.url} (Definition)"))
         self.fields['target'].choices = target_choices
         
         link_type_choices = [
@@ -329,11 +329,17 @@ class PermanentURLForm(forms.Form):
 
         link_type = self.data.get('link_type') or self.initial.get('link_type')
         if link_type == self.LinkType.UUID:
-            self.fields['suffix'].widget.attrs['readonly'] = True
-            self.fields['suffix'].widget.attrs['style'] = 'font-style: italic'
-            self.fields['suffix'].initial = '<Generated ID>'
-            self.fields['suffix'].required = False
-            self.fields['suffix'].help_text = 'A unique URL with a random ID will be generated for you.'
+            self.fields['suffix'] = forms.CharField(
+                initial='<Generated ID>',
+                required=False,
+                help_text='A unique URL with a random ID will be generated for you.',
+                widget=forms.TextInput(
+                    attrs={
+                        'readonly': True,
+                        'style': 'font-style: italic',
+                    }
+                )
+            )
 
     @property
     def link_prefix(self):
@@ -345,6 +351,17 @@ class PermanentURLForm(forms.Form):
         elif link_type == self.LinkType.ORGANIZATION:
             return f"schemas.pub/o/{self.schema.created_by.profile.organization.slug}"
         return None
+
+    def clean_target(self):
+        data = self.cleaned_data['target']
+        target_type, target_id = data.split(':', 1)
+        
+        if (target_type != 'schema' and target_type != 'schemaref') or \
+           (target_type == 'schema' and not Schema.objects.filter(id=target_id).exists()) or \
+           (target_type == 'schemaref' and not SchemaRef.objects.filter(id=target_id).exists()):
+            raise forms.ValidationError('Invalid target.')
+
+        return data
 
     def clean(self):
         cleaned_data = super().clean()
