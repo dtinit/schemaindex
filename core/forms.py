@@ -260,16 +260,6 @@ class SchemaForm(forms.Form):
         )
 
 
-def clean_permanent_url_slug(organization, slug):
-    proposed_url = PermanentURL.objects.get_url_for_slug(
-        organization=organization,
-        slug=slug
-    )
-    if PermanentURL.objects.filter(url=proposed_url).exists():
-        raise ValidationError('This URL is already in use.')
-    return slug
-
-
 dot_slash_slug_character_validator = RegexValidator(
     regex=r"^[a-zA-Z0-9_./-]+$",
     message='Enter a valid "slug" consisting of letters, numbers, underscores, hyphens, slashes, or periods.',
@@ -299,86 +289,6 @@ class DotSlashSlugField(forms.SlugField):
     ]
 
 
-class SchemaRefPermanentURLForm(forms.Form):
-    slug = DotSlashSlugField(
-        max_length=300,
-        required=False,
-        widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'}),
-        label=''
-    )
-
-    def set_schema_ref(self, schema_ref, fallback_name):
-        self.schema_ref = schema_ref
-        self.name = schema_ref.name or fallback_name
-
-    def clean_slug(self):
-        return clean_permanent_url_slug(
-            organization=self.schema_ref.created_by.profile.organization,
-            slug=self.cleaned_data['slug']
-        )
-
-
-class PermanentURLsForm(forms.Form):
-    PREFIX_TYPE_CHOICES = [
-        ('id', 'Unique ID'),
-        ('email', 'Email'),
-        ('org', 'Organization')
-    ]
-    schema_slug = DotSlashSlugField(
-        label='',
-        max_length=300,
-        widget=forms.TextInput(attrs={'placeholder': 'my-schema.json'}),
-        required=False
-    )
-    prefix_type = forms.ChoiceField(
-        choices=PREFIX_TYPE_CHOICES,
-        label="URL Type",
-    )
-
-    def __init__(self, *args, schema, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.schema = schema
-        schema_refs = self.schema.schemaref_set.all()
-        # Create a formset with one form per SchemaRef
-        SchemaRefPermanentURLFormsetFactory = forms.formset_factory(
-            SchemaRefPermanentURLForm,
-            extra=len(schema_refs),
-            max_num=len(schema_refs),
-        )
-        self.schema_ref_permanent_url_formset = SchemaRefPermanentURLFormsetFactory(
-            *args,
-            **kwargs
-        )
-        for index, schema_ref_form in enumerate(self.schema_ref_permanent_url_formset):
-            schema_ref_form.set_schema_ref(schema_refs[index], f"Definition {index + 1}")
-
-    def clean_schema_slug(self):
-        return clean_permanent_url_slug(
-            organization=self.schema.created_by.profile.organization,
-            slug=self.cleaned_data['schema_slug']
-        )
-
-    def clean(self):
-        self.schema_ref_permanent_url_formset.clean()
-        cleaned_data = super().clean()
-        # Make sure none of the slugs are the same
-        schema_slug = cleaned_data.get('schema_slug')
-        slugs = {schema_slug} if schema_slug else set()
-        for schema_ref_form in self.schema_ref_permanent_url_formset:
-            schema_ref_slug = schema_ref_form.cleaned_data.get('slug')
-            if schema_ref_slug in slugs:
-                raise ValidationError('Each URL must be unique.')
-            if schema_ref_slug:
-                slugs.add(schema_ref_slug)
-            
-        return cleaned_data
-
-    def is_valid(self):
-        # This order is important, as self.clean()
-        # requires access to the formset's cleaned_data
-        return self.schema_ref_permanent_url_formset.is_valid() and super().is_valid()
-
-
 class PermanentURLForm(forms.Form):
     class LinkType:
         UUID = 'uuid'
@@ -389,10 +299,10 @@ class PermanentURLForm(forms.Form):
         label="Link to"
     )
     link_type = forms.ChoiceField(
-        label="Format"
+        label="URL",
+        widget=forms.Select(attrs={'class': 'js-autorefresh-with-value input-group__prefix'})
     )
     suffix = DotSlashSlugField(
-        label="URL",
         max_length=300,
         widget=forms.TextInput(attrs={'placeholder': 'my/schema.json'}),
         help_text="Your URL can include letters, numbers, spaces, underscores (_), hyphens (-), and slashes (/)."
@@ -408,20 +318,22 @@ class PermanentURLForm(forms.Form):
         self.fields['target'].choices = target_choices
         
         link_type_choices = [
-            (self.LinkType.UUID, 'schemas.pub/u/[random ID]'),
-            (self.LinkType.EMAIL, f"schemas.pub/e/{schema.created_by.email}/[custom path]")
+            (self.LinkType.UUID, 'schemas.pub/u/'),
+            (self.LinkType.EMAIL, f"schemas.pub/e/{schema.created_by.email}/")
         ]
         if schema.created_by.profile.organization:
             link_type_choices.append(
-                (self.LinkType.ORGANIZATION, f'schemas.pub/o/{schema.created_by.profile.organization.slug}/[custom path]')
+                (self.LinkType.ORGANIZATION, f'schemas.pub/o/{schema.created_by.profile.organization.slug}/')
             )
         self.fields['link_type'].choices = link_type_choices
 
         link_type = self.data.get('link_type') or self.initial.get('link_type')
         if link_type == self.LinkType.UUID:
-            self.fields['suffix'].widget = forms.HiddenInput()
+            self.fields['suffix'].widget.attrs['readonly'] = True
+            self.fields['suffix'].widget.attrs['style'] = 'font-style: italic'
+            self.fields['suffix'].initial = '<Generated ID>'
             self.fields['suffix'].required = False
-            self.fields['link_type'].help_text = 'A unique URL with a random ID will be generated for you.'
+            self.fields['suffix'].help_text = 'A unique URL with a random ID will be generated for you.'
 
     @property
     def link_prefix(self):
@@ -433,4 +345,22 @@ class PermanentURLForm(forms.Form):
         elif link_type == self.LinkType.ORGANIZATION:
             return f"schemas.pub/o/{self.schema.created_by.profile.organization.slug}"
         return None
+
+    def clean(self):
+        cleaned_data = super().clean()
+        link_type = cleaned_data.get('link_type')
+        if link_type == self.LinkType.UUID:
+            return
+        if link_type == self.LinkType.EMAIL:
+            proposed_url = PermanentURL.objects.get_email_url_for_suffix(
+                email_address=self.schema.created_by.email,
+                suffix=cleaned_data.get('suffix')
+            )
+        else: # link_type == self.LinkType.ORGANIZATION
+            proposed_url = PermanentURL.objects.get_org_url_for_suffix(
+                organization=organization,
+                slug=slug
+            )
+        if PermanentURL.objects.filter(url=proposed_url).exists():
+            raise ValidationError('This URL is already in use.')
 

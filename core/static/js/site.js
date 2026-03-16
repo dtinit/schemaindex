@@ -241,25 +241,16 @@
         };
         selectElement.addEventListener('input', handleChange);
       });
-
-    Array.from(document.querySelectorAll('.js-autorefresh-with-value input'))
-      .concat(
-        Array.from(
-          document.querySelectorAll('.js-autorefresh-with-value select')
-        )
-      )
+    Array.from(document.querySelectorAll('select.js-autorefresh-with-value'))
       .filter(
-        /** @returns {inputElement is (HTMLInputElement | HTMLSelectElement)} */
-        (inputElement) =>
-          inputElement instanceof HTMLInputElement ||
-          inputElement instanceof HTMLSelectElement
+        /** @returns {inputElement is (HTMLSelectElement)} */
+        (inputElement) => inputElement instanceof HTMLSelectElement
       )
-      .forEach((inputElement) => {
-        inputElement.addEventListener('change', () => {
+      .forEach((selectElement) => {
+        selectElement.addEventListener('change', () => {
           const searchParams = new URLSearchParams(window.location.search);
-          searchParams.set(inputElement.name, inputElement.value);
+          searchParams.set(selectElement.name, selectElement.value);
           window.location.search = searchParams.toString();
-          //          window.location.reload();
         });
       });
 

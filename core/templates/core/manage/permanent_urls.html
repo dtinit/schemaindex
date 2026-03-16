@@ -10,15 +10,23 @@ Permanent URLs for {{ schema.name }}
   <section class="form-container main-content">
     <form action="{% url 'manage_schema_permanent_urls' schema_id=schema.id %}" method="POST">
       {% csrf_token %}
-      {% for field in form %}
-        {% if field == form.link_type %} 
-          {% include "core/manage/field.html" with field=field class="js-autorefresh-with-value" %}
-        {% elif field == form.suffix %}
-        {% include "core/manage/field.html" with field=field input_prefix=form.link_prefix %}
-        {% else %}
-          {% include "core/manage/field.html" with field=field %}
-        {% endif %}
-      {% endfor %}
+      {% include "core/manage/field.html" with field=form.target %}
+      <div class="field">
+        <label
+            for="{{ form.link_type.label }}"
+            class="field__label--is-required"
+          >
+          {{ form.link_type.label }}
+        </label>
+        <div class="input-group">
+          {{ form.link_type }}
+          {{ form.suffix }}
+        </div>
+        <div class="field__help-text">
+          {{ form.suffix.help_text }}
+        </div>
+        {{ form.suffix.errors }}
+      </div> 
       <p>Permanent URLs can only be removed by a Schemas.Pub administrator.</p>
       <button type="submit" class="button button--prominent">Create URL</button>
     </form>

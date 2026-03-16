@@ -22,21 +22,38 @@ class BaseModel(models.Model):
         return cls(created_by=created_by)
 
 class PermanentURLManager(models.Manager):
-    BASE_URL = f'https://{settings.PERMANENT_URL_HOST}/o/'
+    BASE_URL = f'https://{settings.PERMANENT_URL_HOST}/'
 
-    def get_url_for_slug(self, *, organization, slug):
-        return self.BASE_URL + organization.slug + '/' + slug
+    def get_org_url_for_suffix(self, organization, suffix):
+        return self.BASE_URL + '/o/' + organization.slug + '/' + suffix
 
-    def create_from_slug(self, *, created_by, slug, **kwargs):
+    def create_from_org_suffix(self, created_by, suffix, **kwargs):
         """
-        Computes the URL from the user's organization and a slug.
+        Creates a URL from the user's organization and a suffix.
         """
-        url = self.get_url_for_slug(
+        url = self.get_org_url_for_suffix(
             organization=created_by.profile.organization,
-            slug=slug
+            suffix=suffix
         )
         kwargs.update(
             created_by=created_by,
+            url=url
+        )
+        return super().create(**kwargs)
+
+    def get_email_url_for_suffix(self, email_address, suffix):
+        return self.BASE_URL + '/e/' + email_address + '/' + suffix;
+
+    def create_from_email_suffix(self, created_by, suffix, **kwargs):
+        """
+        Creates a URL from the user's email address and a suffix.
+        """
+        url = self.get_email_url_for_suffix(
+            email_address=created_by.email,
+            suffix=suffix
+        )
+        kwargs.update(
+            createdy_by=created_by,
             url=url
         )
         return super().create(**kwargs)

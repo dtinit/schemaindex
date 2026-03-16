@@ -24,7 +24,6 @@ from .models import (Schema,
 from .forms import (
     SchemaForm,
     DocumentationItemForm,
-    PermanentURLsForm,
     PermanentURLForm
 )
 
