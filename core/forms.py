@@ -297,7 +297,8 @@ class PermanentURLForm(forms.Form):
         ORGANIZATION = 'organization'
 
     target = forms.ChoiceField(
-        label="Link to"
+        label="Link to",
+        widget=forms.Select(attrs={'class': 'js-autorefresh-with-value'})
     )
     link_type = forms.ChoiceField(
         label="URL",

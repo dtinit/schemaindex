@@ -48,12 +48,17 @@ Activity
     <div class="detail-list-item__value">{{ schema_ref.created_at|date }}</div>
   </li>
 </ul>
-{% if schema_ref.permanent_urls.count > 0 %}
+{% if schema_ref.permanent_urls.count > 0 or schema_ref.created_by == request.user %}
 Permanent URL{{ schema_ref.permanent_urls.count|pluralize }}
 <ul class="detail-list">
-  {% for permanent_url in schema_ref.permanent_urls.all %}  
+  {% for permanent_url in schema_ref.permanent_urls.all|dictsort:"url" %}  
     <li class="detail-list-item__value"><a href="{{ permanent_url.url }}">{{ permanent_url.url }}</a></li>
   {% endfor %}
+  {% if schema_ref.created_by == request.user %}
+  <li class="detail-list-item__value">
+    <a href="{% url 'manage_schema_permanent_urls' schema_id=schema.id %}?target=schemaref:{{schema_ref.id}}">Add Permanent URL</a>
+  </li>
+  {% endif %}
 </ul>
 {% endif %}
 
