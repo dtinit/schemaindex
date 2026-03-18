@@ -1,3 +1,4 @@
+import uuid
 from factory.django import DjangoModelFactory
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
@@ -14,6 +15,7 @@ from core.models import (
     Profile,
     PermanentURL
 )
+from core.forms import PermanentURLForm
 
 class ProfileFactory(DjangoModelFactory):
     class Meta: 
@@ -102,20 +104,38 @@ class DocumentationItemFactory(ReferenceItemFactory):
     format = factory.Iterator(DocumentationItem.DocumentationItemFormat.values)
 
 
-# To create a PermanentURLFactory instance,
-# you *must* pass a slug and a content_object.
 class PermanentURLFactory(DjangoModelFactory):
+    """
+    By default, Permanent URLs will be UUIDs.
+    You can pass link_type="organization" or link_type="email"
+    to override, but then you must also include a suffix.
+    """
     class Meta:
         model = PermanentURL
 
-    slug = factory.Sequence(lambda n: f'permanenturlslug-{n}')
+    suffix = factory.Sequence(lambda n: f'permanentOrgUrlSuffix-{n}')
+    link_type = PermanentURLForm.LinkType.UUID
 
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
-        slug = kwargs.pop('slug')
+        link_type = kwargs.pop('link_type', PermanentURLForm.LinkType.UUID)
+        suffix = kwargs.pop('suffix', None)
         content_object=kwargs.get('content_object')
-        return model_class.objects.create_from_slug(
-            created_by=content_object.created_by,
-            slug=slug,
-            **kwargs
-        )
+        if link_type == PermanentURLForm.LinkType.UUID:
+            return model_class.objects.create_from_uuid(
+                created_by=content_object.created_by,
+                uuid=uuid.uuid4(),
+                **kwargs
+            )
+        elif link_type == PermanentURLForm.LinkType.EMAIL:
+            return model_class.objects.create_from_email_suffix(
+                created_by=content_object.created_by,
+                suffix=suffix,
+                **kwargs
+            ) 
+        elif link_type == PermanentURLForm.LinkType.ORGANIZATION:
+            return model_class.objects.create_from_org_suffix(
+                created_by=content_object.created_by,
+                suffix=suffix,
+                **kwargs
+            )

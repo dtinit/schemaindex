@@ -73,6 +73,12 @@ select,
   border: 1px solid #666;
   background: #444;
   color: #ddd;
+  min-height: 2.62rem;
+}
+
+.input-group select.input-group__prefix {
+  width: auto;
+  color: var(--text-primary);
 }
 
 input,
@@ -80,6 +86,12 @@ select {
   border-radius: 8px;
   color: var(--text-primary);
   width: 100%;
+}
+
+input:read-only {
+  color: #bbb;
+  pointer-events: none;
+  background: #555;
 }
 
 .nav-header {
@@ -421,6 +433,8 @@ a.button--primary:hover {
   border-top-left-radius: 8px;
   border-bottom-left-radius: 8px;
   border-right-width: 0;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
 }
 
 .field .input-group input {

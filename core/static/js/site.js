@@ -231,7 +231,6 @@
       });
 
     Array.from(document.querySelectorAll('.js-autosubmit-select'))
-      // If the input isn't in a form, there's nothing to submit
       .filter(
         /** @returns {input is (HTMLSelectElement & {form: HTMLFormElement})} */
         (input) => input instanceof HTMLSelectElement && Boolean(input.form)
@@ -241,6 +240,18 @@
           selectElement.form.submit();
         };
         selectElement.addEventListener('input', handleChange);
+      });
+    Array.from(document.querySelectorAll('select.js-autorefresh-with-value'))
+      .filter(
+        /** @returns {inputElement is (HTMLSelectElement)} */
+        (inputElement) => inputElement instanceof HTMLSelectElement
+      )
+      .forEach((selectElement) => {
+        selectElement.addEventListener('change', () => {
+          const searchParams = new URLSearchParams(window.location.search);
+          searchParams.set(selectElement.name, selectElement.value);
+          window.location.search = searchParams.toString();
+        });
       });
 
     Array.from(

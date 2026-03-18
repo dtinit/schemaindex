@@ -1,3 +1,4 @@
+from urllib.parse import urlparse
 import pytest
 import requests_mock
 from tests.factories import (
@@ -10,6 +11,7 @@ from tests.factories import (
     PermanentURLFactory
 )
 from core.models import Schema, DocumentationItem
+from core.forms import PermanentURLForm
 from django.test import Client
 from pytest_django.asserts import assertRedirects
 
@@ -215,25 +217,38 @@ def test_invalid_permanent_urls_404():
 
 
 @pytest.mark.django_db
-def test_matching_permanent_urls_redirect_to_schemas():
-    slug = 'test'
+@pytest.mark.parametrize(
+    'link_type,suffix',
+    [[PermanentURLForm.LinkType.UUID, 'unused'],
+     [PermanentURLForm.LinkType.EMAIL, 'test_suffix'],
+     [PermanentURLForm.LinkType.ORGANIZATION, 'test_suffix']]
+)
+def test_matching_permanent_urls_redirect_to_schemas(link_type, suffix):
     schema = OrganizationSchemaFactory()
-    permanent_url = PermanentURLFactory(content_object=schema, slug=slug)
+    permanent_url = PermanentURLFactory(content_object=schema, link_type=link_type, suffix=suffix)
+    permant_url_path = urlparse(permanent_url.url).path
     client = Client()
-    response = client.get(f'/o/{schema.created_by.profile.organization.slug}/{slug}', follow=True)
+    response = client.get(permant_url_path, follow=True)
     assert response.status_code == 200
     assertRedirects(response, f'http://testserver/schemas/{schema.id}')
 
 
 @pytest.mark.django_db
-def test_matching_permanent_urls_redirect_to_schema_refs():
-    slug = 'test'
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    'link_type,suffix',
+    [[PermanentURLForm.LinkType.UUID, 'unused'],
+     [PermanentURLForm.LinkType.EMAIL, 'test_suffix'],
+     [PermanentURLForm.LinkType.ORGANIZATION, 'test_suffix']]
+)
+def test_matching_permanent_urls_redirect_to_schema_refs(link_type, suffix):
     schema_ref = OrganizationSchemaRefFactory()
-    permanent_url = PermanentURLFactory(content_object=schema_ref, slug=slug)
+    permanent_url = PermanentURLFactory(content_object=schema_ref, link_type=link_type, suffix=suffix)
+    permant_url_path = urlparse(permanent_url.url).path
     client = Client()
     with requests_mock.Mocker() as m:
         m.get(schema_ref.url, text='{}')
-        response = client.get(f'/o/{schema_ref.created_by.profile.organization.slug}/{slug}', follow=True)
+        response = client.get(permant_url_path, follow=True)
         assert response.status_code == 200
         assertRedirects(response, f'http://testserver/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}')
 

@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Count, Q
@@ -24,7 +25,7 @@ from .models import (Schema,
 from .forms import (
     SchemaForm,
     DocumentationItemForm,
-    PermanentURLsForm
+    PermanentURLForm
 )
 
 MAX_SCHEMA_RESULT_COUNT = 30
@@ -67,6 +68,19 @@ def lookup_schema(function):
         )
         
         return function(request, schema, *args, **kwargs)
+    return _wrap_request
+
+
+def require_permanent_url_host(function):
+    @wraps(function)
+    def _wrap_request(request, *args, **kwargs):
+        host = request.get_host()
+        # Get rid of any port number
+        host = host.split(':', 1)[0] 
+        if host != settings.PERMANENT_URL_HOST:
+            raise Http404
+
+        return function(request, host, *args, **kwargs)
     return _wrap_request
 
 
@@ -326,61 +340,62 @@ def organization_detail(request, organization_id):
 
 @login_required
 def manage_schema_permanent_urls(request, schema_id):
-    if not request.user.profile.organization:
-        raise Http404
     schema = get_object_or_404(
         Schema.public_objects,
         id=schema_id,
         created_by=request.user,
     )
-    prefix = PermanentURL.objects.get_url_for_slug(
-        organization=request.user.profile.organization,
-        slug=''
-    )
+    
     if request.method == 'POST':
-        form = PermanentURLsForm(request.POST, schema=schema)
+        form = PermanentURLForm(request.POST, schema=schema)
         if form.is_valid():
-            schema_slug = form.cleaned_data.get('schema_slug')
-            if schema_slug:
-                PermanentURL.objects.create_from_slug(
+            link_type = form.cleaned_data.get('link_type')
+            target = form.cleaned_data.get('target')
+            target_type, target_id = target.split(':', 1)
+            target = schema if target_type == 'schema' else get_object_or_404(
+                SchemaRef,
+                schema=schema,
+                id=target_id
+            )
+            if link_type == form.LinkType.UUID:
+                PermanentURL.objects.create_from_uuid(
                     created_by=request.user,
-                    content_object=schema,
-                    slug=schema_slug
+                    content_object=target,
+                    uuid=uuid.uuid4()
                 )
-            for subform in form.schema_ref_permanent_url_formset:
-                schema_ref_slug = subform.cleaned_data.get('slug')
-                if schema_ref_slug:
-                    PermanentURL.objects.create_from_slug(
-                        created_by=request.user,
-                        content_object=subform.schema_ref,
-                        slug=schema_ref_slug
-                    )
-            form = PermanentURLsForm(schema=schema)
+            elif link_type == form.LinkType.EMAIL:
+                PermanentURL.objects.create_from_email_suffix(
+                    created_by=request.user,
+                    content_object=target,
+                    suffix=form.cleaned_data.get('suffix')
+                )
+            elif request.user.profile.organization: # link_type == form.LinkType.Organization
+                PermanentURL.objects.create_from_org_suffix(
+                    created_by=request.user,
+                    content_object=target,
+                    suffix=form.cleaned_data.get('suffix')
+                )
+            if target_type == 'schemaref':
+                return redirect('schema_ref_detail', schema_id=schema_id, schema_ref_id=target_id)
+            return redirect('schema_detail', schema_id=schema_id)
+
     else:
-        form = PermanentURLsForm(schema=schema)
+        link_type_param = request.GET.get('link_type', None)
+        if link_type_param == PermanentURLForm.LinkType.ORGANIZATION and not request.user.profile.organization:
+            link_type_param = None
+        target_param = request.GET.get('target', None)
+        form = PermanentURLForm(schema=schema, initial={'link_type': link_type_param, 'target': target_param})
            
     return render(request, "core/manage/permanent_urls.html", {
         'schema': schema,
         'form': form,
-        'prefix': prefix
     })
 
 
-def permanent_url_redirect(request, partial_path):
-    host = request.get_host()
-    # Get rid of any port number
-    host = host.split(':', 1)[0] 
-    if host != settings.PERMANENT_URL_HOST:
-        raise Http404
-
-    # This will match non-secure (http) requests
-    # to secure (https) values, but that's fine.
-    # We redirect all http to https in production
-    # and this way makes local testing easier.
-    full_url = f"https://{host}{request.path}"
+def _permanent_url_redirect(request, permanent_url_query):
     matching_url = get_object_or_404(
         PermanentURL,
-        url=full_url
+        url=permanent_url_query
     )
     if isinstance(matching_url.content_object, Schema):
         schema = matching_url.content_object
@@ -398,3 +413,24 @@ def permanent_url_redirect(request, partial_path):
     else:
         raise Http404
 
+
+# All these views match non-secure (http) requests
+# to secure (https) values, but that's fine.
+# We redirect all http to https in production
+# and this way makes local testing easier.
+@require_permanent_url_host
+def permanent_org_url_redirect(request, host, org_slug, partial_path):
+    full_url = f"https://{host}/o/{org_slug}/{partial_path}"
+    return _permanent_url_redirect(request, full_url)
+
+
+@require_permanent_url_host
+def permanent_uuid_url_redirect(request, host, uuid):
+    full_url = f"https://{host}/u/{uuid}"
+    return _permanent_url_redirect(request, full_url)
+
+
+@require_permanent_url_host
+def permanent_email_url_redirect(request, host, email, partial_path):
+    full_url = f"https://{host}/e/{email}/{partial_path}"
+    return _permanent_url_redirect(request, full_url)
