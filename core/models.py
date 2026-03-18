@@ -123,10 +123,18 @@ class Schema(BaseModel):
     @property
     def organization(self):
         return self.created_by.profile.organization
+    
+    @property
+    def closed_source_implementation_set(self):
+        return self.implementation_set.filter(is_open_source=False)
+
+    @property
+    def open_source_implementation_set(self):
+        return self.implementation_set.filter(is_open_source=True)
 
     @property
     def has_open_source_implementation(self):
-        return self.implementation_set.filter(is_open_source=True).exists()
+        return self.open_source_implementation_set.exists()
 
     def _latest_documentation_item_of_type(self, role):
         return self.documentationitem_set.filter(role=role).order_by('-created_at').first()
@@ -372,6 +380,10 @@ class Implementation(ReferenceItem):
 class Organization(BaseModel):
     name = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
+    description = models.TextField(blank=True, null=True)
+    website = models.URLField(blank=True, null=True)
+    location = models.CharField(max_length=200, blank=True, null=True)
+    logo = models.ImageField(blank=True, null=True, upload_to="images/logos")
 
     def __str__(self):
         return self.name
