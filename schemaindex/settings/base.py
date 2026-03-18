@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import sys
 import environ
+import os
 
 from pathlib import Path
 
@@ -169,3 +170,7 @@ LOGGING = {
         },
     },
 }
+
+# Media settings
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

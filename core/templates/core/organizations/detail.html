@@ -5,22 +5,94 @@
 
 {% block page_content %}
 <main class="organization-detail">
-  <h1>{{ organization.name }}</h1>
-  <div class="main-content">
-    {% if organization.public_schemas.count %}
-    <h2>Schema{{ organization.public_schemas.count|pluralize }}</h2>
-    <ul>
-      {% for schema in organization.public_schemas.all %}
-      <li>
-        <a href="{% url 'schema_detail' schema_id=schema.id %}">
-          {{ schema.name }}
-        </a>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p>This organization has no schemas.</p>
-    {% endif %}
+  <hr />
+  <div class="header-container">
+    <div class="header">
+      {% if organization.logo %}
+      <img class="header__logo" src="{{ organization.logo.url }}">
+
+      </img>
+      {% else %}
+      <div class="header__logo">
+        <i data-lucide="building-2"></i>
+      </div>
+      {% endif %}
+      <div>
+        <h1 class="header__name">{{ organization.name }}</h1>
+        <p class="header__description">{{ organization.description|default:"No description" }}</p>
+        <ul class="header__info">
+          {% if organization.website %}
+          <li>
+            <a href="{{ organization.website }}">
+              <i data-lucide="globe" class="icon--sm"></i>
+              {{ organization.website }}
+            </a>
+          </li>
+          {% endif %}
+          {% if organization.location %}
+          <li>
+            <i data-lucide="map-pin" class="icon--sm"></i>
+            {{ organization.location }}
+          </li>
+          {% endif %}
+          <li>
+            <a href="mailto:{{  organization.created_by.email }}">
+              <i data-lucide="mail" class="icon--sm"></i>
+              Contact
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
   </div>
+  <hr />
+  <div class="stats">
+    <ul>
+      <li>
+        <i data-lucide="file-code" class="icon--sm"></i>{{ organization.public_schemas.count }} schema{{ organization.public_schemas.count|pluralize }}
+      </li>
+    </ul>
+  </div>
+  <hr />
+   <ul class="schemas">
+    {% for schema in organization.public_schemas.all|dictsort:"name" %}
+    <li>
+      <a href="{% url 'schema_detail' schema_id=schema.id %}" class="schema">
+        <i data-lucide="file-code" class="icon--md text--link-color"></i>
+        <div>
+          <h3 class="schema__name">{{ schema.name }}</h3>
+          <ul class="schema__info">
+            {% if schema.latest_rfc %}
+            <li class="badge badge--rfc" title="Linked RFC">
+              RFC
+            </li>
+            {% endif %}
+            {% if schema.latest_w3c %}
+            <li class="badge badge--w3c" title="Linked W3C specification">
+              W3C
+            </li>
+            {% endif %}
+            <li>
+              <i data-lucide="clock" class="icon--sm"></i>
+              Updated {{ schema.updated_at|date }}
+            </li>
+            {% if schema.implementation_set.count %}
+            <li>
+              <i
+                data-lucide="layers-2"
+                class="icon--sm
+                  {% if schema.has_open_source_implementation%}implementation-icon--open-source{% endif %}
+                "
+              ></i>
+              {{ schema.implementation_set.count }} implementation{{schema.implementation_set.count|pluralize}}
+              {% if schema.has_open_source_implementation %}({{ schema.open_source_implementation_set.count }} open source){% endif %}
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
 </main>
 {% endblock %}
