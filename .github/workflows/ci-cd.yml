@@ -21,8 +21,8 @@ jobs:
   lint-js:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
 
       - name: Install npm dependencies
         run: npm ci
@@ -33,8 +33,8 @@ jobs:
   check-js-formatting:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
 
       - name: Install npm dependencies
         run: npm ci
@@ -45,8 +45,8 @@ jobs:
   check-js-types:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
 
       - name: Install npm dependencies
         run: npm ci
@@ -57,9 +57,9 @@ jobs:
   check-pending-migrations:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.11
 
@@ -90,10 +90,10 @@ jobs:
           - 5432:5432
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: 3.11
 
@@ -131,10 +131,10 @@ jobs:
       EMAIL_HOST_PASSWORD: 'placeholder'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.11
 
@@ -144,10 +144,9 @@ jobs:
           pip install -r requirements.txt
 
       - name: Create service-account-credentials.json
-        uses: jsdaniell/create-json@v1.2.3
-        with:
-          name: service-account-credentials.json
-          json: ${{ secrets.GCP_CREDENTIALS }}
+        env:
+          GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+        run: printenv GCP_CREDENTIALS > service-account-credentials.json
 
       - name: Extract deployment URL
         id: extract_deployment_url
@@ -157,13 +156,13 @@ jobs:
         run: |
           python -c "from django.conf import settings; print(f'url=https://{settings.ALLOWED_HOSTS[0]}')" >> $GITHUB_OUTPUT
 
-      - uses: 'google-github-actions/auth@v2'
+      - uses: 'google-github-actions/auth@v3'
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
 
       - name: Set up Cloud SDK
-        uses: 'google-github-actions/setup-gcloud@v2'
+        uses: 'google-github-actions/setup-gcloud@v3'
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
 
@@ -248,7 +247,7 @@ jobs:
     outputs:
       tag: ${{ steps.create-tag.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: 'Configure git user'
         run: |
@@ -293,7 +292,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 'Notify via Slack'
-        uses: slackapi/slack-github-action@v2
+        uses: slackapi/slack-github-action@v3
         with:
           webhook: ${{ secrets.WORKFLOW_NOTIFICATION_SLACK_WEBHOOK_URL }}
           webhook-type: incoming-webhook
