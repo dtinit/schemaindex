@@ -788,6 +788,7 @@ a.badge--w3c {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  color: #999;
 }
 
 .homepage .schema__badges {
