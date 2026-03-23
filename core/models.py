@@ -97,6 +97,7 @@ class Schema(BaseModel):
     name = models.CharField(max_length=200)
     published_at = models.DateTimeField(blank=True, null=True)
     permanent_urls = GenericRelation(PermanentURL, related_query_name="schema")
+    description = models.CharField(blank=True, null=True, max_length=350)
 
     class Meta:
         indexes = [
