@@ -125,6 +125,12 @@ class SchemaForm(forms.Form):
         max_length=200,
         help_text="A descriptive name for your schema"
     )
+    description = forms.CharField(
+        label="Description",
+        widget=forms.Textarea(attrs={'rows': 3, 'maxlength': 350}),
+        required=False,
+        max_length=350
+    )
     readme_url = forms.URLField(
         label="README URL",
         widget=forms.TextInput(attrs={'placeholder': 'https://example.com/README.md'})
@@ -211,6 +217,7 @@ class SchemaForm(forms.Form):
 
         self.initial = {
             'name': schema.name,
+            'description': schema.description,
             'readme_url': latest_readme.url if latest_readme else None,
             'readme_format': latest_readme.format if latest_readme else None,
             'license_url': latest_license.url if latest_license else None

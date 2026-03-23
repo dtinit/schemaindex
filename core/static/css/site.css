@@ -84,6 +84,7 @@ a:hover {
 
 input,
 select,
+textarea,
 .input-group .input-group__prefix {
   padding: 0.5rem;
   border: 1px solid #666;
@@ -98,7 +99,8 @@ select,
 }
 
 input,
-select {
+select,
+textarea {
   border-radius: 8px;
   color: var(--text-primary);
   width: 100%;

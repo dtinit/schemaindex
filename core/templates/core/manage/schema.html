@@ -20,6 +20,7 @@ Edit Schema
       {% csrf_token %}
       <h2>Schema details</h2>
       {% include "core/manage/field.html" with field=form.name %}
+      {% include "core/manage/field.html" with field=form.description %}
       <h2 class="field__label--is-required">Definition URL </h2>
       <ul class="formsets" data-formset-list-id="schema_refs">
       {{ form.schema_refs_formset.management_form }}

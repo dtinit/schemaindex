@@ -209,6 +209,7 @@ def manage_schema(request, schema_id=None):
         if form.is_valid():
             schema = schema if schema else Schema.objects.create(created_by=request.user)
             schema.name = form.cleaned_data['name']
+            schema.description = form.cleaned_data['description']
             schema.save()
 
             _sync_formset_to_reference_items(
