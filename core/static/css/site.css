@@ -1206,6 +1206,7 @@ a.badge--w3c {
   padding: 1rem;
   color: var(--text-secondary);
   background: #111;
+  font-weight: normal;
 }
 
 .organization-detail .schemas .schema:hover {
@@ -1214,6 +1215,11 @@ a.badge--w3c {
 
 .organization-detail .schemas .schema .schema__name {
   color: var(--text-primary);
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.organization-detail .schemas .schema .schema__description {
   margin-bottom: 1rem;
 }
 
@@ -1222,7 +1228,6 @@ a.badge--w3c {
   flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
-  font-weight: normal;
   color: #999;
   font-size: 0.9rem;
 }
