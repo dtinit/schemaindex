@@ -339,9 +339,11 @@ class PermanentURLForm(forms.Form):
             )
         self.fields['link_type'].choices = link_type_choices
 
+        link_type = self.data.get('link_type') or self.initial.get('link_type')
+        if link_type not in (choice[0] for choice in link_type_choices):
+            link_type = self.LinkType.UUID
         # When creating a UUID, change the suffix field to an uneditable placeholder.
         # We'll generate a UUID on submission.
-        link_type = self.data.get('link_type') or self.initial.get('link_type')
         if link_type == self.LinkType.UUID:
             self.fields['suffix'] = forms.CharField(
                 initial='<Generated ID>',
