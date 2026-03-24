@@ -75,6 +75,11 @@ Schemas.Pub - A public schema registry
             {% endif %}
           </ul>
         </div>
+        {% if schema.description %}
+        <p class="schema__description">
+          {{ schema.description }} 
+        </p>
+        {% endif %}
         <div class="schema__stats">
           by 
           {% if schema.organization %}

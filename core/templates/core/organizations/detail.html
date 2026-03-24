@@ -61,6 +61,11 @@
         <i data-lucide="file-code" class="icon--md text--link-color"></i>
         <div>
           <h3 class="schema__name">{{ schema.name }}</h3>
+          {% if schema.description %}
+          <p class="schema__description">
+            {{ schema.description }}
+          </p>
+          {% endif %}
           <ul class="schema__info">
             {% if schema.latest_rfc %}
             <li class="badge badge--rfc" title="Linked RFC">

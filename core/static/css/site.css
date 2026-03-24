@@ -84,6 +84,7 @@ a:hover {
 
 input,
 select,
+textarea,
 .input-group .input-group__prefix {
   padding: 0.5rem;
   border: 1px solid #666;
@@ -98,7 +99,8 @@ select,
 }
 
 input,
-select {
+select,
+textarea {
   border-radius: 8px;
   color: var(--text-primary);
   width: 100%;
@@ -786,6 +788,7 @@ a.badge--w3c {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  color: #999;
 }
 
 .homepage .schema__badges {
@@ -1203,6 +1206,7 @@ a.badge--w3c {
   padding: 1rem;
   color: var(--text-secondary);
   background: #111;
+  font-weight: normal;
 }
 
 .organization-detail .schemas .schema:hover {
@@ -1211,6 +1215,11 @@ a.badge--w3c {
 
 .organization-detail .schemas .schema .schema__name {
   color: var(--text-primary);
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.organization-detail .schemas .schema .schema__description {
   margin-bottom: 1rem;
 }
 
@@ -1219,7 +1228,6 @@ a.badge--w3c {
   flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
-  font-weight: normal;
   color: #999;
   font-size: 0.9rem;
 }
