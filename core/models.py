@@ -6,8 +6,15 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from urllib.parse import urlparse
+import time
 import requests
-from .utils import guess_specification_language_by_extension, guess_language_by_extension
+import requests.exceptions
+from django.core.mail import send_mail
+from .utils import (
+    guess_specification_language_by_extension,
+    guess_language_by_extension,
+)
+
 
 class BaseModel(models.Model):
     class Meta:
@@ -318,25 +325,86 @@ class ReferenceItem(BaseModel):
     objects = ReferenceItemManager()
     url = models.URLField()
     name = models.CharField(max_length=300, blank=True, null=True)
+    content_fetch_failing_since = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.url
 
+    def save(self, *args, **kwargs):
+        # If the URL changed, set content_fetch_failing_since to None
+        if self.id:
+            original = self.__class__.objects.get(id=self.id)
+            if original.url != self.url:
+                self.content_fetch_failing_since = None
+        super().save(*args, **kwargs)
+
     # TODO: Cache content and add optional param to force a refresh (GitHub issue #157)
     def get_content(self):
         if (
-            self.url_provider_info.provider_name == GitHubURLInfo.provider_name and
-            self.url_provider_info.raw_url
+            self.url_provider_info.provider_name == GitHubURLInfo.provider_name
+            and self.url_provider_info.raw_url
         ):
             content_url = self.url_provider_info.raw_url
         else:
             content_url = self.url
-        response = requests.get(content_url)
-        return response.text
+
+        # Retry logic with exponential backoff
+        retries = 2
+        # Initial backoff of 0.5s, then 1s, then 2s, etc (though currently limited to 2 retries)
+        backoff_factor = 0.5
+        last_exception = None
+
+        for i in range(retries + 1):  # +1 for the initial attempt
+            try:
+                response = requests.get(content_url)
+                response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
+
+                if self.content_fetch_failing_since != None:
+                    self.content_fetch_failing_since = None
+                    self.save()
+
+                return response.text
+            except requests.exceptions.RequestException as e:
+                last_exception = e
+                if i < retries:
+                    time.sleep(backoff_factor * (2**i))  # Exponential backoff
+                else:
+                    # All retries exhausted, handle as a failure.
+
+                    # Only notify the user if it's an HTTPError
+                    # and hasn't already been failing
+                    is_http_error = isinstance(e, requests.exceptions.HTTPError)
+                    if is_http_error and self.content_fetch_failing_since == None:
+                        self.content_fetch_failing_since = timezone.now()
+                        self._send_failure_notification_email()
+                        self.save()
+
+                    raise last_exception  # Re-raise the last exception after all retries and email logic
+
+    def _send_failure_notification_email(self):
+        recipient_email = self.created_by.email
+        subject = "Schemas.Pub Content Failure"
+        message = (
+            f"Hello,\n\n"
+            f'One of the URLs associated with "{self.schema.name}" could not be reached:\n'
+            f"{self.name}: {self.url}\n"
+            if self.name
+            else f"{self.url}\n"
+            f"Please check the URL is correct or replace it if necessary.\n\n"
+            f"Thank you!\n\n"
+            f"The Schemas.Pub Admin Team"
+        )
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [recipient_email],
+            fail_silently=True,
+        )
 
     @property
     def url_provider_info(self):
-        return URLProviderInfo.from_url(self.url) 
+        return URLProviderInfo.from_url(self.url)
 
 
 class SchemaRef(ReferenceItem):
