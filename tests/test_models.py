@@ -3,6 +3,7 @@ import requests_mock
 from unittest.mock import patch
 from django.utils import timezone
 from django.core import mail
+from django.contrib.auth.hashers import make_password
 from core.models import Schema, SchemaRef, APIKey
 from factories import (
     UserFactory,
@@ -202,4 +203,21 @@ def test_api_key_replacement():
     assert not APIKey.objects.filter(pk=existing_api_key.pk).exists()
     profile.refresh_from_db()
     assert profile.api_key.pk != existing_api_key.pk
+
+
+@pytest.mark.django_db
+def test_api_key_lookup():
+    mock_prefix = '1234abcd'
+    mock_secret = 'mock-secret'
+    mock_api_key = f'{mock_prefix}.{mock_secret}'
+    hashed_secret = make_password(mock_secret)
+    profile = ProfileFactory.create()
+    inserted_key = APIKeyFactory.create(
+        hashed_secret=hashed_secret,
+        prefix=mock_prefix,
+        profile=profile
+    )
+    matching_key = APIKey.objects.get_from_key(mock_api_key)
+    assert inserted_key == matching_key
+
 

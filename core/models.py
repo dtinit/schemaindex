@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 from urllib.parse import urlparse
 import time
 import requests
@@ -492,9 +492,24 @@ class Profile(models.Model):
 
         return f"{new_prefix}.{new_secret}"
 
+
+class APIKeyManager(models.Manager):
+    def get_from_key(self, raw_api_key):
+        prefix, secret = raw_api_key.split('.', 1)
+        try:
+           api_key = self.select_related('profile').get(prefix=prefix)
+        except self.model.DoesNotExist:
+            return None
+
+        if check_password(secret, api_key.hashed_secret):
+            return api_key
+        
+        return None
+
 # An API key consists of a plaintext prefix for querying,
 # and a hashed secret for actual authentication.
 class APIKey(models.Model):
+    objects = APIKeyManager()
     # If we need to allow multiple APIKeys per profile someday,
     # this can be changed to a ForeignKey.
     profile = models.OneToOneField(Profile, on_delete=models.CASCADE, related_name="api_key")
