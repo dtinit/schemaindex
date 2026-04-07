@@ -35,7 +35,6 @@
                 </span>
             </a>
             {% endif %}
-            {% if request.path|slice:"9" != '/account/' or request.path|slice:"16" == '/account/profile'  %}
             {% if request.user.is_authenticated %}
             <a href="{% url 'account_profile' %}">
                 <i data-lucide="circle-user" class="icon--md"></i>
@@ -45,7 +44,6 @@
                 <a href="{% url 'account_signup' %}" class="button">Sign up to register your schema</a>
                 <a href="{% url 'account_login' %}" class="button button--primary">Sign in</a>
             </div>
-            {% endif %}
             {% endif %}
         </header>
         {% block body %}

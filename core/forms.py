@@ -352,7 +352,8 @@ class PermanentURLForm(forms.Form):
                 widget=forms.TextInput(
                     attrs={
                         'readonly': True,
-                        'style': 'font-style: italic',
+                        'disabled': True,
+                        'style': 'font-style: italic'
                     }
                 )
             )

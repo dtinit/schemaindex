@@ -62,6 +62,7 @@ Account
     Email: {{ request.user.email }}
     <a href="{% url 'account_change_password' %}">Change password</a>
     <a href="{% url 'account_logout' %}">Sign out</a>
+    <a href="{% url 'account_api_key' %}">API Key</a>
   </section>
   </main>
 {% endblock %}
