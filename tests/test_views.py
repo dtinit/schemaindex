@@ -10,10 +10,11 @@ from tests.factories import (
     OrganizationSchemaRefFactory,
     PermanentURLFactory
 )
-from core.models import Schema, DocumentationItem
+from core.models import Schema, DocumentationItem, Profile
 from core.forms import PermanentURLForm
 from django.test import Client
 from pytest_django.asserts import assertRedirects
+from unittest.mock import patch
 
 
 @pytest.mark.django_db
@@ -297,4 +298,16 @@ def test_saving_schemas_preserves_existing_reference_items():
     documentation_item.refresh_from_db()
     assert schema_ref.name == new_schema_ref_name
     assert documentation_item.name == new_documentation_item_name
-    
+
+
+@pytest.mark.django_db
+def test_api_key_shown_to_user():
+    user = UserFactory.create()
+    client = Client()
+    client.force_login(user)
+    mock_api_key = 'mock-api-key'
+    with patch.object(Profile, 'set_new_api_key') as mocked_set_new_api_key:
+        mocked_set_new_api_key.return_value = mock_api_key
+        response = client.post('/account/api-key/', follow=True)
+        assert response.status_code == 200
+        assert mock_api_key in str(response.content)

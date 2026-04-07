@@ -13,7 +13,8 @@ from core.models import (
     DocumentationItem,
     Organization,
     Profile,
-    PermanentURL
+    PermanentURL,
+    APIKey
 )
 from core.forms import PermanentURLForm
 
@@ -139,3 +140,10 @@ class PermanentURLFactory(DjangoModelFactory):
                 suffix=suffix,
                 **kwargs
             )
+
+
+class APIKeyFactory(DjangoModelFactory):
+    class Meta:
+        model = APIKey
+
+    profile = factory.SubFactory(ProfileFactory)
