@@ -6,7 +6,8 @@ from .models import (
     DocumentationItem,
     Organization,
     Profile,
-    PermanentURL
+    PermanentURL,
+    APIKey
 )
 
 def format_date_only(obj, date_field):
@@ -56,3 +57,8 @@ class ProfileAdmin(admin.ModelAdmin):
 @register(PermanentURL)
 class PermanentURLAdmin(admin.ModelAdmin):
     list_display = ['content_object', 'url']
+
+
+@register(APIKey)
+class APIKeyAdmin(admin.ModelAdmin):
+    list_display = ['prefix', 'profile']
