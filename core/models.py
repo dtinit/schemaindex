@@ -1,14 +1,16 @@
 from itertools import chain
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.hashers import make_password
 from urllib.parse import urlparse
 import time
 import requests
 import requests.exceptions
+import secrets
 from django.core.mail import send_mail
 from .utils import (
     guess_specification_language_by_extension,
@@ -467,4 +469,39 @@ class Organization(BaseModel):
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     organization = models.ForeignKey(Organization, blank=True, null=True, on_delete=models.SET_NULL)
+
+    def set_new_api_key(self):
+        """
+        Deletes any existing key and issues a brand new one.
+        Returns the raw string '<prefix>.<secret>' to be shown to the user once.
+        """
+        # We use a transaction to ensure we don't delete the old key 
+        # and then fail to create the new one.
+        with transaction.atomic():
+            if hasattr(self, 'api_key'):
+                self.api_key.delete()
+
+            new_prefix = secrets.token_urlsafe(6)[:8]
+            new_secret = secrets.token_urlsafe(32)
+
+            APIKey.objects.create(
+                profile=self,
+                prefix=new_prefix,
+                hashed_secret=make_password(new_secret)
+            )
+
+        return f"{new_prefix}.{new_secret}"
+
+# An API key consists of a plaintext prefix for querying,
+# and a hashed secret for actual authentication.
+class APIKey(models.Model):
+    # If we need to allow multiple APIKeys per profile someday,
+    # this can be changed to a ForeignKey.
+    profile = models.OneToOneField(Profile, on_delete=models.CASCADE, related_name="api_key")
+    prefix = models.CharField(max_length=8, unique=True, editable=False)
+    hashed_secret = models.CharField(max_length=128, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Key {self.prefix} for {self.profile}"
 
