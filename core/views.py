@@ -176,6 +176,17 @@ def account_profile(request):
     })
 
 
+@login_required
+def account_api_key(request):
+    if request.method == 'POST':
+        new_api_key = request.user.profile.set_new_api_key()
+        return render(request, "account/api_key.html", {
+            'new_api_key': new_api_key
+        })
+
+    return render(request, "account/api_key.html")
+
+
 def _sync_formset_to_reference_items(schema, existing_items_queryset, formset, model, attributes, created_by):
     existing_items_by_id = {
         item.id: item for item in existing_items_queryset

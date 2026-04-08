@@ -8,6 +8,7 @@ urlpatterns = [
     path("schemas/<int:schema_id>", views.schema_detail, name="schema_detail"),
     path("schemas/<int:schema_id>/definition/<int:schema_ref_id>", views.schema_ref_detail, name="schema_ref_detail"),
     path("account/profile/", views.account_profile, name="account_profile"),
+    path("account/api-key/", views.account_api_key, name="account_api_key"),
     path("manage/schema/<int:schema_id>", views.manage_schema, name="manage_schema"),
     path("manage/schema/new", views.manage_schema, name="manage_schema_new"),
     path("manage/schema/<int:schema_id>/delete", views.manage_schema_delete, name="manage_schema_delete"),

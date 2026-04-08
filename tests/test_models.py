@@ -3,8 +3,14 @@ import requests_mock
 from unittest.mock import patch
 from django.utils import timezone
 from django.core import mail
-from core.models import Schema, SchemaRef
-from factories import UserFactory, SchemaRefFactory
+from django.contrib.auth.hashers import make_password
+from core.models import Schema, SchemaRef, APIKey
+from factories import (
+    UserFactory,
+    SchemaRefFactory,
+    ProfileFactory,
+    APIKeyFactory
+)
 import requests.exceptions
 
 
@@ -178,4 +184,40 @@ def test_reference_item_get_content_no_email_on_non_http_error(mock_sleep):
         schema_ref.refresh_from_db()
         assert schema_ref.content_fetch_failing_since is None
         assert len(mail.outbox) == 0
+
+
+@pytest.mark.django_db
+def test_api_key_creation():
+    profile = ProfileFactory.create()
+    api_key = profile.set_new_api_key()
+    prefix = api_key.split('.')[0]
+    assert APIKey.objects.filter(profile=profile).count() == 1
+    assert profile.api_key.prefix == prefix
+
+
+@pytest.mark.django_db
+def test_api_key_replacement():
+    existing_api_key = APIKeyFactory.create();
+    profile = existing_api_key.profile
+    profile.set_new_api_key()
+    assert not APIKey.objects.filter(pk=existing_api_key.pk).exists()
+    profile.refresh_from_db()
+    assert profile.api_key.pk != existing_api_key.pk
+
+
+@pytest.mark.django_db
+def test_api_key_lookup():
+    mock_prefix = '1234abcd'
+    mock_secret = 'mock-secret'
+    mock_api_key = f'{mock_prefix}.{mock_secret}'
+    hashed_secret = make_password(mock_secret)
+    profile = ProfileFactory.create()
+    inserted_key = APIKeyFactory.create(
+        hashed_secret=hashed_secret,
+        prefix=mock_prefix,
+        profile=profile
+    )
+    matching_key = APIKey.objects.get_from_key(mock_api_key)
+    assert inserted_key == matching_key
+
 

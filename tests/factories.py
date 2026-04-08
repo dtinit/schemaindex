@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db.models.signals import post_save
 import factory
+import secrets
 from datetime import timezone
 from core.models import (
     BaseModel,
@@ -13,7 +14,8 @@ from core.models import (
     DocumentationItem,
     Organization,
     Profile,
-    PermanentURL
+    PermanentURL,
+    APIKey
 )
 from core.forms import PermanentURLForm
 
@@ -139,3 +141,12 @@ class PermanentURLFactory(DjangoModelFactory):
                 suffix=suffix,
                 **kwargs
             )
+
+
+class APIKeyFactory(DjangoModelFactory):
+    class Meta:
+        model = APIKey
+
+    profile = factory.SubFactory(ProfileFactory)
+    prefix = factory.Sequence(lambda n: secrets.token_hex(4))
+    hashed_secret = factory.LazyFunction(lambda: secrets.token_hex(64))
