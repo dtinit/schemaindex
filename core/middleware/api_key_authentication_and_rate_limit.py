@@ -7,6 +7,9 @@ from core.api_responses import ApiErrorResponse
 
 API_KEY_HEADER = 'X-API-Key'
 
+def get_profile_rate_limit_key(profile):
+    return f'api_usage:sliding_log:{profile.id}'
+
 class APIKeyAuthenticationAndRateLimitMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -52,7 +55,7 @@ class APIKeyAuthenticationAndRateLimitMiddleware:
     # Note that it isn't atomic,
     # but it should be fine for our current usage and limits.
     def has_exceeded_rate_limit(self, profile):
-        request_log_key = f"api_usage:sliding_log:{profile.id}"
+        request_log_key = get_profile_rate_limit_key(profile)
         previous_request_log = cache.get(request_log_key, [])
         now = int(time.time())
         one_hour_ago = now - 3600
