@@ -521,6 +521,9 @@ class Profile(models.Model):
 
 class APIKeyManager(models.Manager):
     def get_from_key(self, raw_api_key):
+        if not '.' in raw_api_key:
+            return None
+
         prefix, secret = raw_api_key.split('.', 1)
         try:
            api_key = self.select_related('profile').get(prefix=prefix)
