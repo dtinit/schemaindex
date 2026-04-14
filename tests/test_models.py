@@ -187,6 +187,28 @@ def test_reference_item_get_content_no_email_on_non_http_error(mock_sleep):
 
 
 @pytest.mark.django_db
+def test_reference_item_get_content_returns_cached_on_second_call():
+    """
+    After a successful fetch, subsequent calls should return
+    cached content without making another HTTP request.
+    """
+    schema_ref = SchemaRefFactory.create()
+    mock_content = "cached schema content"
+    with requests_mock.Mocker() as m:
+        m.get(schema_ref.url, text=mock_content)
+
+        # First call: fetches from remote
+        first_result = schema_ref.get_content()
+        assert first_result == mock_content
+        assert m.call_count == 1
+
+        # Second call: returns cached content, no new HTTP request
+        second_result = schema_ref.get_content()
+        assert second_result == mock_content
+        assert m.call_count == 1  # Still 1 - no second request made
+
+
+@pytest.mark.django_db
 def test_api_key_creation():
     profile = ProfileFactory.create()
     api_key = profile.set_new_api_key()

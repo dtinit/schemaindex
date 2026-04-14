@@ -171,6 +171,17 @@ LOGGING = {
     },
 }
 
+# Cache configuration
+# Default to in-memory cache for development.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
+
+# Default: 1 hour
+CONTENT_CACHE_TTL = 60 * 60
+
 # Media settings
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

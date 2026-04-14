@@ -6,7 +6,10 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.hashers import make_password, check_password
+from django.core.cache import cache
 from urllib.parse import urlparse
+import hashlib
+import logging
 import time
 import requests
 import requests.exceptions
@@ -16,6 +19,8 @@ from .utils import (
     guess_specification_language_by_extension,
     guess_language_by_extension,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class BaseModel(models.Model):
@@ -340,15 +345,33 @@ class ReferenceItem(BaseModel):
                 self.content_fetch_failing_since = None
         super().save(*args, **kwargs)
 
-    # TODO: Cache content and add optional param to force a refresh (GitHub issue #157)
-    def get_content(self):
+    def _get_content_url(self):
+        # Resolve the URL to fetch content from 
         if (
             self.url_provider_info.provider_name == GitHubURLInfo.provider_name
             and self.url_provider_info.raw_url
         ):
-            content_url = self.url_provider_info.raw_url
-        else:
-            content_url = self.url
+            return self.url_provider_info.raw_url
+        return self.url
+
+    def _content_cache_key(self):
+        # Build a cache key from the resolved content URL
+        content_url = self._get_content_url()
+        url_hash = hashlib.sha256(content_url.encode()).hexdigest()[:16]
+        return f"content:{url_hash}"
+
+    def get_content(self, force_refresh=False):
+        cache_key = self._content_cache_key()
+
+        # Return cached content unless a refresh is forced
+        if not force_refresh:
+            cached_content = cache.get(cache_key)
+            if cached_content is not None:
+                logger.info("Cache hit for %s", cache_key)
+                return cached_content
+
+        content_url = self._get_content_url()
+        logger.info("Cache miss for %s, fetching from %s", cache_key, content_url)
 
         # Retry logic with exponential backoff
         retries = 2
@@ -365,6 +388,9 @@ class ReferenceItem(BaseModel):
                     self.content_fetch_failing_since = None
                     self.save()
 
+                # Cache the successfully fetched content
+                cache.set(cache_key, response.text, timeout=settings.CONTENT_CACHE_TTL)
+                logger.info("Cached content for %s (TTL: %ds)", cache_key, settings.CONTENT_CACHE_TTL)
                 return response.text
             except requests.exceptions.RequestException as e:
                 last_exception = e
