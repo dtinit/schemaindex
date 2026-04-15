@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.hashers import make_password, check_password
+from django.core.cache import cache
 from urllib.parse import urlparse
 import time
 import requests
@@ -340,15 +341,28 @@ class ReferenceItem(BaseModel):
                 self.content_fetch_failing_since = None
         super().save(*args, **kwargs)
 
-    # TODO: Cache content and add optional param to force a refresh (GitHub issue #157)
-    def get_content(self):
+    def _get_content_url(self):
+        # Resolve the URL to fetch content from 
         if (
             self.url_provider_info.provider_name == GitHubURLInfo.provider_name
             and self.url_provider_info.raw_url
         ):
-            content_url = self.url_provider_info.raw_url
-        else:
-            content_url = self.url
+            return self.url_provider_info.raw_url
+        return self.url
+
+    def _cache_key(self):
+        # Build a cache key from the model type and primary key.
+        # Includes class name because ReferenceItem is abstract —
+        # SchemaRef pk=1 and DocumentationItem pk=1 can coexist.
+        return f"content:{self.__class__.__name__.lower()}:{self.pk}"
+
+    def _fetch_content(self):
+        """Fetch content from the remote URL with retry logic.
+        Called by cache.get_or_set on a cache miss. Failed fetches
+        raise an exception, which prevents get_or_set from caching
+        the result — so failures are never cached.
+        """
+        content_url = self._get_content_url()
 
         # Retry logic with exponential backoff
         retries = 2
@@ -382,6 +396,14 @@ class ReferenceItem(BaseModel):
                         self.save()
 
                     raise last_exception  # Re-raise the last exception after all retries and email logic
+
+    def get_content(self):
+        """Fetch remote file content, using cache when available."""
+        return cache.get_or_set(
+            self._cache_key(),
+            self._fetch_content,
+            timeout=settings.CONTENT_CACHE_TTL,
+        )
 
     def _send_failure_notification_email(self):
         recipient_email = self.created_by.email
