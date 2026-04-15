@@ -36,25 +36,14 @@ class APIKeyAuthenticationAndRateLimitMiddleware:
         profile = api_key_obj.profile
         # For convenience, attach the user to the request
         request.user = profile.user
-
-        if self.has_exceeded_rate_limit(profile):
-             return ApiErrorResponse(
-                status_code=429,
-                message="Too many requests",
-                details="You have exceed your hourly request limit"
-            )
-
-        return self.get_response(request)
-
-    # Rate limits are tracked and applied per profile, not per API key.
-    # This allows users to change API keys as needed,
-    # but not as a way to circumvent rate limits.
-    # 
-    # This uses a sliding hourly window
-    # rather than resetting at the beginning of every hour.
-    # Note that it isn't atomic,
-    # but it should be fine for our current usage and limits.
-    def has_exceeded_rate_limit(self, profile):
+        # Rate limits are tracked and applied per profile, not per API key.
+        # This allows users to change API keys as needed,
+        # but not as a way to circumvent rate limits.
+        # 
+        # This uses a sliding hourly window
+        # rather than resetting at the beginning of every hour.
+        # Note that it isn't atomic,
+        # but it should be fine for our current usage and limits.
         request_log_key = get_profile_rate_limit_key(profile)
         previous_request_log = cache.get(request_log_key, [])
         now = int(time.time())
@@ -62,9 +51,14 @@ class APIKeyAuthenticationAndRateLimitMiddleware:
         # Filter out request logs from over an hour ago
         last_hour_request_log = [timestamp for timestamp in previous_request_log if timestamp > one_hour_ago]
         is_above_limit = len(last_hour_request_log) >= settings.HOURLY_API_REQUEST_LIMIT 
-        if not is_above_limit:
-            # Set the cache to our filtered list and allow it to expire in an hour.
-            last_hour_request_log.append(now)
-            cache.set(request_log_key, last_hour_request_log, timeout=3600)
+        if is_above_limit:
+            return ApiErrorResponse(
+                status_code=429,
+                message="Too many requests",
+                details="You have exceed your hourly request limit"
+            )
 
-        return is_above_limit
+        # Set the cache to our filtered list and allow it to expire in an hour.
+        last_hour_request_log.append(now)
+        cache.set(request_log_key, last_hour_request_log, timeout=3600)
+        return self.get_response(request)
