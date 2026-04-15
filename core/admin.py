@@ -1,5 +1,6 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.admin.decorators import register
+from django.core.cache import cache
 from .models import (
     Schema,
     SchemaRef,
@@ -9,6 +10,7 @@ from .models import (
     PermanentURL,
     APIKey
 )
+from .middleware.api_key_authentication_and_rate_limit import get_profile_rate_limit_key
 
 def format_date_only(obj, date_field):
     return date_field.strftime("%b. %d, %Y") if date_field else "-"
@@ -31,6 +33,7 @@ class SchemaAdmin(admin.ModelAdmin):
     def formatted_is_published(self, obj):
         return '✓' if obj.is_published else ''
 
+
 @register(SchemaRef)
 class SchemaRefAdmin(admin.ModelAdmin):
     list_display = ['name', 'schema', 'url']
@@ -49,9 +52,20 @@ class OrganizationAdmin(admin.ModelAdmin):
     list_display = ['name', 'slug']
 
 
+@admin.action(description='Reset API Rate Limits')
+def reset_rate_limit(modeladmin, request, queryset):
+    for profile in queryset:
+        # Match the key format used in your middleware
+        cache_key = get_profile_rate_limit_key(profile)
+        cache.delete(cache_key)
+    
+    messages.success(request, f'Rate limits reset for {queryset.count()} profiles.')
+
+
 @register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'organization']
+    actions = [reset_rate_limit]
 
 
 @register(PermanentURL)
