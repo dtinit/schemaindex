@@ -8,8 +8,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.cache import cache
 from urllib.parse import urlparse
-import hashlib
-import logging
 import time
 import requests
 import requests.exceptions
@@ -19,8 +17,6 @@ from .utils import (
     guess_specification_language_by_extension,
     guess_language_by_extension,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class BaseModel(models.Model):
@@ -354,24 +350,19 @@ class ReferenceItem(BaseModel):
             return self.url_provider_info.raw_url
         return self.url
 
-    def _content_cache_key(self):
-        # Build a cache key from the resolved content URL
+    def _cache_key(self):
+        # Build a cache key from the model type and primary key.
+        # Includes class name because ReferenceItem is abstract —
+        # SchemaRef pk=1 and DocumentationItem pk=1 can coexist.
+        return f"content:{self.__class__.__name__.lower()}:{self.pk}"
+
+    def _fetch_content(self):
+        """Fetch content from the remote URL with retry logic.
+        Called by cache.get_or_set on a cache miss. Failed fetches
+        raise an exception, which prevents get_or_set from caching
+        the result — so failures are never cached.
+        """
         content_url = self._get_content_url()
-        url_hash = hashlib.sha256(content_url.encode()).hexdigest()[:16]
-        return f"content:{url_hash}"
-
-    def get_content(self, force_refresh=False):
-        cache_key = self._content_cache_key()
-
-        # Return cached content unless a refresh is forced
-        if not force_refresh:
-            cached_content = cache.get(cache_key)
-            if cached_content is not None:
-                logger.info("Cache hit for %s", cache_key)
-                return cached_content
-
-        content_url = self._get_content_url()
-        logger.info("Cache miss for %s, fetching from %s", cache_key, content_url)
 
         # Retry logic with exponential backoff
         retries = 2
@@ -388,9 +379,6 @@ class ReferenceItem(BaseModel):
                     self.content_fetch_failing_since = None
                     self.save()
 
-                # Cache the successfully fetched content
-                cache.set(cache_key, response.text, timeout=settings.CONTENT_CACHE_TTL)
-                logger.info("Cached content for %s (TTL: %ds)", cache_key, settings.CONTENT_CACHE_TTL)
                 return response.text
             except requests.exceptions.RequestException as e:
                 last_exception = e
@@ -408,6 +396,14 @@ class ReferenceItem(BaseModel):
                         self.save()
 
                     raise last_exception  # Re-raise the last exception after all retries and email logic
+
+    def get_content(self):
+        """Fetch remote file content, using cache when available."""
+        return cache.get_or_set(
+            self._cache_key(),
+            self._fetch_content,
+            timeout=settings.CONTENT_CACHE_TTL,
+        )
 
     def _send_failure_notification_email(self):
         recipient_email = self.created_by.email
