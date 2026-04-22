@@ -61,6 +61,64 @@ def test_schema_management_form_allows_duplicate_private_urls():
 
 
 @pytest.mark.django_db
+def test_schema_management_form_prevents_duplicate_published_id_values():
+    mock_id_value = 'http://example.com/id'
+    existing_schema_ref_url = 'http://example.com/definition.json'
+    new_schema_ref_url = 'http://example.com/definition2.json'
+    edited_schema = SchemaFactory()
+    with requests_mock.Mocker() as m:
+        m.get(existing_schema_ref_url, text=f'{{"$id": "{mock_id_value}"}}')
+        existing_schema_ref = SchemaRefFactory(
+            url=existing_schema_ref_url,
+            id_value=mock_id_value
+        )
+        m.get(new_schema_ref_url, text=f'{{"$id": "{mock_id_value}"}}')
+        m.get('http://example.com', text='{}')
+        form = SchemaForm(schema=edited_schema, data={
+            'readme_url': 'http://example.com',
+            'schema_refs-0-url': new_schema_ref_url,
+            'documentation_items-TOTAL_FORMS': 0,
+            'documentation_items-INITIAL_FORMS': 0,
+            'schema_refs-TOTAL_FORMS': 1,
+            'schema_refs-INITIAL_FORMS': 0,
+            'implementations-TOTAL_FORMS': 0,
+            'implementations-INITIAL_FORMS': 0
+        })
+        assert not form.is_valid()
+        print(form.schema_refs_formset.errors[0])
+        error = form.schema_refs_formset.errors[0]['url'][0] # Form 0, error list for 'url', error 0
+        assert error == "A JSON schema with this resource's $id is already in use by another Schema"
+
+
+@pytest.mark.django_db
+def test_schema_management_form_allows_duplicate_private_id_values():
+    mock_id_value = 'http://example.com/id'
+    existing_schema_ref_url = 'http://example.com/definition.json'
+    new_schema_ref_url = 'http://example.com/definition2.json'
+    with requests_mock.Mocker() as m:
+        m.get(existing_schema_ref_url, text=f'{{"$id": "{mock_id_value}"}}')
+        existing_schema_ref = SchemaRefFactory(
+            url='http://example.com/definition.json',
+            id_value=mock_id_value,
+            schema=SchemaFactory(published_at=None)
+        )
+        m.get(new_schema_ref_url, text=f'{{"$id": "{mock_id_value}"}}')
+        m.get('http://example.com', text='{}')
+        form = SchemaForm(data={
+            'name': 'New schema',
+            'schema_refs-0-url': new_schema_ref_url,
+            'readme_url': 'http://example.com',
+            'documentation_items-TOTAL_FORMS': 0,
+            'documentation_items-INITIAL_FORMS': 0,
+            'schema_refs-TOTAL_FORMS': 1,
+            'schema_refs-INITIAL_FORMS': 0,
+            'implementations-TOTAL_FORMS': 0,
+            'implementations-INITIAL_FORMS': 0
+        })
+        assert form.is_valid()
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("spec_url, expect_success",
                          [['http://example.com/schema.cddl', True],
                            ['', False],
