@@ -95,3 +95,19 @@ def test_find_returns_matching_schema_ref_url(api_client):
         url = data.get('url')
         assert url == mock_url
    
+
+@pytest.mark.django_db
+def test_find_returns_404s_for_matching_private_schemas(api_client):
+    mock_url = "https://example.com/schema.json"
+    mock_id_value = "https://example.com/mockid"
+    mock_content = f'{{"$id":"{mock_id_value}"}}'
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text=mock_content)
+        schema_ref = SchemaRefFactory.create(url=mock_url)
+        schema_ref.schema.published_at = None
+        schema_ref.schema.save()
+        response = api_client.get(
+            f'/api/find?id={mock_id_value}',
+        )
+        assert response.status_code == 404
+
