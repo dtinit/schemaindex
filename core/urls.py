@@ -10,6 +10,8 @@ api_endpoints = [
 urlpatterns = [
     path("", views.index, name="index"),
     path("about", views.about),
+    path("terms-of-use", views.terms_of_use, name="terms_of_use"),
+    path("privacy", views.privacy_policy, name="privacy_policy"),
     path("schemas/<int:schema_id>", views.schema_detail, name="schema_detail"),
     path("schemas/<int:schema_id>/definition/<int:schema_ref_id>", views.schema_ref_detail, name="schema_ref_detail"),
     path("account/profile/", views.account_profile, name="account_profile"),
