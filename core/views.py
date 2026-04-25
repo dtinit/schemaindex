@@ -343,6 +343,14 @@ def about(request):
     return render(request, "core/about.html")
 
 
+def terms_of_use(request):
+    return render(request, "core/terms_of_use.html")
+
+
+def privacy_policy(request):
+    return render(request, "core/privacy_policy.html")
+
+
 def organization_detail(request, organization_id):
     organization = get_object_or_404(Organization, id=organization_id)
     return render(request, "core/organizations/detail.html", {

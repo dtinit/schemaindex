@@ -24,6 +24,9 @@
                 {% endelement %}
             {% endslot %}
         {% endelement %}
+        {% element p %}
+            By signing up, you agree to our <a href="{% url 'terms_of_use' %}">Terms of Use</a>.
+        {% endelement %}
         {% setvar link %}
         <a href="{{ login_url }}">
         {% endsetvar %}
