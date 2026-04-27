@@ -2,7 +2,7 @@ import pytest
 import requests_mock
 from urllib.parse import urlparse, urlunparse
 from django.contrib.contenttypes.models import ContentType
-from core.forms import SchemaForm, clean_url, PermanentURLForm
+from core.forms import SchemaForm, PermanentURLForm
 from core.models import Schema
 from tests.factories import (
     SchemaFactory,

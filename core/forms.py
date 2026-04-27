@@ -34,7 +34,7 @@ class ReferenceItemForm(forms.Form):
         self.empty_permitted = False
 
 
-def clean_url(url):
+def clean_url_and_get_body(url):
     try:
         response = requests.get(url)
     except requests.exceptions.RequestException:
@@ -67,7 +67,7 @@ class SchemaRefForm(ReferenceItemForm):
         if not self.cleaned_data['url']:
             return None
         url = self.cleaned_data['url'] 
-        content = clean_url(url)
+        content = clean_url_and_get_body(url)
         matched_language = guess_specification_language_by_extension(url)
 
         if not matched_language:
@@ -250,14 +250,14 @@ class SchemaForm(forms.Form):
         if not self.cleaned_data['readme_url']:
             return None
         url = self.cleaned_data['readme_url']
-        clean_url(url)
+        clean_url_and_get_body(url)
         return url
 
     def clean_license_url(self):
         if not self.cleaned_data['license_url']:
             return None
         url = self.cleaned_data['license_url']
-        clean_url(url)
+        clean_url_and_get_body(url)
         return url
 
     def clean(self):
