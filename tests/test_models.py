@@ -242,4 +242,26 @@ def test_api_key_lookup():
     matching_key = APIKey.objects.get_from_key(mock_api_key)
     assert inserted_key == matching_key
 
+@pytest.mark.django_db
+def test_schema_ref_parses_id_value_from_content_on_save():
+    mock_url = "https://example.com/schema.json"
+    mock_id_value = "https://example.com/mockid"
+    mock_content = f'{{"$id":"{mock_id_value}"}}'
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text=mock_content)
+        schema_ref = SchemaRefFactory.create(url=mock_url)
+        schema_ref.refresh_from_db()
+        assert schema_ref.id_value == mock_id_value
+
+@pytest.mark.django_db
+def test_schema_ref_reparses_new_id_value_from_content_on_save():
+    mock_url = "https://example.com/schema.json"
+    new_mock_id_value = "https://example.com/new_id"
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text='{"$id":"https://example.com/old_id"}')
+        schema_ref = SchemaRefFactory.create(url=mock_url)
+        m.get(mock_url, text=f'{{"$id": "{new_mock_id_value}"}}')
+        schema_ref.save()
+        schema_ref.refresh_from_db()
+        assert schema_ref.id_value == new_mock_id_value
 

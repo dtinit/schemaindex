@@ -12,6 +12,7 @@ import time
 import requests
 import requests.exceptions
 import secrets
+import json
 from django.core.mail import send_mail
 from .utils import (
     guess_specification_language_by_extension,
@@ -434,10 +435,28 @@ class ReferenceItem(BaseModel):
 class SchemaRef(ReferenceItem):
     schema = models.ForeignKey(Schema, on_delete=models.CASCADE)
     permanent_urls = GenericRelation(PermanentURL, related_query_name="schemaref")
+    id_value = models.URLField(blank=True, null=True)
 
     @property
     def language(self):
         return guess_specification_language_by_extension(self.url)
+
+    def save(self, *args, **kwargs):
+        if self.language != 'json':
+            self.id_value = None
+            super().save(*args, **kwargs)
+            return
+        
+        # Try to parse out an $id for the id_value field
+        try:
+            content = self.get_content()
+            parsed_data = json.loads(content)
+            if isinstance(parsed_data, dict):
+                self.id_value = parsed_data.get('$id')
+        except (json.JSONDecodeError, TypeError, request.exceptions.RequestException):
+            self.id_value = None
+
+        super().save(*args, **kwargs)
 
 
 class DocumentationItem(ReferenceItem):
