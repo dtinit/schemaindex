@@ -10,7 +10,7 @@ from .models import (
     PermanentURL,
     APIKey
 )
-from .middleware.api_key_authentication_and_rate_limit import get_profile_rate_limit_key
+from .middleware.rate_limit import get_profile_rate_limit_key
 
 def format_date_only(obj, date_field):
     return date_field.strftime("%b. %d, %Y") if date_field else "-"

@@ -4,7 +4,7 @@ from core.api_responses import ApiErrorResponse
 from core.models import APIKey
 from .rate_limit import check_and_record_request
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("schemaindex")
 
 API_KEY_HEADER = 'X-API-Key'
 

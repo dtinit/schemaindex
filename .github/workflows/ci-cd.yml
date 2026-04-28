@@ -225,17 +225,27 @@ jobs:
           gcloud storage buckets update gs://$GS_BUCKET_NAME --cors-file=gcp-cors-config.json
 
       - name: Deploy to Cloud Run
+        # Direct VPC egress (network + subnet, no connector) lets Cloud
+        # Run reach Memorystore for Valkey over the PSC endpoint inside
+        # the VPC. VALKEY_URL is required by staging/production
+        # settings — missing/empty value makes the app fail fast on
+        # startup, triggering Cloud Run rollback to the previous
+        # healthy revision.
         run: >
           gcloud run deploy ${{ vars.CLOUD_RUN_SERVICE_NAME }}
           --region us-central1
           --source .
           --service-account ${{ vars.SERVICE_ACCOUNT_NAME }}
           --add-cloudsql-instances=${{ secrets.CLOUD_SQL_ICN }}
+          --network=${{ vars.VPC_NETWORK }}
+          --subnet=${{ vars.VPC_SUBNET }}
+          --vpc-egress=private-ranges-only
           --set-env-vars DJANGO_SETTINGS_MODULE="${{ vars.DJANGO_SETTINGS_MODULE }}"
           --set-env-vars DJANGO_SECRET_KEY="${{ secrets.DJANGO_SECRET_KEY }}"
           --set-env-vars DJ_DATABASE_CONN_STRING="postgres://${{ env.ENCODED_DB_CREDENTIALS }}@//cloudsql/${{ secrets.CLOUD_SQL_ICN }}/${{ vars.DATABASE_NAME }}"
           --set-env-vars EMAIL_HOST_PASSWORD="${{ secrets.EMAIL_HOST_PASSWORD }}"
           --set-env-vars USE_GCLOUD_LOGGING=1
+          --set-env-vars VALKEY_URL="${{ secrets.VALKEY_URL }}"
           --allow-unauthenticated
 
   create-release:

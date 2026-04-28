@@ -49,7 +49,7 @@ CACHES = {
 
 DJANGO_REDIS_IGNORE_EXCEPTIONS = True
 
-logging.getLogger(__name__).info(
+logging.getLogger("schemaindex").info(
     "Valkey cache configured (tls=%s, auth=none)",
     VALKEY_URL.startswith("rediss://"),
 )

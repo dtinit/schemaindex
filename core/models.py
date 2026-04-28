@@ -19,7 +19,7 @@ from .utils import (
     guess_language_by_extension,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("schemaindex")
 
 
 class BaseModel(models.Model):

@@ -5,7 +5,7 @@ import time
 from django.conf import settings
 from django.core.cache import cache
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("schemaindex")
 
 WINDOW_SECONDS = 3600
 WINDOW_MS = WINDOW_SECONDS * 1000
