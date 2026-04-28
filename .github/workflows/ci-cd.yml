@@ -225,12 +225,6 @@ jobs:
           gcloud storage buckets update gs://$GS_BUCKET_NAME --cors-file=gcp-cors-config.json
 
       - name: Deploy to Cloud Run
-        # Direct VPC egress (network + subnet, no connector) lets Cloud
-        # Run reach Memorystore for Valkey over the PSC endpoint inside
-        # the VPC. VALKEY_URL is required by staging/production
-        # settings — missing/empty value makes the app fail fast on
-        # startup, triggering Cloud Run rollback to the previous
-        # healthy revision.
         run: >
           gcloud run deploy ${{ vars.CLOUD_RUN_SERVICE_NAME }}
           --region us-central1
