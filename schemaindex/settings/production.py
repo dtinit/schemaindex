@@ -24,13 +24,11 @@ GS_BUCKET_NAME = 'schemaindex-prod-storage'
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', SECRET_KEY)
 
-# Shared Valkey cache (Memorystore for Valkey in GCP).
+# Shared Valkey cache (Memorystore for Valkey in GCP)
 VALKEY_URL = env.str('VALKEY_URL', default='')
 if not VALKEY_URL:
     raise ImproperlyConfigured(
-        "VALKEY_URL is required in staging/production. "
-        "LocMem fallback is intentionally disabled here to prevent "
-        "silent regression to per-instance cache and rate limiting."
+        "VALKEY_URL is required in staging/production."
     )
 
 CACHES = {
