@@ -313,18 +313,24 @@ def manage_schema_delete(request, schema_id):
 def manage_schema_publish(request, schema_id):
     schema = get_object_or_404(Schema.objects.filter(created_by=request.user).prefetch_related('schemaref_set'), id=schema_id)
     published_schema_refs = SchemaRef.objects.filter(schema__in=Schema.public_objects.all()).all()
+    # Before we publish, we check for existing published SchemaRefs with the same URL or $id
     conflicting_published_schema_ref = None
+    conflict_reason = None
     for schema_ref in schema.schemaref_set.all():
         for published_schema_ref in published_schema_refs:
             if published_schema_ref.url_provider_info.is_same_resource(schema_ref.url):
                 conflicting_published_schema_ref = published_schema_ref
+                conflict_reason = 'URL'
                 break;
+            if schema_ref.id_value and schema_ref.id_value == published_schema_ref.id_value:
+                conflicting_published_schema_ref = published_schema_ref
+                conflict_reason = '$id'
         if conflicting_published_schema_ref:
             break;
 
     if request.method == 'POST':
         if conflicting_published_schema_ref:
-            raise PermissionDenied('Another public schema has claimed this definition URL')
+            raise PermissionDenied(f"Another public schema has claimed this definition's {conflict_reason}")
 
         if schema.schemaref_set.count() == 0:
             raise PermissionDenied('Schemas without a definition cannot be published')
@@ -335,12 +341,21 @@ def manage_schema_publish(request, schema_id):
    
     return render(request, "core/manage/publish_schema.html", {
         'schema': schema,
-        'conflicting_schema': conflicting_published_schema_ref.schema if conflicting_published_schema_ref else None
+        'conflicting_schema': conflicting_published_schema_ref.schema if conflicting_published_schema_ref else None,
+        'conflict_reason': conflict_reason
     })
 
 
 def about(request):
     return render(request, "core/about.html")
+
+
+def terms_of_use(request):
+    return render(request, "core/terms_of_use.html")
+
+
+def privacy_policy(request):
+    return render(request, "core/privacy_policy.html")
 
 
 def organization_detail(request, organization_id):

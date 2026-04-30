@@ -3,7 +3,9 @@ import logging
 import pytest
 from unittest.mock import patch
 from django.test import Client, override_settings
-from factories import ProfileFactory
+from factories import ProfileFactory, SchemaRefFactory
+import requests_mock
+import json
 
 def test_api_requires_key_header():
     client = Client()
@@ -21,34 +23,34 @@ def test_api_requires_valid_api_key():
 
 
 @pytest.mark.django_db
-def test_api_key_allows_valid_api_key():
-    client = Client()
-    profile = ProfileFactory.create()
-    raw_api_key = profile.set_new_api_key()
-    response = client.get(
-        '/api/find',
-        headers={'X-API-Key': raw_api_key}
-    )
-    assert response.status_code == 200
+def test_api_key_allows_valid_api_key(api_client):
+    mock_url = "https://example.com/schema.json"
+    mock_id_value = "https://example.com/mockid"
+    mock_content = f'{{"$id":"{mock_id_value}"}}'
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text=mock_content)
+        schema_ref = SchemaRefFactory.create(url=mock_url)
+        schema_ref.save()
+        schema_ref.refresh_from_db()
+        response = api_client.get(f'/api/find?id={mock_id_value}')
+        assert response.status_code == 200
 
 
 @pytest.mark.django_db
 @override_settings(HOURLY_API_REQUEST_LIMIT=2)
-def test_api_key_enforces_rate_limit():
-    client = Client()
+def test_api_key_enforces_rate_limit(api_client):
     profile = ProfileFactory.create()
-    raw_api_key = profile.set_new_api_key()
-    for _ in range(2):
-        response = client.get(
-            '/api/find',
-            headers={'X-API-Key': raw_api_key}
-        )
-        assert response.status_code == 200
-    blocked_response = client.get(
-        '/api/find',
-        headers={'X-API-Key': raw_api_key}
-    )
-    assert blocked_response.status_code == 429
+    mock_url = "https://example.com/schema.json"
+    mock_id_value = "https://example.com/mockid"
+    mock_content = f'{{"$id":"{mock_id_value}"}}'
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text=mock_content)
+        schema_ref = SchemaRefFactory.create(url=mock_url)
+        for _ in range(2):
+            response = api_client.get(f'/api/find?id={mock_id_value}')
+            assert response.status_code == 200
+        blocked_response = api_client.get(f'/api/find?id={mock_id_value}')
+        assert blocked_response.status_code == 429
 
 
 # Make sure the rate limit is actually for the profile, not the API keys.
@@ -57,19 +59,60 @@ def test_api_key_enforces_rate_limit():
 def test_api_key_enforces_rate_limit_on_profile():
     client = Client()
     profile = ProfileFactory.create()
-    for _ in range(2):
+    raw_api_key = profile.set_new_api_key()
+    mock_url = "https://example.com/schema.json"
+    mock_id_value = "https://example.com/mockid"
+    mock_content = f'{{"$id":"{mock_id_value}"}}'
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text=mock_content)
+        schema_ref = SchemaRefFactory.create(url=mock_url)
+        for _ in range(2):
+            raw_api_key = profile.set_new_api_key()
+            response = client.get(
+                f'/api/find?id={mock_id_value}',
+                headers={'X-API-Key': raw_api_key}
+            )
+            assert response.status_code == 200
         raw_api_key = profile.set_new_api_key()
-        response = client.get(
-            '/api/find',
+        blocked_response = client.get(
+            f'/api/find?id={mock_id_value}',
             headers={'X-API-Key': raw_api_key}
         )
+        assert blocked_response.status_code == 429
+
+
+@pytest.mark.django_db
+def test_find_returns_matching_schema_ref_url(api_client):
+    mock_url = "https://example.com/schema.json"
+    mock_id_value = "https://example.com/mockid"
+    mock_content = f'{{"$id":"{mock_id_value}"}}'
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text=mock_content)
+        schema_ref = SchemaRefFactory.create(url=mock_url)
+        response = api_client.get(
+            f'/api/find?id={mock_id_value}',
+        )
         assert response.status_code == 200
-    raw_api_key = profile.set_new_api_key()
-    blocked_response = client.get(
-        '/api/find',
-        headers={'X-API-Key': raw_api_key}
-    )
-    assert blocked_response.status_code == 429
+        response_json = response.json()
+        data = response_json.get('data')
+        url = data.get('url')
+        assert url == mock_url
+   
+
+@pytest.mark.django_db
+def test_find_returns_404s_for_matching_private_schemas(api_client):
+    mock_url = "https://example.com/schema.json"
+    mock_id_value = "https://example.com/mockid"
+    mock_content = f'{{"$id":"{mock_id_value}"}}'
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text=mock_content)
+        schema_ref = SchemaRefFactory.create(url=mock_url)
+        schema_ref.schema.published_at = None
+        schema_ref.schema.save()
+        response = api_client.get(
+            f'/api/find?id={mock_id_value}',
+        )
+        assert response.status_code == 404
 
 
 @pytest.mark.django_db

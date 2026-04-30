@@ -135,9 +135,34 @@ def test_private_schemas_with_published_urls_cannot_be_published():
     client.force_login(private_schema.created_by)
     get_response = client.get(f'/manage/schema/{private_schema.id}/publish')
     assert get_response.status_code == 200
-    assert "Schema definition already in use" in str(get_response.content)
+    assert "Schema URL already in use" in str(get_response.content)
     post_response = client.post(f'/manage/schema/{private_schema.id}/publish')
     assert post_response.status_code == 403
+    private_schema.refresh_from_db()
+    assert private_schema.published_at == None
+
+
+@pytest.mark.django_db
+def test_private_schemas_with_published_id_values_cannot_be_published():
+    public_schema = SchemaFactory()
+    private_schema = SchemaFactory(published_at=None)
+    mock_id_value = 'http://example.com/id'
+    public_schema_ref_url = 'http://example.com/definition.json'
+    private_schema_ref_url = 'http://example.com/definition2.json'
+    with requests_mock.Mocker() as m:
+        m.get(public_schema_ref_url, text=f'{{"$id": "{mock_id_value}"}}')
+        m.get(private_schema_ref_url,text=f'{{"$id": "{mock_id_value}"}}')
+        public_schema_ref = SchemaRefFactory(schema=public_schema, url=public_schema_ref_url)
+        private_schema_ref = SchemaRefFactory(schema=private_schema, url=private_schema_ref_url)
+
+    client = Client()
+    client.force_login(private_schema.created_by)
+    get_response = client.get(f'/manage/schema/{private_schema.id}/publish')
+    assert get_response.status_code == 200
+    assert "Schema $id already in use" in str(get_response.content)
+    post_response = client.post(f'/manage/schema/{private_schema.id}/publish')
+    assert post_response.status_code == 403
+    private_schema.refresh_from_db()
     assert private_schema.published_at == None
 
 
@@ -162,9 +187,10 @@ def test_private_schemas_with_equivalent_published_github_urls_cannot_be_publish
     client.force_login(private_schema.created_by)
     get_response = client.get(f'/manage/schema/{private_schema.id}/publish')
     assert get_response.status_code == 200
-    assert "Schema definition already in use" in str(get_response.content)
+    assert "Schema URL already in use" in str(get_response.content)
     post_response = client.post(f'/manage/schema/{private_schema.id}/publish')
     assert post_response.status_code == 403
+    private_schema.refresh_from_db()
     assert private_schema.published_at == None
 
 
@@ -176,7 +202,7 @@ def test_private_schemas_with_new_urls_can_be_published():
     client.force_login(schema.created_by)
     get_response = client.get(f'/manage/schema/{schema.id}/publish')
     assert get_response.status_code == 200
-    assert "Schema definition already in use" not in str(get_response.content)
+    assert "Schema URL already in use" not in str(get_response.content)
     with requests_mock.Mocker() as m:
         m.get(schema_ref.url, text='{}')
         post_response = client.post(f'/manage/schema/{schema.id}/publish', follow=True)

@@ -15,7 +15,7 @@ API Key
     {% else %}
     <p>Create an API key to use with the Schemas.Pub API.</p>
     {% if request.user.profile.api_key %}
-    <p>Warning: Creating a new API key will invalidate your previous one.</p>
+    <p>Warning: Creating a new API key will invalidate your previous key created on {{ request.user.profile.api_key.created_at|date }}.</p>
     {% endif %}
     <form action="{% url 'account_api_key' %}" method="POST">
       {% csrf_token %}
