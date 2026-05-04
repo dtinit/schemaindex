@@ -2,9 +2,9 @@ name: CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ['main']
   pull_request:
-    branches: [ "main" ]
+    branches: ['main']
   workflow_dispatch:
     inputs:
       environment:
@@ -90,26 +90,26 @@ jobs:
           - 5432:5432
 
     steps:
-    - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: 3.11
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.11
 
-    - name: Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Create test environment file
-      run: |
-        echo "DEBUG=True" > .env
-        echo "DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres" >> .env
-        echo "SECRET_KEY=test-secret-key-for-ci" >> .env
+      - name: Create test environment file
+        run: |
+          echo "DEBUG=True" > .env
+          echo "DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres" >> .env
+          echo "SECRET_KEY=test-secret-key-for-ci" >> .env
 
-    - name: Run Tests
-      run: pytest
+      - name: Run Tests
+        run: pytest
 
   # Deploy to Google Cloud Run (staging environment)
   deploy:
@@ -118,7 +118,14 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
         || (github.event_name == 'workflow_dispatch' && inputs.perform_deploy)
     # Wait for tests to pass
-    needs: [lint-js, check-js-formatting, check-js-types, check-pending-migrations, test-python]
+    needs:
+      [
+        lint-js,
+        check-js-formatting,
+        check-js-types,
+        check-pending-migrations,
+        test-python,
+      ]
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment || 'Staging' }}
@@ -185,7 +192,7 @@ jobs:
           except Exception:
               sys.exit(1)
           ")
-          
+
           if [ $? -eq 0 ]; then
             echo "ENCODED_DB_CREDENTIALS=$ENCODED_CREDENTIALS" >> $GITHUB_ENV
             echo "Database credentials encoded successfully"
@@ -265,13 +272,13 @@ jobs:
           base_tag="production-$timestamp"
           tag="$base_tag"
           retry=0
-          
+
           # Check if tag exists and add retry suffix if needed
           while git ls-remote --tags origin | grep -q "refs/tags/$tag"; do
             retry=$((retry + 1))
             tag="$base_tag-r$retry"
           done
-          
+
           git tag "$tag"
           git push origin "$tag"
           echo "tag=$tag" >> $GITHUB_OUTPUT
@@ -284,7 +291,7 @@ jobs:
           if [ -n "${{ needs.deploy.outputs.url }}" ]; then
             release_body="**Deployment URL:** ${{ needs.deploy.outputs.url }}"
           fi
-          
+
           gh release create ${{ steps.create-tag.outputs.tag }} \
             --repo="$GITHUB_REPOSITORY" \
             --title="${{ steps.create-tag.outputs.tag }}" \

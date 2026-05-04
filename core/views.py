@@ -12,6 +12,7 @@ from django.http import Http404
 from django.conf import settings
 from django.urls import reverse
 from functools import wraps
+import requests
 import cmarkgfm
 import bleach
 from .models import (Schema,
@@ -134,7 +135,10 @@ def schema_detail(request, schema):
     latest_readme = schema.latest_readme()
     latest_readme_content = None
     if latest_readme:
-        response_text = latest_readme.get_content()
+        try:
+            response_text = latest_readme.get_content()
+        except requests.exceptions.RequestException:
+            raise Http404
         if latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
             latest_readme_content = render_markdown(response_text)
         elif latest_readme.format == DocumentationItem.DocumentationItemFormat.PlainText:
@@ -155,7 +159,10 @@ def schema_detail(request, schema):
 @lookup_schema
 def schema_ref_detail(request, schema, schema_ref_id):
     schema_ref = get_object_or_404(schema.schemaref_set.filter(id=schema_ref_id))
-    text_content = schema_ref.get_content()
+    try:
+        text_content = schema_ref.get_content()
+    except requests.exceptions.RequestException:
+        raise Http404
     if schema_ref.language == "markdown":
         schema_ref.markdown = render_markdown(text_content)
     else:

@@ -1,0 +1,12 @@
+{% extends "core/layouts/base.html" %}
+{% block head_title %}Not Found - Schemas.Pub{% endblock %}
+{% block page_content %}
+<main class="about-page">
+  <section class="main-content not-found-page">
+    <div class="not-found-page__code">404</div>
+    <h1>Page not found</h1>
+    <p>The page you're looking for doesn't exist or is no longer available.</p>
+    <a href="{% url 'index' %}" class="button button--prominent">Go to Home</a>
+  </section>
+</main>
+{% endblock %}
