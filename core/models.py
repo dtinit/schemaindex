@@ -453,7 +453,7 @@ class SchemaRef(ReferenceItem):
             parsed_data = json.loads(content)
             if isinstance(parsed_data, dict):
                 self.id_value = parsed_data.get('$id')
-        except (json.JSONDecodeError, TypeError, request.exceptions.RequestException):
+        except (json.JSONDecodeError, TypeError, requests.exceptions.RequestException):
             self.id_value = None
 
         super().save(*args, **kwargs)

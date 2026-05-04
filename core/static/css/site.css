@@ -1270,3 +1270,19 @@ a.badge--w3c {
   flex-direction: column;
   gap: 0.5rem;
 }
+
+/* 404 page */
+.not-found-page {
+  align-items: center;
+  text-align: center;
+}
+
+.not-found-page__code {
+  font-size: 5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--text-secondary);
+  letter-spacing: -0.05em;
+  user-select: none;
+}
+

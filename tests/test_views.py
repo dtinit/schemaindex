@@ -337,3 +337,30 @@ def test_api_key_shown_to_user():
         response = client.post('/account/api-key/', follow=True)
         assert response.status_code == 200
         assert mock_api_key in str(response.content)
+
+
+@pytest.mark.django_db
+def test_schema_ref_detail_404s_when_content_fetch_fails():
+    schema_ref = SchemaRefFactory()
+    client = Client()
+    with requests_mock.Mocker() as m:
+        m.get(schema_ref.url, status_code=404)
+        response = client.get(
+            f'/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}',
+            follow=True,
+        )
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_schema_detail_404s_when_readme_content_fetch_fails():
+    schema = SchemaFactory()
+    readme = DocumentationItemFactory(
+        schema=schema,
+        role=DocumentationItem.DocumentationItemRole.README,
+    )
+    client = Client()
+    with requests_mock.Mocker() as m:
+        m.get(readme.url, status_code=404)
+        response = client.get(f'/schemas/{schema.id}', follow=True)
+    assert response.status_code == 404
