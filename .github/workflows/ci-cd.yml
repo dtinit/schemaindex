@@ -134,6 +134,7 @@ jobs:
       url: ${{ steps.extract_deployment_url.outputs.url }}
     env:
       DJANGO_SETTINGS_MODULE: ${{ vars.DJANGO_SETTINGS_MODULE }}
+      VALKEY_URL: ${{ secrets.VALKEY_URL }}
       # Temporary placeholder - real value passed during Cloud Run deployment
       EMAIL_HOST_PASSWORD: 'placeholder'
 
