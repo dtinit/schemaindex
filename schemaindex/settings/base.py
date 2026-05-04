@@ -173,7 +173,8 @@ LOGGING = {
 }
 
 # Cache configuration
-# Default to in-memory cache for development.
+# Default to in-memory cache for development and tests.
+# Staging/production override this with a shared Valkey backend
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",

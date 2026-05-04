@@ -1,3 +1,4 @@
+import logging
 from itertools import chain
 from django.db import models, transaction
 from django.contrib.auth.models import User
@@ -18,6 +19,8 @@ from .utils import (
     guess_specification_language_by_extension,
     guess_language_by_extension,
 )
+
+logger = logging.getLogger("schemaindex")
 
 
 class BaseModel(models.Model):
@@ -335,15 +338,17 @@ class ReferenceItem(BaseModel):
         return self.url
 
     def save(self, *args, **kwargs):
-        # If the URL changed, set content_fetch_failing_since to None
+        # When the URL changes on an existing row, reset the failure
+        # timestamp AND evict the cached body.
         if self.id:
             original = self.__class__.objects.get(id=self.id)
             if original.url != self.url:
                 self.content_fetch_failing_since = None
+                self.delete_cached_content()
         super().save(*args, **kwargs)
 
     def _get_content_url(self):
-        # Resolve the URL to fetch content from 
+        # Resolve the URL to fetch content from
         if (
             self.url_provider_info.provider_name == GitHubURLInfo.provider_name
             and self.url_provider_info.raw_url
@@ -356,6 +361,14 @@ class ReferenceItem(BaseModel):
         # Includes class name because ReferenceItem is abstract —
         # SchemaRef pk=1 and DocumentationItem pk=1 can coexist.
         return f"content:{self.__class__.__name__.lower()}:{self.pk}"
+
+    def delete_cached_content(self):
+        cache.delete(self._cache_key())
+        logger.info(
+            "Invalidated content cache for %s pk=%s",
+            self.__class__.__name__,
+            self.pk,
+        )
 
     def _fetch_content(self):
         """Fetch content from the remote URL with retry logic.

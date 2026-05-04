@@ -1,7 +1,9 @@
+import logging
 import os
 import sys
 import environ
 
+from django.core.exceptions import ImproperlyConfigured
 from google.oauth2 import service_account
 from .base import *
 
@@ -21,6 +23,36 @@ GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
 GS_BUCKET_NAME = 'schemaindex-prod-storage'
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', SECRET_KEY)
+
+# Shared Valkey cache (Memorystore for Valkey in GCP)
+VALKEY_URL = env.str('VALKEY_URL', default='')
+if not VALKEY_URL:
+    raise ImproperlyConfigured(
+        "VALKEY_URL is required in staging/production."
+    )
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": VALKEY_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            # Fail open on runtime Valkey errors: callers see a cache miss,
+            # not a 500. get_content() then fetches the remote URL directly.
+            "IGNORE_EXCEPTIONS": True,
+            "SOCKET_CONNECT_TIMEOUT": 1,
+            "SOCKET_TIMEOUT": 1,
+            "CONNECTION_POOL_KWARGS": {"max_connections": 32},
+        },
+    }
+}
+
+DJANGO_REDIS_IGNORE_EXCEPTIONS = True
+
+logging.getLogger("schemaindex").info(
+    "Valkey cache configured (tls=%s, auth=none)",
+    VALKEY_URL.startswith("rediss://"),
+)
 
 STORAGES = {
     "default": {

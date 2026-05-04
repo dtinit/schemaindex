@@ -1,13 +1,15 @@
 import pytest
 import requests_mock
 from unittest.mock import patch
+from django.core.cache import cache
 from django.utils import timezone
 from django.core import mail
 from django.contrib.auth.hashers import make_password
-from core.models import Schema, SchemaRef, APIKey
+from core.models import Schema, SchemaRef, DocumentationItem, APIKey
 from factories import (
     UserFactory,
     SchemaRefFactory,
+    DocumentationItemFactory,
     ProfileFactory,
     APIKeyFactory
 )
@@ -206,6 +208,57 @@ def test_reference_item_get_content_returns_cached_on_second_call():
         second_result = schema_ref.get_content()
         assert second_result == mock_content
         assert m.call_count == 1  # Still 1 - no second request made
+
+
+@pytest.mark.django_db
+def test_reference_item_url_change_invalidates_cached_content():
+    old_url = "https://example.com/old"
+    new_url = "https://example.com/new"
+    schema_ref = SchemaRefFactory.create(url=old_url)
+
+    with requests_mock.Mocker() as m:
+        m.get(old_url, text="old content")
+        m.get(new_url, text="new content")
+
+        assert schema_ref.get_content() == "old content"
+
+        schema_ref.url = new_url
+        schema_ref.save()
+
+        assert schema_ref.get_content() == "new content"
+
+
+@pytest.mark.django_db
+def test_reference_item_cache_key_is_class_scoped():
+    schema_ref = SchemaRefFactory.create()
+    doc_item = DocumentationItemFactory.create()
+
+    # Force the same pk to make the collision risk explicit. Even if
+    # both rows share pk=N, the cache keys must differ.
+    schema_ref.pk = 1
+    doc_item.pk = 1
+
+    assert schema_ref._cache_key() != doc_item._cache_key()
+    assert "schemaref" in schema_ref._cache_key()
+    assert "documentationitem" in doc_item._cache_key()
+
+
+@pytest.mark.django_db
+def test_reference_item_get_content_falls_through_when_cache_unavailable():
+    schema_ref = SchemaRefFactory.create()
+
+    def fall_through(key, default, timeout=None):
+        return default()
+
+    with requests_mock.Mocker() as m, patch.object(cache, "get_or_set", side_effect=fall_through):
+        m.get(schema_ref.url, text="fresh remote content")
+
+        first = schema_ref.get_content()
+        second = schema_ref.get_content()
+
+        assert first == second == "fresh remote content"
+        # Two HTTP calls because nothing was cached between them.
+        assert m.call_count == 2
 
 
 @pytest.mark.django_db
