@@ -4,7 +4,9 @@ from . import views
 from . import api_views
 
 api_endpoints = [
-    path("find", api_views.find, name="api_find")
+    path("find", api_views.find, name="api_find"),
+    path("schemas", api_views.schemas_create, name="api_schemas_create"),
+    path("schemas/<int:schema_id>", api_views.schemas_update, name="api_schemas_update")
 ]
 
 urlpatterns = [

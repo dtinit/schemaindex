@@ -175,6 +175,28 @@ class Schema(BaseModel):
             DocumentationItem.DocumentationItemRole.License
         ])
 
+    def check_for_published_conflicts(self):
+        """
+        Checks public schemas for matching SchemaRef URLs or $id values.
+        Returns (SchemaRef, <reason>) (where reason can be 'URL' or '$id')
+        if a conflict is found, or (None, None) otherwise.
+        """
+        published_schema_refs = SchemaRef.objects.filter(
+            schema__in=Schema.public_objects.all()
+        ).exclude(
+            # We don't want to check against this Schema's own SchemaRefs
+            schema=self
+        )
+        # Check for existing published SchemaRefs with the same URL or $id
+        for schema_ref in self.schemaref_set.all():
+            for published_schema_ref in published_schema_refs:
+                if published_schema_ref.url_provider_info.is_same_resource(schema_ref.url):
+                    return (published_schema_ref, 'URL')
+                if schema_ref.id_value and schema_ref.id_value == published_schema_ref.id_value:
+                    return (published_schema_ref, '$id')
+        
+        return (None, None)
+
 
 class ReferenceItemManager(models.Manager):
     def get_published_by_domain_and_path(self, url):
@@ -521,6 +543,7 @@ class SchemaRef(ReferenceItem):
             self.id_value = None
 
         super().save(*args, **kwargs)
+
 
 
 class DocumentationItem(ReferenceItem):

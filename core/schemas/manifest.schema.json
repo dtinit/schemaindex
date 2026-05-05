@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.pub/ns/v1/manifest.schema.json",
+  "title": "Schemas.Pub Schema Manifest",
+  "description": "A schema entry for Schemas.Pub",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "The schema name",
+      "type": "string"
+    },
+    "description": {
+      "description": "The schema description",
+      "type": "string"
+    },
+    "public": {
+      "description": "Controls if the schema is publicly visible. Once public, a schema can't be made private or removed except by a Schemas.Pub administrator.",
+      "type": "boolean",
+      "default": false
+    },
+    "documents": {
+      "description": "A map of resources where the key is a unique URL to the resource and the value contains metadata for the resource",
+      "type": "object",
+      "propertyNames": {
+        "format": "uri",
+        "description": "Every key in this object must be a valid URI."
+      },
+      "additionalProperties": {
+        "oneOf": [
+          { "$ref": "#/$defs/definition" },
+          { "$ref": "#/$defs/documentation" },
+          { "$ref": "#/$defs/implementation" }
+        ]
+      },
+      "minProperties": 1,
+      "not": {
+        "description": "Ensure at least one property value is a definition",
+        "additionalProperties": {
+          "not": { "$ref": "#/$defs/definition" }
+        }
+      }
+    }
+  },
+  "required": ["name", "documents"],
+  "$defs": {
+    "resource": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "The resource type",
+          "type": "string"
+        },
+        "name": {
+          "description": "A name for the resource",
+          "type": "string"
+        }
+      },
+      "required": ["type"]
+    },
+    "definition": {
+      "description": "A formal schema definition",
+      "allOf": [
+        { "$ref": "#/$defs/resource" },
+        {
+          "properties": {
+            "type": { "const": "definition" }
+          }
+        }
+      ]
+    },
+    "documentation": {
+      "description": "Supporting documentation for a schema",
+      "allOf": [
+        { "$ref": "#/$defs/resource" },
+        {
+          "properties": {
+            "type": { "const": "documentation" },
+            "role": { "enum": ["readme", "license", "rfc", "w3c"] },
+            "format": { "enum": ["markdown", "plaintext"] },
+            "description": { "type": "string" }
+          },
+          "required": ["name"]
+        }
+      ]
+    },
+    "implementation": {
+      "description": "An implementation of a schema",
+      "allOf": [
+        { "$ref": "#/$defs/resource" },
+        {
+          "properties": {
+            "type": { "const": "implementation" },
+            "isOpenSource": {
+              "type": "boolean",
+              "default": false,
+              "description": "Indicates if the implementation is open source."
+            }
+          }
+        }
+      ]
+    }
+  }
+}
