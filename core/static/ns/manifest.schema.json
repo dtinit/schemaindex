@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.pub/ns/v1/manifest.schema.json",
+  "$id": "https://schemas.pub/static/ns/v1/manifest.schema.json",
   "title": "Schemas.Pub Schema Manifest",
   "description": "A schema entry for Schemas.Pub",
   "type": "object",

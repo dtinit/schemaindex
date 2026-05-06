@@ -19,7 +19,7 @@ from core.views import lookup_schema
 
 
 def _load_manifest_schema():
-    schema_path = settings.BASE_DIR / 'core' / 'schemas' / 'manifest.schema.json'
+    schema_path = settings.BASE_DIR / 'core' / 'static' / 'ns' / 'manifest.schema.json'
     with open(schema_path, 'r') as f:
         return json.load(f)
 
