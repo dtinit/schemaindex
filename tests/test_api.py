@@ -3,9 +3,60 @@ import logging
 import pytest
 from unittest.mock import patch
 from django.test import Client, override_settings
-from factories import ProfileFactory, SchemaRefFactory
+from django.utils import timezone
+from datetime import timedelta
 import requests_mock
 import json
+from factories import (
+    ProfileFactory,
+    SchemaRefFactory,
+    SchemaFactory,
+    UserFactory
+)
+from core.models import Schema
+
+def _assert_schema_matches_manifest(schema, manifest):
+    assert schema.name == manifest['name']
+    assert schema.description == manifest.get('description')
+    if manifest.get('public'):
+        assert schema.published_at is not None
+    else:
+        assert schema.published_at is None
+
+    manifest_definitions = []
+    manifest_documentation = []
+    manifest_implementations = []
+
+    for url, metadata in manifest['documents'].items():
+        if metadata['type'] == 'definition':
+            manifest_definitions.append(metadata | {'url': url})
+        elif metadata['type'] == 'documentation':
+            manifest_documentation.append(metadata | {'url': url})
+        elif metadata['type'] == 'implementation':
+            manifest_implementations.append(metadata | {'url': url})
+
+    assert schema.schemaref_set.count() == len(manifest_definitions)
+    for definition in manifest_definitions:
+        schema_ref = schema.schemaref_set.get(url=definition['url'])
+        assert schema_ref.name == definition.get('name')
+    
+    assert schema.documentationitem_set.count() == len(manifest_documentation)
+    for documentation in manifest_documentation:
+        documentation_item = schema.documentationitem_set.get(url=documentation['url'])
+        assert documentation_item.name == documentation['name']
+        assert documentation_item.role == documentation.get('role')
+        assert documentation_item.format == documentation.get('format')
+
+    assert schema.implementation_set.count() == len(manifest_implementations)
+    for implementation in manifest_implementations:
+        db_implementation = schema.implementation_set.get(url=implementation['url'])
+        # We want to make sure a true value is set,
+        # but we treat false and blank as the same.
+        if implementation.get('isOpenSource'):
+            assert db_implementation.is_open_source 
+        else:
+            assert not db_implementation.is_open_source
+
 
 def test_api_requires_key_header():
     client = Client()
@@ -24,15 +75,15 @@ def test_api_requires_valid_api_key():
 
 @pytest.mark.django_db
 def test_api_key_allows_valid_api_key(api_client):
-    mock_url = "https://example.com/schema.json"
-    mock_id_value = "https://example.com/mockid"
-    mock_content = f'{{"$id":"{mock_id_value}"}}'
+    url = "https://example.com/schema.json"
+    id_value = "https://example.com/testid"
+    content = f'{{"$id":"{id_value}"}}'
     with requests_mock.Mocker() as m:
-        m.get(mock_url, text=mock_content)
-        schema_ref = SchemaRefFactory.create(url=mock_url)
+        m.get(url, text=content)
+        schema_ref = SchemaRefFactory.create(url=url)
         schema_ref.save()
         schema_ref.refresh_from_db()
-        response = api_client.get(f'/api/find?id={mock_id_value}')
+        response = api_client.get(f'/api/find?id={id_value}')
         assert response.status_code == 200
 
 
@@ -40,16 +91,16 @@ def test_api_key_allows_valid_api_key(api_client):
 @override_settings(HOURLY_API_REQUEST_LIMIT=2)
 def test_api_key_enforces_rate_limit(api_client):
     profile = ProfileFactory.create()
-    mock_url = "https://example.com/schema.json"
-    mock_id_value = "https://example.com/mockid"
-    mock_content = f'{{"$id":"{mock_id_value}"}}'
+    url = "https://example.com/schema.json"
+    id_value = "https://example.com/testid"
+    content = f'{{"$id":"{id_value}"}}'
     with requests_mock.Mocker() as m:
-        m.get(mock_url, text=mock_content)
-        schema_ref = SchemaRefFactory.create(url=mock_url)
+        m.get(url, text=content)
+        schema_ref = SchemaRefFactory.create(url=url)
         for _ in range(2):
-            response = api_client.get(f'/api/find?id={mock_id_value}')
+            response = api_client.get(f'/api/find?id={id_value}')
             assert response.status_code == 200
-        blocked_response = api_client.get(f'/api/find?id={mock_id_value}')
+        blocked_response = api_client.get(f'/api/find?id={id_value}')
         assert blocked_response.status_code == 429
 
 
@@ -60,22 +111,22 @@ def test_api_key_enforces_rate_limit_on_profile():
     client = Client()
     profile = ProfileFactory.create()
     raw_api_key = profile.set_new_api_key()
-    mock_url = "https://example.com/schema.json"
-    mock_id_value = "https://example.com/mockid"
-    mock_content = f'{{"$id":"{mock_id_value}"}}'
+    url = "https://example.com/schema.json"
+    id_value = "https://example.com/testid"
+    content = f'{{"$id":"{id_value}"}}'
     with requests_mock.Mocker() as m:
-        m.get(mock_url, text=mock_content)
-        schema_ref = SchemaRefFactory.create(url=mock_url)
+        m.get(url, text=content)
+        schema_ref = SchemaRefFactory.create(url=url)
         for _ in range(2):
             raw_api_key = profile.set_new_api_key()
             response = client.get(
-                f'/api/find?id={mock_id_value}',
+                f'/api/find?id={id_value}',
                 headers={'X-API-Key': raw_api_key}
             )
             assert response.status_code == 200
         raw_api_key = profile.set_new_api_key()
         blocked_response = client.get(
-            f'/api/find?id={mock_id_value}',
+            f'/api/find?id={id_value}',
             headers={'X-API-Key': raw_api_key}
         )
         assert blocked_response.status_code == 429
@@ -83,34 +134,34 @@ def test_api_key_enforces_rate_limit_on_profile():
 
 @pytest.mark.django_db
 def test_find_returns_matching_schema_ref_url(api_client):
-    mock_url = "https://example.com/schema.json"
-    mock_id_value = "https://example.com/mockid"
-    mock_content = f'{{"$id":"{mock_id_value}"}}'
+    url = "https://example.com/schema.json"
+    id_value = "https://example.com/testid"
+    content = f'{{"$id":"{id_value}"}}'
     with requests_mock.Mocker() as m:
-        m.get(mock_url, text=mock_content)
-        schema_ref = SchemaRefFactory.create(url=mock_url)
+        m.get(url, text=content)
+        schema_ref = SchemaRefFactory.create(url=url)
         response = api_client.get(
-            f'/api/find?id={mock_id_value}',
+            f'/api/find?id={id_value}',
         )
         assert response.status_code == 200
         response_json = response.json()
         data = response_json.get('data')
         url = data.get('url')
-        assert url == mock_url
+        assert url == url
    
 
 @pytest.mark.django_db
 def test_find_returns_404s_for_matching_private_schemas(api_client):
-    mock_url = "https://example.com/schema.json"
-    mock_id_value = "https://example.com/mockid"
-    mock_content = f'{{"$id":"{mock_id_value}"}}'
+    url = "https://example.com/schema.json"
+    id_value = "https://example.com/testid"
+    content = f'{{"$id":"{id_value}"}}'
     with requests_mock.Mocker() as m:
-        m.get(mock_url, text=mock_content)
-        schema_ref = SchemaRefFactory.create(url=mock_url)
+        m.get(url, text=content)
+        schema_ref = SchemaRefFactory.create(url=url)
         schema_ref.schema.published_at = None
         schema_ref.schema.save()
         response = api_client.get(
-            f'/api/find?id={mock_id_value}',
+            f'/api/find?id={id_value}',
         )
         assert response.status_code == 404
 
@@ -235,4 +286,330 @@ def test_rate_limit_silent_when_observability_disabled(api_client, caplog):
     messages = [r.getMessage() for r in caplog.records]
     assert not any("rate_limit_backend_selected" in msg for msg in messages)
     assert not any("rate_limit_decision" in msg for msg in messages)
+
+
+@pytest.mark.django_db
+def test_create_schema_with_reference_items(api_client):
+    definition_url = 'https://example.com/definition.json'
+    readme_url = 'https://example.com/readme.md'
+    implementation_url = 'https://example.com/implementation'
+    manifest = {
+        'name': 'Tock schema',
+        'description': 'A test schema that is definitely real',
+        'documents': {
+            definition_url: {
+                'type': 'definition',
+                'name': 'Mock definition'
+            },
+            readme_url: {
+                'type': 'documentation',
+                'name': 'README.md',
+                'role': 'readme',
+                'format': 'markdown'
+            },
+            implementation_url: {
+                'type': 'implementation',
+                'isOpenSource': True
+            }
+        }
+    }
+    response = api_client.post(
+        '/api/schemas',
+        data=json.dumps(manifest),
+        content_type='application/json'
+    )
+        
+    assert response.status_code == 200
+    response_json = response.json()
+    data = response_json.get('data')
+    schema_id = data.get('id')
+    schema = Schema.objects.get(id=schema_id)
+    _assert_schema_matches_manifest(schema, manifest)
+
+
+def test_create_rejects_non_json_payloads(api_client):
+    response = api_client.post(
+        '/api/schemas',
+        data='not json',
+        content_type='application/json'
+    )
+    assert response.status_code == 400
+
+
+def test_create_rejects_non_manifest_payloads(api_client):
+    response = api_client.post(
+        '/api/schemas',
+        data='{"not_a_manifest": true}',
+        content_type='application/json'
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_create_prevents_publishing_schemas_with_existing_definition_urls(api_client):
+    other_user = UserFactory.create()
+    published_schema = SchemaFactory.create(created_by=other_user)
+    url = 'https://example.com/definition.json'
+    published_schema_ref = SchemaRefFactory.create(schema=published_schema, url=url)
+    manifest = {
+        'name': 'Test schema',
+        'public': True,
+        'documents': {
+            url: {
+                'type': 'definition',
+            }
+        }
+    }
+    response = api_client.post(
+        '/api/schemas',
+        data=json.dumps(manifest),
+        content_type='application/json'
+    )
+    assert response.status_code == 400
+    assert response.json()['error']['message'] == 'Validation Error'
+    assert 'is already using one of the URL values used in this schema' in response.json()['error']['details'] 
+
+
+@pytest.mark.django_db
+def test_create_prevents_publishing_schemas_with_existing_id_values(api_client):
+    other_user = UserFactory.create()
+    published_schema = SchemaFactory.create(created_by=other_user)
+    url = 'https://example.com/definition.json'
+    id_value = 'https://example.com/definition'
+    content = f'{{"$id":"{id_value}"}}'
+    with requests_mock.Mocker() as m:
+        m.get(url, text=content)
+        published_schema_ref = SchemaRefFactory.create(schema=published_schema, url=url)
+        manifest = {
+            'name': 'Test schema',
+            'public': True,
+            'documents': {
+                url: {
+                    'type': 'definition',
+                }
+            }
+        }
+        response = api_client.post(
+            '/api/schemas',
+            data=json.dumps(manifest),
+            content_type='application/json'
+        )
+        assert response.status_code == 400
+        assert response.json()['error']['message'] == 'Validation Error'
+        assert 'is already using one of the URL values used in this schema' in response.json()['error']['details'] 
+
+
+@pytest.mark.django_db
+def test_update_schema(api_client):
+    schema = SchemaFactory.create(created_by=api_client.user, published_at=None)
+    definition_url = 'https://example.com/definition.json'
+    readme_url = 'https://example.com/readme.md'
+    implementation_url = 'https://example.com/implementation'
+    manifest = {
+        'name': 'Test schema',
+        'description': 'A test schema that is definitely real',
+        'documents': {
+            definition_url: {
+                'type': 'definition',
+                'name': 'Mock definition'
+            },
+            readme_url: {
+                'type': 'documentation',
+                'name': 'README.md',
+                'role': 'readme',
+                'format': 'markdown'
+            },
+            implementation_url: {
+                'type': 'implementation',
+                'isOpenSource': True
+            }
+        }
+    }
+    response = api_client.put(
+        f'/api/schemas/{schema.id}',
+        data=json.dumps(manifest),
+        content_type='application/json'
+    )
+        
+    assert response.status_code == 200
+    response_json = response.json()
+    data = response_json.get('data')
+    schema_id = data.get('id')
+    schema = Schema.objects.get(id=schema_id)
+    _assert_schema_matches_manifest(schema, manifest)
+
+
+@pytest.mark.django_db
+def test_update_404s_invalid_ids(api_client):
+    response = api_client.put(
+        '/api/schemas/404',
+        data=json.dumps({
+            'name': 'Mock schema',
+            'documents': {
+                'https://example.com/definition.json': {
+                    'type': 'definition'
+                }
+            }
+        })
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_update_rejects_non_json_payloads(api_client):
+    schema = SchemaFactory.create(created_by=api_client.user)
+    response = api_client.put(
+        f'/api/schemas/{schema.id}',
+        data='not json',
+        content_type='application/json'
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_update_rejects_non_manifest_payloads(api_client):
+    schema = SchemaFactory.create(created_by=api_client.user)
+    response = api_client.put(
+        f'/api/schemas/{schema.id}',
+        data='{"not_a_manifest": true}',
+        content_type='application/json'
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_update_404s_private_ids_created_by_other_user(api_client):
+    other_user = UserFactory.create()
+    schema = SchemaFactory.create(created_by=other_user, published_at=None)
+    response = api_client.put(
+        f'/api/schemas/{schema.id}',
+        data=json.dumps({
+            'name': 'Mock schema',
+            'documents': {
+                'https://example.com/definition.json': {
+                    'type': 'definition'
+                }
+            }
+        }),
+        content_type='application/json'
+    )
+    assert response.status_code == 404
+   
+
+@pytest.mark.django_db
+def test_update_403s_public_ids_created_by_other_user(api_client):
+    other_user = UserFactory.create()
+    schema = SchemaFactory.create(created_by=other_user)
+    response = api_client.put(
+        f'/api/schemas/{schema.id}',
+        data=json.dumps({
+            'name': 'Mock schema',
+            'documents': {
+                'https://example.com/definition.json': {
+                    'type': 'definition'
+                }
+            }
+        }),
+        content_type='application/json'
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_update_prevents_unpublishing_schemas(api_client):
+    schema = SchemaFactory.create(created_by=api_client.user)
+    response = api_client.put(
+        f'/api/schemas/{schema.id}',
+        data=json.dumps({
+            'name': 'Mock schema',
+            'documents': {
+                'https://example.com/definition.json': {
+                    'type': 'definition'
+                }
+            }
+        }),
+        content_type='application/json'
+    )
+    assert response.status_code == 400
+    assert response.json()['error']['message'] == 'Validation Error'
+    assert 'Public schemas cannot be made private' in response.json()['error']['details']
+
+
+@pytest.mark.django_db
+def test_update_prevents_publishing_schemas_with_existing_definition_urls(api_client):
+    schema = SchemaFactory.create(created_by=api_client.user)
+    other_user = UserFactory.create()
+    published_schema = SchemaFactory.create(created_by=other_user)
+    url = 'https://example.com/definition.json'
+    published_schema_ref = SchemaRefFactory.create(schema=published_schema, url=url)
+    manifest = {
+        'name': 'Test schema',
+        'public': True,
+        'documents': {
+            url: {
+                'type': 'definition',
+            }
+        }
+    }
+    response = api_client.put(
+        f'/api/schemas/{schema.id}',
+        data=json.dumps(manifest),
+        content_type='application/json'
+    )
+    assert response.status_code == 400
+    assert response.json()['error']['message'] == 'Validation Error'
+    assert 'is already using one of the URL values used in this schema' in response.json()['error']['details'] 
+
+
+@pytest.mark.django_db
+def test_update_prevents_publishing_schemas_with_existing_id_values(api_client):
+    schema = SchemaFactory.create(created_by=api_client.user)
+    other_user = UserFactory.create()
+    published_schema = SchemaFactory.create(created_by=other_user)
+    url = 'https://example.com/definition.json'
+    id_value = 'https://example.com/definition'
+    content = f'{{"$id":"{id_value}"}}'
+    with requests_mock.Mocker() as m:
+        m.get(url, text=content)
+        published_schema_ref = SchemaRefFactory.create(schema=published_schema, url=url)
+        manifest = {
+            'name': 'Test schema',
+            'public': True,
+            'documents': {
+                url: {
+                    'type': 'definition',
+                }
+            }
+        }
+        response = api_client.put(
+            f'/api/schemas/{schema.id}',
+            data=json.dumps(manifest),
+            content_type='application/json'
+        )
+        assert response.status_code == 400
+        assert response.json()['error']['message'] == 'Validation Error'
+        assert 'is already using one of the URL values used in this schema' in response.json()['error']['details'] 
+
+
+@pytest.mark.django_db
+def test_update_preserves_published_at_when_updating_published_schema(api_client):
+    published_at = timezone.now() - timedelta(days=10)
+    schema = SchemaFactory.create(created_by=api_client.user, published_at=published_at)
+    manifest = {
+        'name': 'Test schema',
+        'public': True,
+        'documents': {
+            'https://example.com/definiton.json': {
+                'type': 'definition',
+            }
+        }
+    }
+    response = api_client.put(
+        f'/api/schemas/{schema.id}',
+        data=json.dumps(manifest),
+        content_type='application/json'
+    )
+    assert response.status_code == 200
+    schema.refresh_from_db()
+    assert schema.published_at == published_at
 

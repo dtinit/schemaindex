@@ -28,9 +28,12 @@ def fallback_get_request_mock(requests_mock):
     )
     return requests_mock
 
+
 @pytest.fixture
 def api_client(client, db):
     profile = ProfileFactory.create()
     api_key = profile.set_new_api_key()
     client.defaults['HTTP_X_API_KEY'] = api_key 
+    client.user = profile.user
     return client
+
