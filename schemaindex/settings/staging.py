@@ -6,6 +6,10 @@ SITE_URL = 'https://schemaindex-stg-run-799626592344.us-central1.run.app'
 CSRF_TRUSTED_ORIGINS = ['https://' + url for url in ALLOWED_HOSTS]
 GS_BUCKET_NAME = 'schemaindex-stg-storage'
 
+# Turn observability on in staging so we can verify Valkey behavior end-to-end
+CONTENT_CACHE_OBSERVABILITY = True
+RATE_LIMIT_OBSERVABILITY = True
+
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Update the STORAGES configuration with the staging bucket

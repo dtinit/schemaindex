@@ -79,11 +79,30 @@ def _check_and_record_locmem(key, now, limit):
 def check_and_record_request(profile):
     limit = settings.HOURLY_API_REQUEST_LIMIT
     key = get_profile_rate_limit_key(profile)
+    observe = getattr(settings, "RATE_LIMIT_OBSERVABILITY", False)
 
     client = _get_redis_client()
     if client is not None:
+        if observe:
+            logger.info(
+                "rate_limit_backend_selected backend=valkey profile_id=%s",
+                profile.id,
+            )
         now_ms = int(time.time() * 1000)
-        return _check_and_record_valkey(client, key, now_ms, limit)
+        allowed, reason = _check_and_record_valkey(client, key, now_ms, limit)
+    else:
+        if observe:
+            logger.info(
+                "rate_limit_backend_selected backend=locmem profile_id=%s",
+                profile.id,
+            )
+        now = int(time.time())
+        allowed, reason = _check_and_record_locmem(key, now, limit)
 
-    now = int(time.time())
-    return _check_and_record_locmem(key, now, limit)
+    if observe:
+        logger.info(
+            "rate_limit_decision allowed=%s reason=%s profile_id=%s limit=%s",
+            allowed, reason or "ok", profile.id, limit,
+        )
+
+    return allowed, reason

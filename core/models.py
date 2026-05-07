@@ -413,11 +413,62 @@ class ReferenceItem(BaseModel):
 
     def get_content(self):
         """Fetch remote file content, using cache when available."""
+        # For Valkey observability, we will make the content-cache flow explicit
+        # We'll go back once to it once we understand the problem
+        """
         return cache.get_or_set(
             self._cache_key(),
             self._fetch_content,
-            timeout=settings.CONTENT_CACHE_TTL,
+            timeout=settings.CONTENT_CACHE_TTL
         )
+        """
+        observe = getattr(settings, "CONTENT_CACHE_OBSERVABILITY", False)
+        cache_key = self._cache_key()
+
+        cached = cache.get(cache_key)
+        if cached is not None:
+            if observe:
+                logger.info(
+                    "content_cache_hit cache_key=%s content_length=%s",
+                    cache_key, len(cached),
+                )
+            return cached
+
+        if observe:
+            logger.info("content_cache_miss cache_key=%s", cache_key)
+            logger.info(
+                "content_remote_fetch_started cache_key=%s url=%s",
+                cache_key, self._get_content_url(),
+            )
+
+        start = time.monotonic()
+        content = self._fetch_content()
+        duration_ms = int((time.monotonic() - start) * 1000)
+
+        if observe:
+            logger.info(
+                "content_remote_fetch_succeeded cache_key=%s "
+                "content_length=%s duration_ms=%s",
+                cache_key, len(content), duration_ms,
+            )
+
+        try:
+            cache.set(cache_key, content, timeout=settings.CONTENT_CACHE_TTL)
+            if observe:
+                logger.info(
+                    "content_cache_store_succeeded cache_key=%s ttl=%s",
+                    cache_key, settings.CONTENT_CACHE_TTL,
+                )
+        except Exception as exc:
+            # IGNORE_EXCEPTIONS=True swallows backend errors internally but we still
+            # log a fallback signal if anything propagates so staging can see it
+            logger.warning(
+                "content_cache_backend_fallback cache_key=%s "
+                "operation=set exception=%s",
+                cache_key, exc.__class__.__name__,
+            )
+
+        return content
 
     def _send_failure_notification_email(self):
         recipient_email = self.created_by.email

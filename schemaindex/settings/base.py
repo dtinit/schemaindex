@@ -184,6 +184,11 @@ CACHES = {
 # Default: 1 hour
 CONTENT_CACHE_TTL = 60 * 60
 
+# Staging overrides these observability flags to True
+# so we can distinguish cache hits/misses and rate-limit backend selection in logs
+CONTENT_CACHE_OBSERVABILITY = env.bool("CONTENT_CACHE_OBSERVABILITY", default=False)
+RATE_LIMIT_OBSERVABILITY = env.bool("RATE_LIMIT_OBSERVABILITY", default=False)
+
 # Media settings
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
