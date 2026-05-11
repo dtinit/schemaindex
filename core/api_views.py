@@ -13,7 +13,7 @@ from django.views.decorators.http import (
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
 from jsonschema import validate, ValidationError as JSONValidationError
-from core.models import SchemaRef, Schema, ReferenceItem
+from core.models import SchemaRef, Schema, ReferenceItem, PublishedSchemaConflictError
 from core.api_responses import ApiResponse, ApiErrorResponse
 from core.views import lookup_schema
 
@@ -82,19 +82,19 @@ def _save_manifest(manifest, schema, created_by):
             # data without this
             schema.refresh_from_db()
 
-        conflicting_published_schema_ref, conflict_reason = schema.check_for_published_conflicts()
-        if conflicting_published_schema_ref:
-
+        try:
+            schema.check_for_published_conflicts()
+        except PublishedSchemaConflictError as e:
             conflict_url = reverse(
                 'schema_ref_detail', 
                     kwargs={
-                        'schema_id': conflicting_published_schema_ref.schema.id, 
-                        'schema_ref_id': conflicting_published_schema_ref.id
+                        'schema_id': e.conflicting_schema_ref.schema.id, 
+                        'schema_ref_id': e.conflicting_schema_ref.id
                     }
             )
             raise DjangoValidationError(
                 f'`public: true` was set, but a public schema ({conflict_url})' +
-                f'is already using one of the {conflict_reason} values ' + 
+                f'is already using one of the {e.reason} values ' + 
                 'used in this schema. Please contact a Schemas.Pub administrator.'
             )
 

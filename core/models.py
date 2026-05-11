@@ -105,6 +105,17 @@ class PublicSchemaManager(models.Manager):
         )
 
 
+class PublishedSchemaConflictError(Exception):
+    """
+    Exception raised when publishing a schema
+    would create a conflict with another published schema.
+    """
+    def __init__(self, conflicting_schema_ref, reason):
+        self.conflicting_schema_ref = conflicting_schema_ref
+        self.reason = reason
+        super().__init__(f"{reason} already in use by published SchemaRef {conflicting_schema_ref.id}")
+
+
 class Schema(BaseModel):
     objects = models.Manager()
     public_objects = PublicSchemaManager()
@@ -178,8 +189,9 @@ class Schema(BaseModel):
     def check_for_published_conflicts(self):
         """
         Checks public schemas for matching SchemaRef URLs or $id values.
-        Returns (SchemaRef, <reason>) (where reason can be 'URL' or '$id')
-        if a conflict is found, or (None, None) otherwise.
+    
+        Raises:
+            PublishedSchemaConflictError: If a conflict is found.
         """
         published_schema_refs = SchemaRef.objects.filter(
             schema__in=Schema.public_objects.all()
@@ -191,12 +203,10 @@ class Schema(BaseModel):
         for schema_ref in self.schemaref_set.all():
             for published_schema_ref in published_schema_refs:
                 if published_schema_ref.url_provider_info.is_same_resource(schema_ref.url):
-                    return (published_schema_ref, 'URL')
+                    raise PublishedSchemaConflictError(published_schema_ref, 'URL')
                 if schema_ref.id_value and schema_ref.id_value == published_schema_ref.id_value:
-                    return (published_schema_ref, '$id')
+                    raise PublishedSchemaConflictError(published_schema_ref, '$id')
         
-        return (None, None)
-
 
 class ReferenceItemManager(models.Manager):
     def get_published_by_domain_and_path(self, url):

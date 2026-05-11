@@ -21,7 +21,8 @@ from .models import (Schema,
     DocumentationItem,
     Organization,
     PermanentURL,
-    Implementation
+    Implementation,
+    PublishedSchemaConflictError
 )
 from .forms import (
     SchemaForm,
@@ -320,7 +321,14 @@ def manage_schema_delete(request, schema_id):
 @login_required
 def manage_schema_publish(request, schema_id):
     schema = get_object_or_404(Schema.objects.filter(created_by=request.user).prefetch_related('schemaref_set'), id=schema_id)
-    conflicting_published_schema_ref, conflict_reason = schema.check_for_published_conflicts()
+    conflicting_published_schema_ref = None
+    conflict_reason = None
+    try:
+        schema.check_for_published_conflicts()
+    except PublishedSchemaConflictError as e:
+        conflicting_published_schema_ref = e.conflicting_schema_ref
+        conflict_reason = e.reason
+
     if request.method == 'POST':
         if conflicting_published_schema_ref:
             raise PermissionDenied(f"Another public schema has claimed this definition's {conflict_reason}")
