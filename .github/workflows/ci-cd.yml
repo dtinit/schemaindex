@@ -156,6 +156,24 @@ jobs:
           GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
         run: printenv GCP_CREDENTIALS > service-account-credentials.json
 
+      - name: Write Valkey TLS CA (staging only)
+        # Memorystore for Valkey uses a per-instance CA.
+        # Stg GitHub environment defines VALKEY_SERVER_CA_PEM
+        # The production environment does not, so the `-n` guard makes this a no-op for production deploys.
+        # PEM contents are redirected straight to a file (never echoed)
+        env:
+          VALKEY_SERVER_CA_PEM: ${{ secrets.VALKEY_SERVER_CA_PEM }}
+        run: |
+          if [ -n "$VALKEY_SERVER_CA_PEM" ]; then
+            mkdir -p runtime-certs/valkey
+            printenv VALKEY_SERVER_CA_PEM > runtime-certs/valkey/server-ca.pem
+            chmod 0600 runtime-certs/valkey/server-ca.pem
+            echo "VALKEY_SERVER_CA=runtime-certs/valkey/server-ca.pem" >> "$GITHUB_ENV"
+            echo "Valkey TLS CA written to runtime-certs/valkey/server-ca.pem"
+          else
+            echo "VALKEY_SERVER_CA_PEM not set; skipping TLS CA setup"
+          fi
+
       - name: Extract deployment URL
         id: extract_deployment_url
         continue-on-error: true
@@ -248,6 +266,7 @@ jobs:
           --set-env-vars EMAIL_HOST_PASSWORD="${{ secrets.EMAIL_HOST_PASSWORD }}"
           --set-env-vars USE_GCLOUD_LOGGING=1
           --set-env-vars VALKEY_URL="${{ secrets.VALKEY_URL }}"
+          ${VALKEY_SERVER_CA:+--set-env-vars VALKEY_SERVER_CA="$VALKEY_SERVER_CA"}
           --allow-unauthenticated
 
   create-release:
