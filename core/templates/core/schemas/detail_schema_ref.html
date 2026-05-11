@@ -21,7 +21,9 @@
   {% else %}
   <h2>Unnamed definition</h2>
   {% endif %}
-  {% if schema_ref.markdown %}
+  {% if content_fetch_failed %}
+  {% include "core/partials/content_fetch_error.html" with message="We're having trouble fetching this definition from the source. You can try viewing it directly:" item=schema_ref only %}
+  {% elif schema_ref.markdown %}
   <div class="markdown">
     {{ schema_ref.markdown }}
   </div>

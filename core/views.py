@@ -134,24 +134,27 @@ def index(request):
 def schema_detail(request, schema):
     latest_readme = schema.latest_readme()
     latest_readme_content = None
+    readme_fetch_failed = False
     if latest_readme:
         try:
             response_text = latest_readme.get_content()
         except requests.exceptions.RequestException:
-            raise Http404
-        if latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
-            latest_readme_content = render_markdown(response_text)
-        elif latest_readme.format == DocumentationItem.DocumentationItemFormat.PlainText:
-            latest_readme_content = response_text
+            readme_fetch_failed = True
         else:
-            logging.error(f"Unhandled README content format: {latest_readme.format}")
-            # Any other format is returned as None
-            latest_readme_content = None
+            if latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
+                latest_readme_content = render_markdown(response_text)
+            elif latest_readme.format == DocumentationItem.DocumentationItemFormat.PlainText:
+                latest_readme_content = response_text
+            else:
+                logging.error(f"Unhandled README content format: {latest_readme.format}")
+                # Any other format is returned as None
+                latest_readme_content = None
 
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
         "latest_readme": latest_readme,
         "latest_readme_content": latest_readme_content,
+        "readme_fetch_failed": readme_fetch_failed,
         "latest_license": schema.latest_license()
     })
 
@@ -159,18 +162,21 @@ def schema_detail(request, schema):
 @lookup_schema
 def schema_ref_detail(request, schema, schema_ref_id):
     schema_ref = get_object_or_404(schema.schemaref_set.filter(id=schema_ref_id))
+    content_fetch_failed = False
     try:
         text_content = schema_ref.get_content()
     except requests.exceptions.RequestException:
-        raise Http404
-    if schema_ref.language == "markdown":
-        schema_ref.markdown = render_markdown(text_content)
+        content_fetch_failed = True
     else:
-        schema_ref.content = escape(text_content)
+        if schema_ref.language == "markdown":
+            schema_ref.markdown = render_markdown(text_content)
+        else:
+            schema_ref.content = escape(text_content)
 
     return render(request, "core/schemas/detail_schema_ref.html", {
         "schema": schema,
         "schema_ref": schema_ref,
+        "content_fetch_failed": content_fetch_failed,
         "latest_license": schema.latest_license()
     })
 

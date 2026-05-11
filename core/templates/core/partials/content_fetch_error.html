@@ -1,0 +1,8 @@
+{% load filters %}
+<div class="content-fetch-error">
+  <p>{{ message }}</p>
+  <a href="{{ item|try_github_repo_url }}" class="text-with-icon">
+    View source
+    {{ item|branded_external_link_icon_for_reference_item }}
+  </a>
+</div>

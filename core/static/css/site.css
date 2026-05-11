@@ -1009,6 +1009,22 @@ a.badge--w3c {
   overflow: auto;
 }
 
+.content-fetch-error {
+  margin: 1rem;
+  padding: 1rem 1.25rem;
+  background: #422006;
+  color: #fef08a;
+  border: 1px solid #713f12;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.content-fetch-error p {
+  margin: 0;
+}
+
 .schema-definition .hljs {
   background: #000;
   border-radius: 6px;

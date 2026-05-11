@@ -6,7 +6,9 @@
 
 {% block schema_content %}
 <div>
-  {% if latest_readme.format == 'markdown' %}
+  {% if readme_fetch_failed %}
+  {% include "core/partials/content_fetch_error.html" with message="We're having trouble fetching the README content from the source. You can try viewing it directly:" item=latest_readme only %}
+  {% elif latest_readme.format == 'markdown' %}
   <div class="markdown">
     {{ latest_readme_content }}
   </div>
