@@ -105,6 +105,17 @@ class PublicSchemaManager(models.Manager):
         )
 
 
+class PublishedSchemaConflictError(Exception):
+    """
+    Exception raised when publishing a schema
+    would create a conflict with another published schema.
+    """
+    def __init__(self, conflicting_schema_ref, reason):
+        self.conflicting_schema_ref = conflicting_schema_ref
+        self.reason = reason
+        super().__init__(f"{reason} already in use by published SchemaRef {conflicting_schema_ref.id}")
+
+
 class Schema(BaseModel):
     objects = models.Manager()
     public_objects = PublicSchemaManager()
@@ -175,6 +186,27 @@ class Schema(BaseModel):
             DocumentationItem.DocumentationItemRole.License
         ])
 
+    def check_for_published_conflicts(self):
+        """
+        Checks public schemas for matching SchemaRef URLs or $id values.
+    
+        Raises:
+            PublishedSchemaConflictError: If a conflict is found.
+        """
+        published_schema_refs = SchemaRef.objects.filter(
+            schema__in=Schema.public_objects.all()
+        ).exclude(
+            # We don't want to check against this Schema's own SchemaRefs
+            schema=self
+        )
+        # Check for existing published SchemaRefs with the same URL or $id
+        for schema_ref in self.schemaref_set.all():
+            for published_schema_ref in published_schema_refs:
+                if published_schema_ref.url_provider_info.is_same_resource(schema_ref.url):
+                    raise PublishedSchemaConflictError(published_schema_ref, 'URL')
+                if schema_ref.id_value and schema_ref.id_value == published_schema_ref.id_value:
+                    raise PublishedSchemaConflictError(published_schema_ref, '$id')
+        
 
 class ReferenceItemManager(models.Manager):
     def get_published_by_domain_and_path(self, url):
@@ -333,6 +365,26 @@ class ReferenceItem(BaseModel):
     url = models.URLField()
     name = models.CharField(max_length=300, blank=True, null=True)
     content_fetch_failing_since = models.DateTimeField(null=True, blank=True)
+
+    @classmethod
+    def get_manifest_document_type_model_map(cls):
+        """
+        Maps document types from the manifest schema
+        to their actual model classes
+        """
+        return {
+            'definition': SchemaRef,
+            'documentation': DocumentationItem,
+            'implementation': Implementation
+        }
+
+    @classmethod
+    def update_or_create_from_manifest_document(cls, schema, document_url, document_metadata, created_by):
+        model_class = cls.get_manifest_document_type_model_map().get(document_metadata.get('type'))
+        if not model_class:
+            raise ValueError(f"Unsupported manifest document typet")
+
+        return model_class.update_or_create_from_manifest_document(schema, document_url, document_metadata, created_by)
 
     def __str__(self):
         return self.url
@@ -501,6 +553,16 @@ class SchemaRef(ReferenceItem):
     permanent_urls = GenericRelation(PermanentURL, related_query_name="schemaref")
     id_value = models.URLField(blank=True, null=True)
 
+    @classmethod
+    def update_or_create_from_manifest_document(cls, schema, document_url, document_metadata, created_by):
+        return schema.schemaref_set.update_or_create(
+            url=document_url,
+            defaults={
+                'name': document_metadata.get('name'),
+                'created_by': created_by
+            }
+        )
+
     @property
     def language(self):
         return guess_specification_language_by_extension(self.url)
@@ -540,6 +602,19 @@ class DocumentationItem(ReferenceItem):
     role = models.CharField(max_length=100, choices=DocumentationItemRole, blank=True, null=True)
     format = models.CharField(max_length=100, choices=DocumentationItemFormat, blank=True, null=True)
 
+    @classmethod
+    def update_or_create_from_manifest_document(cls, schema, document_url, document_metadata, created_by):
+        return schema.documentationitem_set.update_or_create(
+            url=document_url,
+            defaults={
+                'name': document_metadata['name'],
+                'description': document_metadata.get('description'),
+                'role': document_metadata.get('role'),
+                'format': document_metadata.get('format'),
+                'created_by': created_by
+            }
+        )
+
     def __str__(self):
         return self.name
 
@@ -551,6 +626,16 @@ class DocumentationItem(ReferenceItem):
 class Implementation(ReferenceItem):
     is_open_source = models.BooleanField(default=False)
     schema = models.ForeignKey(Schema, on_delete=models.CASCADE)
+
+    @classmethod
+    def update_or_create_from_manifest_document(cls, schema, document_url, document_metadata, created_by):
+        return schema.implementation_set.update_or_create(
+            url=document_url,
+            defaults={
+                'is_open_source': document_metadata.get('isOpenSource') or False,
+                'created_by': created_by
+            }
+        )
 
 
 class Organization(BaseModel):

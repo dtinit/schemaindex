@@ -21,7 +21,8 @@ from .models import (Schema,
     DocumentationItem,
     Organization,
     PermanentURL,
-    Implementation
+    Implementation,
+    PublishedSchemaConflictError
 )
 from .forms import (
     SchemaForm,
@@ -68,7 +69,7 @@ def lookup_schema(function):
             pk=schema_id,
         )
         
-        return function(request, schema, *args, **kwargs)
+        return function(request, schema=schema, *args, **kwargs)
     return _wrap_request
 
 
@@ -194,6 +195,7 @@ def account_api_key(request):
     return render(request, "account/api_key.html")
 
 
+# TODO: Refactor to use update_or_create
 def _sync_formset_to_reference_items(schema, existing_items_queryset, formset, model, attributes, created_by):
     existing_items_by_id = {
         item.id: item for item in existing_items_queryset
@@ -319,21 +321,13 @@ def manage_schema_delete(request, schema_id):
 @login_required
 def manage_schema_publish(request, schema_id):
     schema = get_object_or_404(Schema.objects.filter(created_by=request.user).prefetch_related('schemaref_set'), id=schema_id)
-    published_schema_refs = SchemaRef.objects.filter(schema__in=Schema.public_objects.all()).all()
-    # Before we publish, we check for existing published SchemaRefs with the same URL or $id
     conflicting_published_schema_ref = None
     conflict_reason = None
-    for schema_ref in schema.schemaref_set.all():
-        for published_schema_ref in published_schema_refs:
-            if published_schema_ref.url_provider_info.is_same_resource(schema_ref.url):
-                conflicting_published_schema_ref = published_schema_ref
-                conflict_reason = 'URL'
-                break;
-            if schema_ref.id_value and schema_ref.id_value == published_schema_ref.id_value:
-                conflicting_published_schema_ref = published_schema_ref
-                conflict_reason = '$id'
-        if conflicting_published_schema_ref:
-            break;
+    try:
+        schema.check_for_published_conflicts()
+    except PublishedSchemaConflictError as e:
+        conflicting_published_schema_ref = e.conflicting_schema_ref
+        conflict_reason = e.reason
 
     if request.method == 'POST':
         if conflicting_published_schema_ref:
