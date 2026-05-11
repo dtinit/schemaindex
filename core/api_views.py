@@ -13,7 +13,7 @@ from django.views.decorators.http import (
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
 from jsonschema import validate, ValidationError as JSONValidationError
-from core.models import SchemaRef, Schema, Implementation, DocumentationItem
+from core.models import SchemaRef, Schema, ReferenceItem
 from core.api_responses import ApiResponse, ApiErrorResponse
 from core.views import lookup_schema
 
@@ -69,35 +69,8 @@ def _save_manifest(manifest, schema, created_by):
     schema.implementation_set.exclude(url__in=urls).delete()
 
     # Create or update reference items
-    for url, metadata in manifest['documents'].items():
-        item_type = metadata['type']
-        if item_type == 'definition':
-            schema.schemaref_set.update_or_create(
-                url=url,
-                defaults={
-                    'name': metadata.get('name'),
-                    'created_by': created_by
-                }
-            )
-        elif item_type == 'documentation':
-            schema.documentationitem_set.update_or_create(
-                url=url,
-                defaults={
-                    'name': metadata['name'],
-                    'description': metadata.get('description'),
-                    'role': metadata.get('role'),
-                    'format': metadata.get('format'),
-                    'created_by': created_by
-                }
-            )
-        elif item_type == 'implementation':
-            schema.implementation_set.update_or_create(
-                url=url,
-                defaults={
-                    'is_open_source': metadata.get('isOpenSource') or False,
-                    'created_by': created_by
-                }
-            )
+    for document_url, document_metadata in manifest['documents'].items():
+        ReferenceItem.update_or_create_from_manifest_document(schema, document_url, document_metadata, created_by)
     
     if public:
         if schema.pk is None:

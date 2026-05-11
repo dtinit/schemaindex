@@ -356,6 +356,26 @@ class ReferenceItem(BaseModel):
     name = models.CharField(max_length=300, blank=True, null=True)
     content_fetch_failing_since = models.DateTimeField(null=True, blank=True)
 
+    @classmethod
+    def get_manifest_document_type_model_map(cls):
+        """
+        Maps document types from the manifest schema
+        to their actual model classes
+        """
+        return {
+            'definition': SchemaRef,
+            'documentation': DocumentationItem,
+            'implementation': Implementation
+        }
+
+    @classmethod
+    def update_or_create_from_manifest_document(cls, schema, document_url, document_metadata, created_by):
+        model_class = cls.get_manifest_document_type_model_map().get(document_metadata.get('type'))
+        if not model_class:
+            raise ValueError(f"Unsupported manifest document typet")
+
+        return model_class.update_or_create_from_manifest_document(schema, document_url, document_metadata, created_by)
+
     def __str__(self):
         return self.url
 
@@ -523,6 +543,16 @@ class SchemaRef(ReferenceItem):
     permanent_urls = GenericRelation(PermanentURL, related_query_name="schemaref")
     id_value = models.URLField(blank=True, null=True)
 
+    @classmethod
+    def update_or_create_from_manifest_document(cls, schema, document_url, document_metadata, created_by):
+        return schema.schemaref_set.update_or_create(
+            url=document_url,
+            defaults={
+                'name': document_metadata.get('name'),
+                'created_by': created_by
+            }
+        )
+
     @property
     def language(self):
         return guess_specification_language_by_extension(self.url)
@@ -545,7 +575,6 @@ class SchemaRef(ReferenceItem):
         super().save(*args, **kwargs)
 
 
-
 class DocumentationItem(ReferenceItem):
     class DocumentationItemRole(models.TextChoices):
         README = 'readme', 'README'
@@ -563,6 +592,19 @@ class DocumentationItem(ReferenceItem):
     role = models.CharField(max_length=100, choices=DocumentationItemRole, blank=True, null=True)
     format = models.CharField(max_length=100, choices=DocumentationItemFormat, blank=True, null=True)
 
+    @classmethod
+    def update_or_create_from_manifest_document(cls, schema, document_url, document_metadata, created_by):
+        return schema.documentationitem_set.update_or_create(
+            url=document_url,
+            defaults={
+                'name': document_metadata['name'],
+                'description': document_metadata.get('description'),
+                'role': document_metadata.get('role'),
+                'format': document_metadata.get('format'),
+                'created_by': created_by
+            }
+        )
+
     def __str__(self):
         return self.name
 
@@ -574,6 +616,16 @@ class DocumentationItem(ReferenceItem):
 class Implementation(ReferenceItem):
     is_open_source = models.BooleanField(default=False)
     schema = models.ForeignKey(Schema, on_delete=models.CASCADE)
+
+    @classmethod
+    def update_or_create_from_manifest_document(cls, schema, document_url, document_metadata, created_by):
+        return schema.implementation_set.update_or_create(
+            url=document_url,
+            defaults={
+                'is_open_source': document_metadata.get('isOpenSource') or False,
+                'created_by': created_by
+            }
+        )
 
 
 class Organization(BaseModel):
