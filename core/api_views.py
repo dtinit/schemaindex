@@ -19,7 +19,7 @@ from core.views import lookup_schema
 
 
 def _load_manifest_schema():
-    schema_path = settings.BASE_DIR / 'core' / 'static' / 'ns' / 'manifest.schema.json'
+    schema_path = settings.BASE_DIR / 'core' / 'schemas' / 'manifest.schema.json'
     with open(schema_path, 'r') as f:
         return json.load(f)
 
@@ -58,7 +58,6 @@ def _save_manifest(manifest, schema, created_by):
     # Prevent users from making public schemas private
     if not public and schema.published_at:
         raise DjangoValidationError('Public schemas cannot be made private except by an admin. Please set `public: true` in your manifest.')
-
 
     schema.save()
     urls = manifest['documents'].keys()
