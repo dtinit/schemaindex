@@ -477,7 +477,15 @@ class ReferenceItem(BaseModel):
         observe = getattr(settings, "CONTENT_CACHE_OBSERVABILITY", False)
         cache_key = self._cache_key()
 
-        cached = cache.get(cache_key)
+        try:
+            cached = cache.get(cache_key)
+        except Exception as exc:
+            logger.warning(
+                "content_cache_backend_fallback cache_key=%s "
+                "operation=get exception=%s message=%s",
+                cache_key, exc.__class__.__name__, exc,
+            )
+            cached = None
         if cached is not None:
             if observe:
                 logger.info(
@@ -516,8 +524,8 @@ class ReferenceItem(BaseModel):
             # log a fallback signal if anything propagates so staging can see it
             logger.warning(
                 "content_cache_backend_fallback cache_key=%s "
-                "operation=set exception=%s",
-                cache_key, exc.__class__.__name__,
+                "operation=set exception=%s message=%s",
+                cache_key, exc.__class__.__name__, exc,
             )
 
         return content

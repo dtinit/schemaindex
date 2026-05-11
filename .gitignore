@@ -215,5 +215,10 @@ personal-development/
 service-account-credentials.json
 gcp-cors-config.json
 
+# Runtime-only certs (e.g. Memorystore Valkey per-instance CA).
+# Written by the deploy workflow from a GitHub environment secret;
+# must never be committed.
+runtime-certs/
+
 # npm dependencies
 node_modules/

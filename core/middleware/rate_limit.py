@@ -59,8 +59,8 @@ def _check_and_record_valkey(client, key, now_ms, limit):
         return True, None
     except redis.exceptions.RedisError as exc:
         logger.warning(
-            "rate_limiter_unavailable: failing open (exception=%s)",
-            exc.__class__.__name__,
+            "rate_limiter_unavailable: failing open exception=%s message=%s",
+            exc.__class__.__name__, exc,
         )
         return True, "valkey_unavailable"
 
