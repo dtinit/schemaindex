@@ -14,9 +14,12 @@ from factories import (
     SchemaRefFactory,
     DocumentationItemFactory,
     ProfileFactory,
-    APIKeyFactory
+    APIKeyFactory,
+    ImplementationFactory,
+    SchemaFactory
 )
 import requests.exceptions
+from utils import assert_schema_matches_manifest
 
 
 @pytest.mark.django_db
@@ -382,4 +385,42 @@ def test_schema_ref_reparses_new_id_value_from_content_on_save():
         schema_ref.save()
         schema_ref.refresh_from_db()
         assert schema_ref.id_value == new_mock_id_value
+
+
+@pytest.mark.django_db
+def test_schema_ref_serializes_as_manifest_document_metadata():
+    schemaRef = SchemaRefFactory(name="Test Schema Ref")
+    document = schemaRef.to_manifest_document_metadata()
+    assert document['type'] == 'definition'
+    assert document['name'] == schemaRef.name
+
+
+@pytest.mark.django_db
+def test_documentation_item_serializes_as_manifest_document_metadata():
+    documentationItem = DocumentationItemFactory()
+    document = documentationItem.to_manifest_document_metadata()
+    assert document['type'] == 'documentation'
+    assert document['name'] == documentationItem.name
+    assert document['description'] == documentationItem.description
+    assert document['role'] == documentationItem.role
+    assert document['format'] == documentationItem.format
+
+
+@pytest.mark.django_db
+def test_implementation_serializes_as_manifest_document_metadata():
+    implementation = ImplementationFactory(name="Test implementation")
+    document = implementation.to_manifest_document_metadata()
+    assert document['type'] == 'implementation'
+    assert document['name'] == implementation.name
+    assert document['isOpenSource'] == implementation.is_open_source
+
+
+@pytest.mark.django_db
+def test_schema_serializes_as_manifest():
+    schema = SchemaFactory()
+    schemaRef = SchemaRefFactory(schema=schema)
+    documentationItem = DocumentationItemFactory(schema=schema)
+    implementation = ImplementationFactory(schema=schema)
+    manifest = schema.to_manifest()
+    assert_schema_matches_manifest(schema, manifest)
 
