@@ -15,7 +15,8 @@ from core.models import (
     Organization,
     Profile,
     PermanentURL,
-    APIKey
+    APIKey,
+    Implementation
 )
 from core.forms import PermanentURLForm
 
@@ -104,6 +105,14 @@ class DocumentationItemFactory(ReferenceItemFactory):
     schema = factory.SubFactory(SchemaFactory)
     role = factory.Iterator(DocumentationItem.DocumentationItemRole.values)
     format = factory.Iterator(DocumentationItem.DocumentationItemFormat.values)
+
+
+class ImplementationFactory(ReferenceItemFactory):
+    class Meta:
+        model = Implementation
+
+    is_open_source = factory.Faker('boolean')
+    schema = factory.SubFactory(SchemaFactory)
 
 
 class PermanentURLFactory(DjangoModelFactory):

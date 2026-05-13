@@ -25,8 +25,11 @@ Account
           </div>
         </div>
         <div class="schema__action-group">
-          <a href="{% url 'manage_schema' schema_id=schema.pk %}">
+          <a href="{% url 'manage_schema' schema_id=schema.id %}">
             <i data-lucide="square-pen" class="icon--md"></i>
+          </a>
+          <a href="{% url 'schema_export' schema_id=schema.id %}">
+            <i data-lucide="file-braces" class="icon--md"></i>
           </a>
           {% if schema.published_at|exists_and_is_in_past %}
           <a href="{% url 'manage_schema_permanent_urls' schema_id=schema.id %}">

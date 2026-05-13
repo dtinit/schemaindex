@@ -206,7 +206,29 @@ class Schema(BaseModel):
                     raise PublishedSchemaConflictError(published_schema_ref, 'URL')
                 if schema_ref.id_value and schema_ref.id_value == published_schema_ref.id_value:
                     raise PublishedSchemaConflictError(published_schema_ref, '$id')
-        
+
+    def to_manifest(self):
+        manifest = {
+            'name': self.name,
+            'public': bool(self.published_at),
+        }
+        if self.description:
+            manifest['description'] = self.description
+        reference_items = (
+            list(self.schemaref_set.all()) +
+            list(self.documentationitem_set.all()) +
+            list(self.implementation_set.all())
+        )
+        documents = {}
+        for reference_item in reference_items:
+            documents[reference_item.url] = reference_item.to_manifest_document_metadata()
+
+        # We're intentionally inserting documents last so it's the last field
+        # in the manifest when we serialize as JSON, which helps with readability.
+        manifest['documents'] = documents
+    
+        return manifest
+
 
 class ReferenceItemManager(models.Manager):
     def get_published_by_domain_and_path(self, url):
@@ -550,6 +572,9 @@ class ReferenceItem(BaseModel):
             [recipient_email],
             fail_silently=True,
         )
+    
+    def to_manifest_document_metadata(self):
+        return { 'name': self.name } if self.name else {}
 
     @property
     def url_provider_info(self):
@@ -592,6 +617,13 @@ class SchemaRef(ReferenceItem):
 
         super().save(*args, **kwargs)
 
+    def to_manifest_document_metadata(self):
+        metadata = super().to_manifest_document_metadata()
+        return { 
+            'type': 'definition',
+            **metadata
+        }
+    
 
 class DocumentationItem(ReferenceItem):
     class DocumentationItemRole(models.TextChoices):
@@ -630,6 +662,17 @@ class DocumentationItem(ReferenceItem):
     def language(self):
         return guess_language_by_extension(self.url, ['markdown'])
 
+    def to_manifest_document_metadata(self):
+        metadata = super().to_manifest_document_metadata()
+        metadata['type'] = 'documentation'
+        if self.description:
+            metadata['description'] = self.description
+        if self.role:
+            metadata['role'] = self.role
+        if self.format:
+            metadata['format'] = self.format
+        return metadata
+
 
 class Implementation(ReferenceItem):
     is_open_source = models.BooleanField(default=False)
@@ -644,6 +687,12 @@ class Implementation(ReferenceItem):
                 'created_by': created_by
             }
         )
+
+    def to_manifest_document_metadata(self):
+        metadata = super().to_manifest_document_metadata()
+        metadata['type'] = 'implementation'
+        metadata['isOpenSource'] = self.is_open_source
+        return metadata
 
 
 class Organization(BaseModel):
