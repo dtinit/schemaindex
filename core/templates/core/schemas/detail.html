@@ -6,30 +6,32 @@
 
 {% block schema_content %}
 <div>
-  {% if readme_fetch_failed %}
-  {% include "core/partials/content_fetch_error.html" with message="We're having trouble fetching the README content from the source. You can try viewing it directly:" item=latest_readme only %}
-  {% elif latest_readme.format == 'markdown' %}
-  <div class="markdown">
-    {{ latest_readme_content }}
-  </div>
-  <hr />
-  <div class="external-readme-link">
-    <a href="{{ latest_readme|try_github_repo_url }}" class="text-with-icon">
-      View source
-      {{ latest_readme|branded_external_link_icon_for_reference_item }}
-    </a>
-  </div>
-  {% elif latest_readme.format == 'plaintext' %}
-  <div class="plaintext">
-    {{ latest_readme_content }}
-  </div>
-  <hr />
-  <div class="external-readme-link">
-    <a href="{{ latest_readme|try_github_repo_url }}" class="text-with-icon">
-      View source
-      {{ latest_readme|branded_external_link_icon_for_reference_item }}
-    </a>
-  </div>
+  {% if latest_readme.format == 'markdown' or latest_readme.format == 'plaintext' %}
+    {% if not latest_readme_content %}
+    {% include "core/partials/content_fetch_error.html" with message="We're having trouble fetching the README content from the source. You can try viewing it directly:" item=latest_readme only %}
+    {% elif latest_readme.format == 'markdown' %}
+    <div class="markdown">
+      {{ latest_readme_content }}
+    </div>
+    <hr />
+    <div class="external-readme-link">
+      <a href="{{ latest_readme|try_github_repo_url }}" class="text-with-icon">
+        View source
+        {{ latest_readme|branded_external_link_icon_for_reference_item }}
+      </a>
+    </div>
+    {% elif latest_readme.format == 'plaintext' %}
+    <div class="plaintext">
+      {{ latest_readme_content }}
+    </div>
+    <hr />
+    <div class="external-readme-link">
+      <a href="{{ latest_readme|try_github_repo_url }}" class="text-with-icon">
+        View source
+        {{ latest_readme|branded_external_link_icon_for_reference_item }}
+      </a>
+    </div>
+    {% endif %}
   {% elif latest_readme %}
   <div class="external-readme-link">
     <a href="{{ latest_readme|try_github_repo_url }}" class="text-with-icon">
