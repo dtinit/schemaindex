@@ -208,6 +208,12 @@ class Schema(BaseModel):
                     raise PublishedSchemaConflictError(published_schema_ref, '$id')
 
     def to_manifest(self):
+        manifest = {
+            'name': self.name,
+            'public': bool(self.published_at),
+        }
+        if self.description:
+            manifest['description'] = self.description
         reference_items = (
             list(self.schemaref_set.all()) +
             list(self.documentationitem_set.all()) +
@@ -217,13 +223,9 @@ class Schema(BaseModel):
         for reference_item in reference_items:
             documents[reference_item.url] = reference_item.to_manifest_document_metadata()
 
-        manifest = {
-            'name': self.name,
-            'public': bool(self.published_at),
-            'documents': documents
-        }
-        if self.description:
-            manifest['description'] = self.description
+        # We're intentionally inserting documents last so it's the last field
+        # in the manifest when we serialize as JSON, which helps with readability.
+        manifest['documents'] = documents
     
         return manifest
 
