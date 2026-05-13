@@ -8,7 +8,7 @@ from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.conf import settings
 from django.urls import reverse
 from functools import wraps
@@ -416,6 +416,19 @@ def manage_schema_permanent_urls(request, schema_id):
         'schema': schema,
         'form': form,
     })
+
+
+@lookup_schema
+def schema_export(request, schema):
+    manifest = schema.to_manifest()
+    response = JsonResponse(
+        manifest,
+        json_dumps_params={'indent': 4}
+    )
+    # Set the Content-Disposition header to attachment so the browser
+    # will actually download the file
+    response['Content-Disposition'] = f'attachment; filename="{schema.name}.json"'
+    return response
 
 
 def _permanent_url_redirect(request, permanent_url_query):

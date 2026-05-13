@@ -2,6 +2,7 @@ from urllib.parse import urlparse
 import pytest
 import requests
 import requests_mock
+import json
 from tests.factories import (
     SchemaFactory,
     UserFactory,
@@ -9,13 +10,15 @@ from tests.factories import (
     DocumentationItemFactory,
     OrganizationSchemaFactory,
     OrganizationSchemaRefFactory,
-    PermanentURLFactory
+    PermanentURLFactory,
+    ImplementationFactory
 )
 from core.models import Schema, DocumentationItem, Profile
 from core.forms import PermanentURLForm
 from django.test import Client
 from pytest_django.asserts import assertRedirects
 from unittest.mock import patch
+from utils import assert_schema_matches_manifest
 
 
 @pytest.mark.django_db
@@ -398,3 +401,17 @@ def test_schema_detail_renders_readme_on_successful_fetch():
     assert response.status_code == 200
     assert b'content-fetch-error' not in response.content
     assert b'Hello readme' in response.content
+
+
+@pytest.mark.django_db
+def test_schema_export_sends_manifest():
+    schema = SchemaFactory()
+    schemaRef = SchemaRefFactory(schema=schema)
+    documentationItem = DocumentationItemFactory(schema=schema)
+    implementation = ImplementationFactory(schema=schema)
+    client = Client()
+    response = client.get(f'/schemas/{schema.id}/export')
+    assert response.status_code == 200
+    manifest = json.loads(response.content)
+    assert_schema_matches_manifest(schema, manifest)
+
