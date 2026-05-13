@@ -138,16 +138,14 @@ def schema_detail(request, schema):
     if latest_readme:
         try:
             response_text = latest_readme.get_content()
+            if latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
+                latest_readme_content = render_markdown(response_text)
+            elif latest_readme.format == DocumentationItem.DocumentationItemFormat.PlainText:
+                latest_readme_content = response_text
+            else:
+                logging.error(f"Unhandled README content format: {latest_readme.format}")
         except requests.exceptions.RequestException:
-            raise Http404
-        if latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
-            latest_readme_content = render_markdown(response_text)
-        elif latest_readme.format == DocumentationItem.DocumentationItemFormat.PlainText:
-            latest_readme_content = response_text
-        else:
-            logging.error(f"Unhandled README content format: {latest_readme.format}")
-            # Any other format is returned as None
-            latest_readme_content = None
+            logging.error(f"Failed to fetch README content for schema {schema.id} (url={latest_readme.url})", exc_info=True)
 
     return render(request, "core/schemas/detail.html", {
         "schema": schema,
@@ -162,12 +160,12 @@ def schema_ref_detail(request, schema, schema_ref_id):
     schema_ref = get_object_or_404(schema.schemaref_set.filter(id=schema_ref_id))
     try:
         text_content = schema_ref.get_content()
+        if schema_ref.language == "markdown":
+            schema_ref.markdown = render_markdown(text_content)
+        else:
+            schema_ref.content = escape(text_content)
     except requests.exceptions.RequestException:
-        raise Http404
-    if schema_ref.language == "markdown":
-        schema_ref.markdown = render_markdown(text_content)
-    else:
-        schema_ref.content = escape(text_content)
+        logging.error(f"Failed to fetch content for schema_ref {schema_ref.id} (url={schema_ref.url})", exc_info=True)
 
     return render(request, "core/schemas/detail_schema_ref.html", {
         "schema": schema,
