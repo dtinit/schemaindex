@@ -60,9 +60,13 @@ Install dev requirements with `pip install -r dev-requirements.txt`.
 
 ### Linting with Ruff
 
-You can run the linter by executing `ruff check`:
+You can run the linter by executing `ruff check`.
 
 To get type checking feedback in your code editor, [check here](https://docs.astral.sh/ruff/editors/setup/) for instructions. The configuration is in [ruff.toml](ruff.toml), but your editor/plugin should find it for you.
+
+### Formatting with Ruff
+
+You can format Python by executing `ruff format`.
 
 ## Frontend dev tooling
 
@@ -95,7 +99,7 @@ Note that we only use TypeScript to _type check_ our JavaScript files; we do not
 
 When commiting relevant files with git, the following steps are performed:
 
-- Python files are linted.
+- Python files are linted and formatted. If issues are found, your commit will fail; please correct your issues and try again.
 - JavaScript files are linted, typechecked, and formatted. If issues are found, your commit will fail; please correct your issues and try again.
 - README.md and CSS files are formatted.
 
