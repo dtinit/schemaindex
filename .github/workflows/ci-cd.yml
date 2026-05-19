@@ -44,7 +44,7 @@ jobs:
           pip install ruff
 
       - name: Lint
-        run: ruff check . --output-format github
+        run: ruff check --output-format github
 
   check-python-requirements:
     runs-on: ubuntu-latest

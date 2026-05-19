@@ -15,8 +15,7 @@
     "lint": "eslint .",
     "check-formatting": "prettier \"core/static/**/*.{js,css}\" \"README.md\" --check",
     "format": "prettier \"core/static/**/*.{js,css}\" \"README.md\" --write",
-    "typecheck": "tsc",
-    "prepare": "husky"
+    "typecheck": "tsc"
   },
   "repository": {
     "type": "git",
@@ -34,7 +33,6 @@
     "eslint": "^9.39.0",
     "eslint-config-prettier": "^10.1.8",
     "highlight.js": "^11.11.1",
-    "husky": "^9.1.7",
     "lint-staged": "^16.2.6",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3"
