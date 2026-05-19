@@ -73,9 +73,9 @@ def test_private_schemas_not_listed():
 @pytest.mark.django_db
 def test_published_schemas_filterable_by_language():
     json_schema = SchemaFactory()
-    json_schema_ref = SchemaRefFactory(url="http://example.com/schema.json", schema=json_schema)
+    SchemaRefFactory(url="http://example.com/schema.json", schema=json_schema)
     xml_schema = SchemaFactory()
-    xml_schema_ref = SchemaRefFactory(url="http://example.com/schema.xml", schema=xml_schema)
+    SchemaRefFactory(url="http://example.com/schema.xml", schema=xml_schema)
     client = Client()
     default_response = client.get('/')
     assert json_schema.name in str(default_response.content)
@@ -92,13 +92,13 @@ def test_published_schemas_filterable_by_language():
 def test_published_schemas_filterable_by_documentation_item_role():
     rfc_schema = SchemaFactory()
     SchemaRefFactory(schema=rfc_schema)
-    rfc_item = DocumentationItemFactory(
+    DocumentationItemFactory(
         schema=rfc_schema,
         role=DocumentationItem.DocumentationItemRole.RFC
     )
     w3c_schema = SchemaFactory()
     SchemaRefFactory(schema=w3c_schema)
-    w3c_item = DocumentationItemFactory(
+    DocumentationItemFactory(
         schema=w3c_schema,
         role=DocumentationItem.DocumentationItemRole.W3C
     )
@@ -134,7 +134,7 @@ def test_private_schemas_with_published_urls_cannot_be_published():
     public_schema = SchemaFactory()
     public_schema_ref = SchemaRefFactory(schema=public_schema)
     private_schema = SchemaFactory(published_at=None)
-    private_schema_ref = SchemaRefFactory(schema=private_schema, url=public_schema_ref.url)
+    SchemaRefFactory(schema=private_schema, url=public_schema_ref.url)
     client = Client()
     client.force_login(private_schema.created_by)
     get_response = client.get(f'/manage/schema/{private_schema.id}/publish')
@@ -143,7 +143,7 @@ def test_private_schemas_with_published_urls_cannot_be_published():
     post_response = client.post(f'/manage/schema/{private_schema.id}/publish')
     assert post_response.status_code == 403
     private_schema.refresh_from_db()
-    assert private_schema.published_at == None
+    assert private_schema.published_at is None
 
 
 @pytest.mark.django_db
@@ -156,8 +156,8 @@ def test_private_schemas_with_published_id_values_cannot_be_published():
     with requests_mock.Mocker() as m:
         m.get(public_schema_ref_url, text=f'{{"$id": "{mock_id_value}"}}')
         m.get(private_schema_ref_url,text=f'{{"$id": "{mock_id_value}"}}')
-        public_schema_ref = SchemaRefFactory(schema=public_schema, url=public_schema_ref_url)
-        private_schema_ref = SchemaRefFactory(schema=private_schema, url=private_schema_ref_url)
+        SchemaRefFactory(schema=public_schema, url=public_schema_ref_url)
+        SchemaRefFactory(schema=private_schema, url=private_schema_ref_url)
 
     client = Client()
     client.force_login(private_schema.created_by)
@@ -167,7 +167,7 @@ def test_private_schemas_with_published_id_values_cannot_be_published():
     post_response = client.post(f'/manage/schema/{private_schema.id}/publish')
     assert post_response.status_code == 403
     private_schema.refresh_from_db()
-    assert private_schema.published_at == None
+    assert private_schema.published_at is None
 
 
 @pytest.mark.django_db
@@ -184,9 +184,9 @@ def test_private_schemas_with_published_id_values_cannot_be_published():
 ])
 def test_private_schemas_with_equivalent_published_github_urls_cannot_be_published(existing_url, attempted_url):
     public_schema = SchemaFactory()
-    public_schema_ref = SchemaRefFactory(schema=public_schema, url=existing_url)
+    SchemaRefFactory(schema=public_schema, url=existing_url)
     private_schema = SchemaFactory(published_at=None)
-    private_schema_ref = SchemaRefFactory(schema=private_schema, url=attempted_url)
+    SchemaRefFactory(schema=private_schema, url=attempted_url)
     client = Client()
     client.force_login(private_schema.created_by)
     get_response = client.get(f'/manage/schema/{private_schema.id}/publish')
@@ -195,7 +195,7 @@ def test_private_schemas_with_equivalent_published_github_urls_cannot_be_publish
     post_response = client.post(f'/manage/schema/{private_schema.id}/publish')
     assert post_response.status_code == 403
     private_schema.refresh_from_db()
-    assert private_schema.published_at == None
+    assert private_schema.published_at is None
 
 
 @pytest.mark.django_db
@@ -213,7 +213,7 @@ def test_private_schemas_with_new_urls_can_be_published():
         assert post_response.status_code == 200
     
     schema.refresh_from_db()
-    assert schema.published_at != None
+    assert schema.published_at is not None
 
 
 @pytest.mark.django_db
@@ -406,9 +406,9 @@ def test_schema_detail_renders_readme_on_successful_fetch():
 @pytest.mark.django_db
 def test_schema_export_sends_manifest():
     schema = SchemaFactory()
-    schemaRef = SchemaRefFactory(schema=schema)
-    documentationItem = DocumentationItemFactory(schema=schema)
-    implementation = ImplementationFactory(schema=schema)
+    SchemaRefFactory(schema=schema)
+    DocumentationItemFactory(schema=schema)
+    ImplementationFactory(schema=schema)
     client = Client()
     response = client.get(f'/schemas/{schema.id}/export')
     assert response.status_code == 200

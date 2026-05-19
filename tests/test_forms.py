@@ -63,7 +63,7 @@ def test_schema_management_form_prevents_duplicate_published_id_values():
     edited_schema = SchemaFactory()
     with requests_mock.Mocker() as m:
         m.get(existing_schema_ref_url, text=f'{{"$id": "{mock_id_value}"}}')
-        existing_schema_ref = SchemaRefFactory(
+        SchemaRefFactory(
             url=existing_schema_ref_url,
             id_value=mock_id_value
         )
@@ -92,7 +92,7 @@ def test_schema_management_form_allows_duplicate_private_id_values():
     new_schema_ref_url = 'http://example.com/definition2.json'
     with requests_mock.Mocker() as m:
         m.get(existing_schema_ref_url, text=f'{{"$id": "{mock_id_value}"}}')
-        existing_schema_ref = SchemaRefFactory(
+        SchemaRefFactory(
             url='http://example.com/definition.json',
             id_value=mock_id_value,
             schema=SchemaFactory(published_at=None)
@@ -165,10 +165,8 @@ def test_schema_management_form_prevents_duplicate_schema_ref_urls():
         form = SchemaForm(data={
             'name': 'New schema',
             'readme_url': 'http://example.com',
-            'name': 'New schema',
             'schema_refs-0-url': spec_url,
             'schema_refs-1-url': spec_url,
-            'readme_url': 'http://example.com',
             'documentation_items-TOTAL_FORMS': 0,
             'documentation_items-INITIAL_FORMS': 0,
             'schema_refs-TOTAL_FORMS': 2,
@@ -190,7 +188,7 @@ def test_permanent_url_form_prevents_duplicate_urls(link_type):
     managed_schema = OrganizationSchemaFactory()
     other_schema = SchemaFactory(created_by=managed_schema.created_by)
     duplicate_suffix_value = 'duplicate_suffix'
-    other_schema_permanent_url = PermanentURLFactory(
+    PermanentURLFactory(
         content_object=other_schema,
         link_type=link_type,
         suffix=duplicate_suffix_value

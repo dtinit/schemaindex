@@ -27,8 +27,8 @@ def test_multiple_schemarefs():
     # A simple test but leaving it in as I used it to debug a simple thing
     user = UserFactory.create()
     my_schema = Schema.objects.create(name="Star Trek", created_by=user)
-    ship_schema = SchemaRef.objects.create(schema=my_schema, url="https://example.com/ships", created_by=user)
-    station_schema = SchemaRef.objects.create(schema=my_schema, url="https://example.com/stns", created_by=user)
+    SchemaRef.objects.create(schema=my_schema, url="https://example.com/ships", created_by=user)
+    SchemaRef.objects.create(schema=my_schema, url="https://example.com/stns", created_by=user)
     assert Schema.objects.all().count() == 1
     assert my_schema.schemaref_set.count() == 2
 
@@ -418,9 +418,9 @@ def test_implementation_serializes_as_manifest_document_metadata():
 @pytest.mark.django_db
 def test_schema_serializes_as_manifest():
     schema = SchemaFactory()
-    schemaRef = SchemaRefFactory(schema=schema)
-    documentationItem = DocumentationItemFactory(schema=schema)
-    implementation = ImplementationFactory(schema=schema)
+    SchemaRefFactory(schema=schema)
+    DocumentationItemFactory(schema=schema)
+    ImplementationFactory(schema=schema)
     manifest = schema.to_manifest()
     assert_schema_matches_manifest(schema, manifest)
 

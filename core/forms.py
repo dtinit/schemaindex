@@ -95,7 +95,7 @@ class SchemaRefForm(ReferenceItemForm):
         except (json.JSONDecodeError, TypeError):
             id_value = None
       
-        if id_value == None:
+        if id_value is None:
             return url
 
         for schema_ref in schema_refs:
@@ -171,7 +171,7 @@ class SchemaForm(forms.Form):
     def __init__(self, *args, schema = None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if schema == None:
+        if schema is None:
             self.additional_documentation_items_formset = DocumentationItemFormsetFactory(
                 prefix="documentation_items",
                 *args,

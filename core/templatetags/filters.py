@@ -7,7 +7,7 @@ register = template.Library()
 
 @register.filter
 def exists_and_is_in_past(value):
-    return value != None and value.timestamp() <= timezone.now().timestamp()
+    return value is not None and value.timestamp() <= timezone.now().timestamp()
 
 #"GitHub_Invertocat_Light.svg" from https://brand.github.com/foundations/logo
 GITHUB_LOGO = '''<?xml version="1.0" encoding="utf-8"?>

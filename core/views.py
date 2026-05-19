@@ -238,7 +238,7 @@ def manage_schema(request, schema_id=None):
             ) 
 
             latest_readme = schema.latest_readme()
-            if latest_readme == None:
+            if latest_readme is None:
                 latest_readme = DocumentationItem.objects.create(
                     schema=schema,
                     created_by=request.user,
@@ -252,7 +252,7 @@ def manage_schema(request, schema_id=None):
             license_url = form.cleaned_data['license_url']
             if license_url:
                 latest_license = schema.latest_license()
-                if latest_license == None:
+                if latest_license is None:
                     latest_license = DocumentationItem.objects.create(
                         schema=schema,
                         created_by=request.user,
@@ -293,7 +293,7 @@ def manage_schema(request, schema_id=None):
 
     return render(request, "core/manage/schema.html", {
         'schema': schema,
-        'is_new': schema == None,
+        'is_new': schema is None,
         'form': form
     })
 

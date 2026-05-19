@@ -1,0 +1,3 @@
+[lint.per-file-ignores]
+# Suppress star import and usage warnings
+"schemaindex/settings/*.py" = ["F403", "F405"]

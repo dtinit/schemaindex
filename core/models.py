@@ -463,7 +463,7 @@ class ReferenceItem(BaseModel):
                 response = requests.get(content_url)
                 response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
 
-                if self.content_fetch_failing_since != None:
+                if self.content_fetch_failing_since is not None:
                     self.content_fetch_failing_since = None
                     self.save()
 
@@ -478,7 +478,7 @@ class ReferenceItem(BaseModel):
                     # Only notify the user if it's an HTTPError
                     # and hasn't already been failing
                     is_http_error = isinstance(e, requests.exceptions.HTTPError)
-                    if is_http_error and self.content_fetch_failing_since == None:
+                    if is_http_error and self.content_fetch_failing_since is None:
                         self.content_fetch_failing_since = timezone.now()
                         self._send_failure_notification_email()
                         self.save()

@@ -49,13 +49,12 @@ def test_api_key_allows_valid_api_key(api_client):
 @pytest.mark.django_db
 @override_settings(HOURLY_API_REQUEST_LIMIT=2)
 def test_api_key_enforces_rate_limit(api_client):
-    profile = ProfileFactory.create()
     url = "https://example.com/schema.json"
     id_value = "https://example.com/testid"
     content = f'{{"$id":"{id_value}"}}'
     with requests_mock.Mocker() as m:
         m.get(url, text=content)
-        schema_ref = SchemaRefFactory.create(url=url)
+        SchemaRefFactory.create(url=url)
         for _ in range(2):
             response = api_client.get(f'/api/find?id={id_value}')
             assert response.status_code == 200
@@ -75,7 +74,7 @@ def test_api_key_enforces_rate_limit_on_profile():
     content = f'{{"$id":"{id_value}"}}'
     with requests_mock.Mocker() as m:
         m.get(url, text=content)
-        schema_ref = SchemaRefFactory.create(url=url)
+        SchemaRefFactory.create(url=url)
         for _ in range(2):
             raw_api_key = profile.set_new_api_key()
             response = client.get(
@@ -98,7 +97,7 @@ def test_find_returns_matching_schema_ref_url(api_client):
     content = f'{{"$id":"{id_value}"}}'
     with requests_mock.Mocker() as m:
         m.get(url, text=content)
-        schema_ref = SchemaRefFactory.create(url=url)
+        SchemaRefFactory.create(url=url)
         response = api_client.get(
             f'/api/find?id={id_value}',
         )
@@ -309,7 +308,7 @@ def test_create_prevents_publishing_schemas_with_existing_definition_urls(api_cl
     other_user = UserFactory.create()
     published_schema = SchemaFactory.create(created_by=other_user)
     url = 'https://example.com/definition.json'
-    published_schema_ref = SchemaRefFactory.create(schema=published_schema, url=url)
+    SchemaRefFactory.create(schema=published_schema, url=url)
     manifest = {
         'name': 'Test schema',
         'public': True,
@@ -338,7 +337,7 @@ def test_create_prevents_publishing_schemas_with_existing_id_values(api_client):
     content = f'{{"$id":"{id_value}"}}'
     with requests_mock.Mocker() as m:
         m.get(url, text=content)
-        published_schema_ref = SchemaRefFactory.create(schema=published_schema, url=url)
+        SchemaRefFactory.create(schema=published_schema, url=url)
         manifest = {
             'name': 'Test schema',
             'public': True,
@@ -500,7 +499,7 @@ def test_update_prevents_publishing_schemas_with_existing_definition_urls(api_cl
     other_user = UserFactory.create()
     published_schema = SchemaFactory.create(created_by=other_user)
     url = 'https://example.com/definition.json'
-    published_schema_ref = SchemaRefFactory.create(schema=published_schema, url=url)
+    SchemaRefFactory.create(schema=published_schema, url=url)
     manifest = {
         'name': 'Test schema',
         'public': True,
@@ -530,7 +529,7 @@ def test_update_prevents_publishing_schemas_with_existing_id_values(api_client):
     content = f'{{"$id":"{id_value}"}}'
     with requests_mock.Mocker() as m:
         m.get(url, text=content)
-        published_schema_ref = SchemaRefFactory.create(schema=published_schema, url=url)
+        SchemaRefFactory.create(schema=published_schema, url=url)
         manifest = {
             'name': 'Test schema',
             'public': True,
