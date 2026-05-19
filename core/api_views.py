@@ -2,7 +2,6 @@ import json
 from functools import wraps
 from django.utils import timezone
 from django.db import transaction
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from django.views.decorators.http import (

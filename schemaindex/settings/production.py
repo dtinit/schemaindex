@@ -1,7 +1,5 @@
 import logging
 import os
-import sys
-import environ
 
 from django.core.exceptions import ImproperlyConfigured
 from google.oauth2 import service_account

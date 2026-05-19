@@ -1,8 +1,6 @@
-from urllib.parse import urlparse
 import json
 from django import forms
 from django.core.exceptions import ValidationError
-from django.db.models import Q
 from django.core.validators import RegexValidator
 import requests
 from .models import DocumentationItem, SchemaRef, Schema, PermanentURL

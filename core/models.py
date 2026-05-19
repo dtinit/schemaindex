@@ -404,7 +404,7 @@ class ReferenceItem(BaseModel):
     def update_or_create_from_manifest_document(cls, schema, document_url, document_metadata, created_by):
         model_class = cls.get_manifest_document_type_model_map().get(document_metadata.get('type'))
         if not model_class:
-            raise ValueError(f"Unsupported manifest document typet")
+            raise ValueError("Unsupported manifest document type")
 
         return model_class.update_or_create_from_manifest_document(schema, document_url, document_metadata, created_by)
 
@@ -742,7 +742,7 @@ class Profile(models.Model):
 
 class APIKeyManager(models.Manager):
     def get_from_key(self, raw_api_key):
-        if not '.' in raw_api_key:
+        if '.' not in raw_api_key:
             return None
 
         prefix, secret = raw_api_key.split('.', 1)

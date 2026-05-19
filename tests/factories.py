@@ -1,13 +1,11 @@
 import uuid
 from factory.django import DjangoModelFactory
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
 from django.db.models.signals import post_save
 import factory
 import secrets
 from datetime import timezone
 from core.models import (
-    BaseModel,
     Schema,
     ReferenceItem,
     SchemaRef,

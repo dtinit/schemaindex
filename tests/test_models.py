@@ -8,7 +8,7 @@ from django.test import override_settings
 from django.utils import timezone
 from django.core import mail
 from django.contrib.auth.hashers import make_password
-from core.models import Schema, SchemaRef, DocumentationItem, APIKey
+from core.models import Schema, SchemaRef, APIKey
 from factories import (
     UserFactory,
     SchemaRefFactory,
@@ -340,7 +340,7 @@ def test_api_key_creation():
 
 @pytest.mark.django_db
 def test_api_key_replacement():
-    existing_api_key = APIKeyFactory.create();
+    existing_api_key = APIKeyFactory.create()
     profile = existing_api_key.profile
     profile.set_new_api_key()
     assert not APIKey.objects.filter(pk=existing_api_key.pk).exists()

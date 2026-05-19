@@ -2,7 +2,7 @@ import logging
 import uuid
 
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
@@ -16,7 +16,6 @@ import requests
 import cmarkgfm
 import bleach
 from .models import (Schema,
-    DocumentationItem,
     SchemaRef,
     DocumentationItem,
     Organization,
@@ -26,7 +25,6 @@ from .models import (Schema,
 )
 from .forms import (
     SchemaForm,
-    DocumentationItemForm,
     PermanentURLForm
 )
 
@@ -214,7 +212,7 @@ def _sync_formset_to_reference_items(schema, existing_items_queryset, formset, m
 
     # Delete items that were removed
     for item in existing_items_queryset:
-        if not item.id in updated_item_ids:
+        if item.id not in updated_item_ids:
             item.delete()
 
 

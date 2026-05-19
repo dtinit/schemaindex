@@ -1,18 +1,13 @@
 import pytest
 import requests_mock
 from urllib.parse import urlparse, urlunparse
-from django.contrib.contenttypes.models import ContentType
 from core.forms import SchemaForm, PermanentURLForm
-from core.models import Schema
 from tests.factories import (
     SchemaFactory,
     SchemaRefFactory,
-    OrganizationSchemaRefFactory,
     OrganizationSchemaFactory,
-    PermanentURLFactory,
-    DocumentationItemFactory
+    PermanentURLFactory
 )
-from core.models import DocumentationItem
 
 @pytest.mark.django_db
 def test_schema_management_form_prevents_duplicate_published_urls():
