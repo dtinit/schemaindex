@@ -15,20 +15,16 @@ def get_cloud_logging_handler():
     Notes:
         Import Google Cloud packages only when enabled
     """
-    if os.environ.get('USE_GCLOUD_LOGGING', '0') != '1':
+    if os.environ.get("USE_GCLOUD_LOGGING", "0") != "1":
         return logging.NullHandler()
 
     try:
-        
         from google.cloud.logging import Client as CloudLoggingClient
         from google.cloud.logging.handlers import CloudLoggingHandler
 
         client = CloudLoggingClient()
 
-        handler = CloudLoggingHandler(
-            client,
-            name="schemaindex"
-        )
+        handler = CloudLoggingHandler(client, name="schemaindex")
 
         return handler
 

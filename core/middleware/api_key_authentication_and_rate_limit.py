@@ -8,7 +8,7 @@ from .rate_limit import check_and_record_request
 
 logger = logging.getLogger("schemaindex")
 
-API_KEY_HEADER = 'X-API-Key'
+API_KEY_HEADER = "X-API-Key"
 
 
 class APIKeyAuthenticationAndRateLimitMiddleware:
@@ -24,16 +24,16 @@ class APIKeyAuthenticationAndRateLimitMiddleware:
             return ApiErrorResponse(
                 status_code=401,
                 message="Missing API Key",
-                details=f"Please include your API key with the {API_KEY_HEADER} header"
+                details=f"Please include your API key with the {API_KEY_HEADER} header",
             )
-        
+
         api_key_obj = APIKey.objects.get_from_key(api_key_header)
         if not api_key_obj:
             return ApiErrorResponse(
                 status_code=401,
                 message="Invalid API key",
             )
-        
+
         profile = api_key_obj.profile
         # For convenience, attach the user to the request
         request.user = profile.user
@@ -47,17 +47,19 @@ class APIKeyAuthenticationAndRateLimitMiddleware:
             if getattr(settings, "RATE_LIMIT_OBSERVABILITY", False):
                 logger.info(
                     "api_rate_limit_blocked profile_id=%s path=%s",
-                    profile.id, request.path,
+                    profile.id,
+                    request.path,
                 )
             return ApiErrorResponse(
                 status_code=429,
                 message="Too many requests",
-                details="You have exceeded your hourly request limit"
+                details="You have exceeded your hourly request limit",
             )
         if reason == "valkey_unavailable":
             logger.warning(
                 "api_rate_limit_failed_open profile_id=%s path=%s",
-                profile.id, request.path,
+                profile.id,
+                request.path,
             )
 
         return self.get_response(request)

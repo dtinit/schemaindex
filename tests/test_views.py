@@ -11,7 +11,7 @@ from tests.factories import (
     OrganizationSchemaFactory,
     OrganizationSchemaRefFactory,
     PermanentURLFactory,
-    ImplementationFactory
+    ImplementationFactory,
 )
 from core.models import Schema, DocumentationItem, Profile
 from core.forms import PermanentURLForm
@@ -25,7 +25,7 @@ from utils import assert_schema_matches_manifest
 def test_private_schemas_404_to_anonymous():
     schema = SchemaFactory(published_at=None)
     client = Client()
-    response = client.get(f'/schemas/{schema.id}', follow=True)
+    response = client.get(f"/schemas/{schema.id}", follow=True)
     assert response.status_code == 404
 
 
@@ -34,7 +34,7 @@ def test_private_schemas_404_to_non_creators():
     schema = SchemaFactory(published_at=None)
     client = Client()
     client.force_login(UserFactory())
-    response = client.get(f'/schemas/{schema.id}', follow=True)
+    response = client.get(f"/schemas/{schema.id}", follow=True)
     assert response.status_code == 404
 
 
@@ -43,7 +43,7 @@ def test_private_schemas_accessible_to_creators():
     schema = SchemaFactory(published_at=None)
     client = Client()
     client.force_login(schema.created_by)
-    response = client.get(f'/schemas/{schema.id}', follow=True)
+    response = client.get(f"/schemas/{schema.id}", follow=True)
     assert response.status_code == 200
 
 
@@ -53,7 +53,7 @@ def test_published_schemas_listed():
     # Undefined schemas aren't listed on the homepage
     SchemaRefFactory(schema=schema)
     client = Client()
-    response = client.get('/')
+    response = client.get("/")
     assert response.status_code == 200
     assert schema.name in str(response.content)
 
@@ -65,7 +65,7 @@ def test_private_schemas_not_listed():
     # is the reason it's not showing up
     SchemaRefFactory(schema=schema)
     client = Client()
-    response = client.get('/')
+    response = client.get("/")
     assert response.status_code == 200
     assert schema.name not in str(response.content)
 
@@ -77,13 +77,13 @@ def test_published_schemas_filterable_by_language():
     xml_schema = SchemaFactory()
     SchemaRefFactory(url="http://example.com/schema.xml", schema=xml_schema)
     client = Client()
-    default_response = client.get('/')
+    default_response = client.get("/")
     assert json_schema.name in str(default_response.content)
     assert xml_schema.name in str(default_response.content)
-    json_filtered_response = client.get('/?specification_file_type=json')
+    json_filtered_response = client.get("/?specification_file_type=json")
     assert json_schema.name in str(json_filtered_response.content)
     assert xml_schema.name not in str(json_filtered_response.content)
-    xml_filtered_response = client.get('/?specification_file_type=xml')
+    xml_filtered_response = client.get("/?specification_file_type=xml")
     assert json_schema.name not in str(xml_filtered_response.content)
     assert xml_schema.name in str(xml_filtered_response.content)
 
@@ -93,23 +93,25 @@ def test_published_schemas_filterable_by_documentation_item_role():
     rfc_schema = SchemaFactory()
     SchemaRefFactory(schema=rfc_schema)
     DocumentationItemFactory(
-        schema=rfc_schema,
-        role=DocumentationItem.DocumentationItemRole.RFC
+        schema=rfc_schema, role=DocumentationItem.DocumentationItemRole.RFC
     )
     w3c_schema = SchemaFactory()
     SchemaRefFactory(schema=w3c_schema)
     DocumentationItemFactory(
-        schema=w3c_schema,
-        role=DocumentationItem.DocumentationItemRole.W3C
+        schema=w3c_schema, role=DocumentationItem.DocumentationItemRole.W3C
     )
     client = Client()
-    default_response = client.get('/')
+    default_response = client.get("/")
     assert rfc_schema.name in str(default_response.content)
     assert w3c_schema.name in str(default_response.content)
-    rfc_filtered_response = client.get(f'/?documentation_role={DocumentationItem.DocumentationItemRole.RFC.value}')
+    rfc_filtered_response = client.get(
+        f"/?documentation_role={DocumentationItem.DocumentationItemRole.RFC.value}"
+    )
     assert rfc_schema.name in str(rfc_filtered_response.content)
     assert w3c_schema.name not in str(rfc_filtered_response.content)
-    w3c_filtered_response = client.get(f'/?documentation_role={DocumentationItem.DocumentationItemRole.W3C.value}')
+    w3c_filtered_response = client.get(
+        f"/?documentation_role={DocumentationItem.DocumentationItemRole.W3C.value}"
+    )
     assert rfc_schema.name not in str(w3c_filtered_response.content)
     assert w3c_schema.name in str(w3c_filtered_response.content)
 
@@ -121,10 +123,10 @@ def test_published_schemas_searchable_by_name():
     other_schema = SchemaFactory(name="Other Schema")
     SchemaRefFactory(schema=other_schema)
     client = Client()
-    default_response = client.get('/')
+    default_response = client.get("/")
     assert matching_schema.name in str(default_response.content)
     assert other_schema.name in str(default_response.content)
-    searched_response = client.get('/?search_query=matching')
+    searched_response = client.get("/?search_query=matching")
     assert matching_schema.name in str(searched_response.content)
     assert other_schema.name not in str(searched_response.content)
 
@@ -137,10 +139,10 @@ def test_private_schemas_with_published_urls_cannot_be_published():
     SchemaRefFactory(schema=private_schema, url=public_schema_ref.url)
     client = Client()
     client.force_login(private_schema.created_by)
-    get_response = client.get(f'/manage/schema/{private_schema.id}/publish')
+    get_response = client.get(f"/manage/schema/{private_schema.id}/publish")
     assert get_response.status_code == 200
     assert "Schema URL already in use" in str(get_response.content)
-    post_response = client.post(f'/manage/schema/{private_schema.id}/publish')
+    post_response = client.post(f"/manage/schema/{private_schema.id}/publish")
     assert post_response.status_code == 403
     private_schema.refresh_from_db()
     assert private_schema.published_at is None
@@ -150,49 +152,53 @@ def test_private_schemas_with_published_urls_cannot_be_published():
 def test_private_schemas_with_published_id_values_cannot_be_published():
     public_schema = SchemaFactory()
     private_schema = SchemaFactory(published_at=None)
-    mock_id_value = 'http://example.com/id'
-    public_schema_ref_url = 'http://example.com/definition.json'
-    private_schema_ref_url = 'http://example.com/definition2.json'
+    mock_id_value = "http://example.com/id"
+    public_schema_ref_url = "http://example.com/definition.json"
+    private_schema_ref_url = "http://example.com/definition2.json"
     with requests_mock.Mocker() as m:
         m.get(public_schema_ref_url, text=f'{{"$id": "{mock_id_value}"}}')
-        m.get(private_schema_ref_url,text=f'{{"$id": "{mock_id_value}"}}')
+        m.get(private_schema_ref_url, text=f'{{"$id": "{mock_id_value}"}}')
         SchemaRefFactory(schema=public_schema, url=public_schema_ref_url)
         SchemaRefFactory(schema=private_schema, url=private_schema_ref_url)
 
     client = Client()
     client.force_login(private_schema.created_by)
-    get_response = client.get(f'/manage/schema/{private_schema.id}/publish')
+    get_response = client.get(f"/manage/schema/{private_schema.id}/publish")
     assert get_response.status_code == 200
     assert "Schema $id already in use" in str(get_response.content)
-    post_response = client.post(f'/manage/schema/{private_schema.id}/publish')
+    post_response = client.post(f"/manage/schema/{private_schema.id}/publish")
     assert post_response.status_code == 403
     private_schema.refresh_from_db()
     assert private_schema.published_at is None
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("existing_url, attempted_url", [
+@pytest.mark.parametrize(
+    "existing_url, attempted_url",
     [
-        "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
-        "https://raw.githubusercontent.com/userorg/reponame/refs/heads/branch/path/to/file.json"
+        [
+            "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
+            "https://raw.githubusercontent.com/userorg/reponame/refs/heads/branch/path/to/file.json",
+        ],
+        [
+            "https://raw.githubusercontent.com/userorg/reponame/refs/heads/branch/path/to/file.json",
+            "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
+        ],
     ],
-    [
-        "https://raw.githubusercontent.com/userorg/reponame/refs/heads/branch/path/to/file.json",
-        "https://github.com/userorg/reponame/blob/branch/path/to/file.json"
-    ],
-
-])
-def test_private_schemas_with_equivalent_published_github_urls_cannot_be_published(existing_url, attempted_url):
+)
+def test_private_schemas_with_equivalent_published_github_urls_cannot_be_published(
+    existing_url, attempted_url
+):
     public_schema = SchemaFactory()
     SchemaRefFactory(schema=public_schema, url=existing_url)
     private_schema = SchemaFactory(published_at=None)
     SchemaRefFactory(schema=private_schema, url=attempted_url)
     client = Client()
     client.force_login(private_schema.created_by)
-    get_response = client.get(f'/manage/schema/{private_schema.id}/publish')
+    get_response = client.get(f"/manage/schema/{private_schema.id}/publish")
     assert get_response.status_code == 200
     assert "Schema URL already in use" in str(get_response.content)
-    post_response = client.post(f'/manage/schema/{private_schema.id}/publish')
+    post_response = client.post(f"/manage/schema/{private_schema.id}/publish")
     assert post_response.status_code == 403
     private_schema.refresh_from_db()
     assert private_schema.published_at is None
@@ -204,14 +210,14 @@ def test_private_schemas_with_new_urls_can_be_published():
     schema_ref = SchemaRefFactory(schema=schema)
     client = Client()
     client.force_login(schema.created_by)
-    get_response = client.get(f'/manage/schema/{schema.id}/publish')
+    get_response = client.get(f"/manage/schema/{schema.id}/publish")
     assert get_response.status_code == 200
     assert "Schema URL already in use" not in str(get_response.content)
     with requests_mock.Mocker() as m:
-        m.get(schema_ref.url, text='{}')
-        post_response = client.post(f'/manage/schema/{schema.id}/publish', follow=True)
+        m.get(schema_ref.url, text="{}")
+        post_response = client.post(f"/manage/schema/{schema.id}/publish", follow=True)
         assert post_response.status_code == 200
-    
+
     schema.refresh_from_db()
     assert schema.published_at is not None
 
@@ -221,9 +227,9 @@ def test_private_schemas_can_be_deleted():
     schema = SchemaFactory(published_at=None)
     client = Client()
     client.force_login(schema.created_by)
-    get_response = client.get(f'/manage/schema/{schema.id}/delete')
+    get_response = client.get(f"/manage/schema/{schema.id}/delete")
     assert get_response.status_code == 200
-    post_response = client.post(f'/manage/schema/{schema.id}/delete', follow=True)
+    post_response = client.post(f"/manage/schema/{schema.id}/delete", follow=True)
     assert post_response.status_code == 200
     assert not Schema.objects.filter(id=schema.id).exists()
 
@@ -233,9 +239,9 @@ def test_published_schemas_cannot_be_deleted():
     schema = SchemaFactory()
     client = Client()
     client.force_login(schema.created_by)
-    get_response = client.get(f'/manage/schema/{schema.id}/delete')
+    get_response = client.get(f"/manage/schema/{schema.id}/delete")
     assert get_response.status_code == 403
-    post_response = client.post(f'/manage/schema/{schema.id}/delete', follow=True)
+    post_response = client.post(f"/manage/schema/{schema.id}/delete", follow=True)
     assert post_response.status_code == 403
     assert Schema.objects.filter(id=schema.id).exists()
 
@@ -243,45 +249,56 @@ def test_published_schemas_cannot_be_deleted():
 @pytest.mark.django_db
 def test_invalid_permanent_urls_404():
     client = Client()
-    response = client.get('/o/bad/path')
+    response = client.get("/o/bad/path")
     assert response.status_code == 404
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    'link_type,suffix',
-    [[PermanentURLForm.LinkType.UUID, 'unused'],
-     [PermanentURLForm.LinkType.EMAIL, 'test_suffix'],
-     [PermanentURLForm.LinkType.ORGANIZATION, 'test_suffix']]
+    "link_type,suffix",
+    [
+        [PermanentURLForm.LinkType.UUID, "unused"],
+        [PermanentURLForm.LinkType.EMAIL, "test_suffix"],
+        [PermanentURLForm.LinkType.ORGANIZATION, "test_suffix"],
+    ],
 )
 def test_matching_permanent_urls_redirect_to_schemas(link_type, suffix):
     schema = OrganizationSchemaFactory()
-    permanent_url = PermanentURLFactory(content_object=schema, link_type=link_type, suffix=suffix)
+    permanent_url = PermanentURLFactory(
+        content_object=schema, link_type=link_type, suffix=suffix
+    )
     permant_url_path = urlparse(permanent_url.url).path
     client = Client()
     response = client.get(permant_url_path, follow=True)
     assert response.status_code == 200
-    assertRedirects(response, f'http://testserver/schemas/{schema.id}')
+    assertRedirects(response, f"http://testserver/schemas/{schema.id}")
 
 
 @pytest.mark.django_db
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    'link_type,suffix',
-    [[PermanentURLForm.LinkType.UUID, 'unused'],
-     [PermanentURLForm.LinkType.EMAIL, 'test_suffix'],
-     [PermanentURLForm.LinkType.ORGANIZATION, 'test_suffix']]
+    "link_type,suffix",
+    [
+        [PermanentURLForm.LinkType.UUID, "unused"],
+        [PermanentURLForm.LinkType.EMAIL, "test_suffix"],
+        [PermanentURLForm.LinkType.ORGANIZATION, "test_suffix"],
+    ],
 )
 def test_matching_permanent_urls_redirect_to_schema_refs(link_type, suffix):
     schema_ref = OrganizationSchemaRefFactory()
-    permanent_url = PermanentURLFactory(content_object=schema_ref, link_type=link_type, suffix=suffix)
+    permanent_url = PermanentURLFactory(
+        content_object=schema_ref, link_type=link_type, suffix=suffix
+    )
     permant_url_path = urlparse(permanent_url.url).path
     client = Client()
     with requests_mock.Mocker() as m:
-        m.get(schema_ref.url, text='{}')
+        m.get(schema_ref.url, text="{}")
         response = client.get(permant_url_path, follow=True)
         assert response.status_code == 200
-        assertRedirects(response, f'http://testserver/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}')
+        assertRedirects(
+            response,
+            f"http://testserver/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}",
+        )
 
 
 @pytest.mark.django_db
@@ -289,41 +306,41 @@ def test_permanent_urlmanagement_form_404_for_private_schema():
     schema = SchemaFactory(published_at=None)
     client = Client()
     client.force_login(schema.created_by)
-    response = client.get(f'/schemas/{schema.id}/permanent-urls', follow=True)
+    response = client.get(f"/schemas/{schema.id}/permanent-urls", follow=True)
     assert response.status_code == 404
 
 
 @pytest.mark.django_db
 def test_saving_schemas_preserves_existing_reference_items():
     schema = SchemaFactory()
-    schema_ref = SchemaRefFactory(schema=schema, url='https://example.com/file.json')
-    documentation_item = DocumentationItemFactory(
-        schema=schema,
-        role=None
-    )
+    schema_ref = SchemaRefFactory(schema=schema, url="https://example.com/file.json")
+    documentation_item = DocumentationItemFactory(schema=schema, role=None)
     client = Client()
     client.force_login(schema.created_by)
-    new_schema_ref_name = 'NEW ' + schema_ref.name if schema_ref.name else 'NEW NAME'
-    new_documentation_item_name = 'NEW ' + documentation_item.name
+    new_schema_ref_name = "NEW " + schema_ref.name if schema_ref.name else "NEW NAME"
+    new_documentation_item_name = "NEW " + documentation_item.name
     with requests_mock.Mocker() as m:
-        m.get(schema_ref.url, text='{}')
-        m.get('https://example.com', text='{}')
-        client.post(f'/manage/schema/{schema.id}', {
-            'name': schema.name,
-            'schema_refs-0-id': schema_ref.id,
-            'schema_refs-0-url': schema_ref.url,
-            'schema_refs-0-name': new_schema_ref_name,
-            'readme_url': 'https://example.com',
-            'documentation_items-0-id': documentation_item.id,
-            'documentation_items-0-name': new_documentation_item_name,
-            'documentation_items-0-url': documentation_item.url,
-            'documentation_items-TOTAL_FORMS': 1,
-            'documentation_items-INITIAL_FORMS': 1,
-            'schema_refs-TOTAL_FORMS': 1,
-            'schema_refs-INITIAL_FORMS': 1,
-            'implementations-TOTAL_FORMS': 0,
-            'implementations-INITIAL_FORMS': 0
-        })
+        m.get(schema_ref.url, text="{}")
+        m.get("https://example.com", text="{}")
+        client.post(
+            f"/manage/schema/{schema.id}",
+            {
+                "name": schema.name,
+                "schema_refs-0-id": schema_ref.id,
+                "schema_refs-0-url": schema_ref.url,
+                "schema_refs-0-name": new_schema_ref_name,
+                "readme_url": "https://example.com",
+                "documentation_items-0-id": documentation_item.id,
+                "documentation_items-0-name": new_documentation_item_name,
+                "documentation_items-0-url": documentation_item.url,
+                "documentation_items-TOTAL_FORMS": 1,
+                "documentation_items-INITIAL_FORMS": 1,
+                "schema_refs-TOTAL_FORMS": 1,
+                "schema_refs-INITIAL_FORMS": 1,
+                "implementations-TOTAL_FORMS": 0,
+                "implementations-INITIAL_FORMS": 0,
+            },
+        )
     schema_ref.refresh_from_db()
     documentation_item.refresh_from_db()
     assert schema_ref.name == new_schema_ref_name
@@ -335,10 +352,10 @@ def test_api_key_shown_to_user():
     user = UserFactory.create()
     client = Client()
     client.force_login(user)
-    mock_api_key = 'mock-api-key'
-    with patch.object(Profile, 'set_new_api_key') as mocked_set_new_api_key:
+    mock_api_key = "mock-api-key"
+    with patch.object(Profile, "set_new_api_key") as mocked_set_new_api_key:
         mocked_set_new_api_key.return_value = mock_api_key
-        response = client.post('/account/api-key/', follow=True)
+        response = client.post("/account/api-key/", follow=True)
         assert response.status_code == 200
         assert mock_api_key in str(response.content)
 
@@ -350,25 +367,25 @@ def test_schema_ref_detail_shows_error_when_content_fetch_fails():
     with requests_mock.Mocker() as m:
         m.get(schema_ref.url, exc=requests.exceptions.ConnectionError)
         response = client.get(
-            f'/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}',
+            f"/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}",
             follow=True,
         )
     assert response.status_code == 200
-    assert b'content-fetch-error' in response.content
+    assert b"content-fetch-error" in response.content
 
 
 @pytest.mark.django_db
 def test_schema_ref_detail_renders_content_on_successful_fetch():
-    schema_ref = SchemaRefFactory(url='http://example.com/schema.json')
+    schema_ref = SchemaRefFactory(url="http://example.com/schema.json")
     client = Client()
     with requests_mock.Mocker() as m:
         m.get(schema_ref.url, text='{"type": "object"}')
         response = client.get(
-            f'/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}',
+            f"/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}",
             follow=True,
         )
     assert response.status_code == 200
-    assert b'content-fetch-error' not in response.content
+    assert b"content-fetch-error" not in response.content
 
 
 @pytest.mark.django_db
@@ -381,9 +398,9 @@ def test_schema_detail_shows_error_when_readme_content_fetch_fails():
     client = Client()
     with requests_mock.Mocker() as m:
         m.get(readme.url, exc=requests.exceptions.ConnectionError)
-        response = client.get(f'/schemas/{schema.id}', follow=True)
+        response = client.get(f"/schemas/{schema.id}", follow=True)
     assert response.status_code == 200
-    assert b'content-fetch-error' in response.content
+    assert b"content-fetch-error" in response.content
 
 
 @pytest.mark.django_db
@@ -396,11 +413,11 @@ def test_schema_detail_renders_readme_on_successful_fetch():
     )
     client = Client()
     with requests_mock.Mocker() as m:
-        m.get(readme.url, text='Hello readme')
-        response = client.get(f'/schemas/{schema.id}', follow=True)
+        m.get(readme.url, text="Hello readme")
+        response = client.get(f"/schemas/{schema.id}", follow=True)
     assert response.status_code == 200
-    assert b'content-fetch-error' not in response.content
-    assert b'Hello readme' in response.content
+    assert b"content-fetch-error" not in response.content
+    assert b"Hello readme" in response.content
 
 
 @pytest.mark.django_db
@@ -410,8 +427,7 @@ def test_schema_export_sends_manifest():
     DocumentationItemFactory(schema=schema)
     ImplementationFactory(schema=schema)
     client = Client()
-    response = client.get(f'/schemas/{schema.id}/export')
+    response = client.get(f"/schemas/{schema.id}/export")
     assert response.status_code == 200
     manifest = json.loads(response.content)
     assert_schema_matches_manifest(schema, manifest)
-

@@ -22,9 +22,9 @@ def fallback_get_request_mock(requests_mock):
     """
     # This matches any URL (http/https) and any method (GET/POST/etc.)
     requests_mock.get(
-        requests_mock_lib.ANY, 
-        json={'message': 'Default fallback response'},
-        status_code=200
+        requests_mock_lib.ANY,
+        json={"message": "Default fallback response"},
+        status_code=200,
     )
     return requests_mock
 
@@ -33,7 +33,6 @@ def fallback_get_request_mock(requests_mock):
 def api_client(client, db):
     profile = ProfileFactory.create()
     api_key = profile.set_new_api_key()
-    client.defaults['HTTP_X_API_KEY'] = api_key 
+    client.defaults["HTTP_X_API_KEY"] = api_key
     client.user = profile.user
     return client
-

@@ -14,15 +14,16 @@ from core.models import (
     Profile,
     PermanentURL,
     APIKey,
-    Implementation
+    Implementation,
 )
 from core.forms import PermanentURLForm
 
+
 class ProfileFactory(DjangoModelFactory):
-    class Meta: 
+    class Meta:
         model = Profile
 
-    user = factory.SubFactory('tests.factories.UserFactory', profile=None)
+    user = factory.SubFactory("tests.factories.UserFactory", profile=None)
 
 
 @factory.django.mute_signals(post_save)
@@ -31,12 +32,12 @@ class UserFactory(DjangoModelFactory):
         model = User
         skip_postgeneration_save = True
 
-    username = factory.Faker('user_name')
-    email = factory.Faker('email')
-    password = factory.django.Password('testpassword')
+    username = factory.Faker("user_name")
+    email = factory.Faker("email")
+    password = factory.django.Password("testpassword")
     profile = factory.RelatedFactory(
         ProfileFactory,
-        factory_related_name='user',
+        factory_related_name="user",
     )
 
 
@@ -48,8 +49,8 @@ class OrganizationFactory(BaseModelFactory):
     class Meta:
         model = Organization
 
-    name = factory.Faker('company')
-    slug = factory.Sequence(lambda n: f'orgslug-{n}')
+    name = factory.Faker("company")
+    slug = factory.Sequence(lambda n: f"orgslug-{n}")
 
 
 class OrganizationProfileFactory(ProfileFactory):
@@ -59,15 +60,15 @@ class OrganizationProfileFactory(ProfileFactory):
 class OrganizationUserFactory(UserFactory):
     profile = factory.RelatedFactory(
         OrganizationProfileFactory,
-        factory_related_name='user',
+        factory_related_name="user",
     )
 
 
 class SchemaFactory(BaseModelFactory):
     class Meta:
-         model = Schema
-    
-    name = factory.Faker('catch_phrase')
+        model = Schema
+
+    name = factory.Faker("catch_phrase")
     published_at = factory.Faker("past_datetime", tzinfo=timezone.utc)
 
 
@@ -79,7 +80,7 @@ class ReferenceItemFactory(BaseModelFactory):
     class Meta:
         model = ReferenceItem
 
-    url = factory.Faker('url')
+    url = factory.Faker("url")
 
 
 class SchemaRefFactory(ReferenceItemFactory):
@@ -91,15 +92,15 @@ class SchemaRefFactory(ReferenceItemFactory):
 
 class OrganizationSchemaRefFactory(SchemaRefFactory):
     schema = factory.SubFactory(OrganizationSchemaFactory)
-    created_by = factory.LazyAttribute(lambda instance: instance.schema.created_by)    
-        
+    created_by = factory.LazyAttribute(lambda instance: instance.schema.created_by)
+
 
 class DocumentationItemFactory(ReferenceItemFactory):
     class Meta:
         model = DocumentationItem
 
-    name = factory.Faker('catch_phrase')
-    description = factory.Faker('paragraph')
+    name = factory.Faker("catch_phrase")
+    description = factory.Faker("paragraph")
     schema = factory.SubFactory(SchemaFactory)
     role = factory.Iterator(DocumentationItem.DocumentationItemRole.values)
     format = factory.Iterator(DocumentationItem.DocumentationItemFormat.values)
@@ -109,7 +110,7 @@ class ImplementationFactory(ReferenceItemFactory):
     class Meta:
         model = Implementation
 
-    is_open_source = factory.Faker('boolean')
+    is_open_source = factory.Faker("boolean")
     schema = factory.SubFactory(SchemaFactory)
 
 
@@ -119,34 +120,29 @@ class PermanentURLFactory(DjangoModelFactory):
     You can pass link_type="organization" or link_type="email"
     to override, but then you must also include a suffix.
     """
+
     class Meta:
         model = PermanentURL
 
-    suffix = factory.Sequence(lambda n: f'permanentOrgUrlSuffix-{n}')
+    suffix = factory.Sequence(lambda n: f"permanentOrgUrlSuffix-{n}")
     link_type = PermanentURLForm.LinkType.UUID
 
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
-        link_type = kwargs.pop('link_type', PermanentURLForm.LinkType.UUID)
-        suffix = kwargs.pop('suffix', None)
-        content_object=kwargs.get('content_object')
+        link_type = kwargs.pop("link_type", PermanentURLForm.LinkType.UUID)
+        suffix = kwargs.pop("suffix", None)
+        content_object = kwargs.get("content_object")
         if link_type == PermanentURLForm.LinkType.UUID:
             return model_class.objects.create_from_uuid(
-                created_by=content_object.created_by,
-                uuid=uuid.uuid4(),
-                **kwargs
+                created_by=content_object.created_by, uuid=uuid.uuid4(), **kwargs
             )
         elif link_type == PermanentURLForm.LinkType.EMAIL:
             return model_class.objects.create_from_email_suffix(
-                created_by=content_object.created_by,
-                suffix=suffix,
-                **kwargs
-            ) 
+                created_by=content_object.created_by, suffix=suffix, **kwargs
+            )
         elif link_type == PermanentURLForm.LinkType.ORGANIZATION:
             return model_class.objects.create_from_org_suffix(
-                created_by=content_object.created_by,
-                suffix=suffix,
-                **kwargs
+                created_by=content_object.created_by, suffix=suffix, **kwargs
             )
 
 

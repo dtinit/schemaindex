@@ -61,6 +61,7 @@ jobs:
           pip install ruff
 
       - name: Lint
+        # --output-format github requires --preview
         run: ruff format --check --preview --output-format github
 
   check-python-requirements:

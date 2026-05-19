@@ -15,34 +15,57 @@ from functools import wraps
 import requests
 import cmarkgfm
 import bleach
-from .models import (Schema,
+from .models import (
+    Schema,
     SchemaRef,
     DocumentationItem,
     Organization,
     PermanentURL,
     Implementation,
-    PublishedSchemaConflictError
+    PublishedSchemaConflictError,
 )
-from .forms import (
-    SchemaForm,
-    PermanentURLForm
-)
+from .forms import SchemaForm, PermanentURLForm
 
 MAX_SCHEMA_RESULT_COUNT = 30
 
 # Pulled these from https://github.com/yourcelf/bleach-allowlist.
 # These are the only tags/attributes we'll allow to be rendered from Markdown sources.
 MARKDOWN_HTML_TAGS = [
-    "h1", "h2", "h3", "h4", "h5", "h6",
-    "b", "i", "strong", "em", "tt",
-    "p", "br",
-    "span", "div", "blockquote", "code", "pre", "hr",
-    "ul", "ol", "li", "dd", "dt",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "b",
+    "i",
+    "strong",
+    "em",
+    "tt",
+    "p",
+    "br",
+    "span",
+    "div",
+    "blockquote",
+    "code",
+    "pre",
+    "hr",
+    "ul",
+    "ol",
+    "li",
+    "dd",
+    "dt",
     "img",
     "a",
-    "sub", "sup",
-    "table", "thead", "tbody", "th", "tr", "td"
-] 
+    "sub",
+    "sup",
+    "table",
+    "thead",
+    "tbody",
+    "th",
+    "tr",
+    "td",
+]
 MARKDOWN_HTML_ATTRIBUTES = {
     "*": ["id"],
     "img": ["src", "alt", "title"],
@@ -50,6 +73,7 @@ MARKDOWN_HTML_ATTRIBUTES = {
 }
 
 # ---- Decorators ----
+
 
 def lookup_schema(function):
     @wraps(function)
@@ -61,13 +85,14 @@ def lookup_schema(function):
 
         schema = get_object_or_404(
             Schema.objects
-                .prefetch_related("schemaref_set")
-                .prefetch_related("documentationitem_set")
-                .filter(schema_filter),
+            .prefetch_related("schemaref_set")
+            .prefetch_related("documentationitem_set")
+            .filter(schema_filter),
             pk=schema_id,
         )
-        
+
         return function(request, schema=schema, *args, **kwargs)
+
     return _wrap_request
 
 
@@ -76,24 +101,29 @@ def require_permanent_url_host(function):
     def _wrap_request(request, *args, **kwargs):
         host = request.get_host()
         # Get rid of any port number
-        host = host.split(':', 1)[0] 
+        host = host.split(":", 1)[0]
         if host != settings.PERMANENT_URL_HOST:
             raise Http404
 
         return function(request, host, *args, **kwargs)
+
     return _wrap_request
 
 
 # ---- Helpers ----
 
+
 def render_markdown(markdown_source_text):
     html_content = cmarkgfm.github_flavored_markdown_to_html(markdown_source_text)
-    sanitized_html_content = bleach.clean(html_content, MARKDOWN_HTML_TAGS, MARKDOWN_HTML_ATTRIBUTES)
+    sanitized_html_content = bleach.clean(
+        html_content, MARKDOWN_HTML_TAGS, MARKDOWN_HTML_ATTRIBUTES
+    )
     # WARNING: Be careful not to pass any untrusted HTML to mark_safe!
     return mark_safe(sanitized_html_content)
 
 
 # ---- Views ----
+
 
 def index(request):
     defined_schemas = (
@@ -103,30 +133,46 @@ def index(request):
         .order_by("name")
     )
 
-    search_query = request.GET.get('search_query', None)
-    specification_file_type = request.GET.get('specification_file_type', None)
-    documentation_role = request.GET.get('documentation_role', None)
+    search_query = request.GET.get("search_query", None)
+    specification_file_type = request.GET.get("specification_file_type", None)
+    documentation_role = request.GET.get("documentation_role", None)
 
-    filtered_by_documentation_type = defined_schemas.filter(
-        documentationitem__role=documentation_role
-    ) if documentation_role else defined_schemas
+    filtered_by_documentation_type = (
+        defined_schemas.filter(documentationitem__role=documentation_role)
+        if documentation_role
+        else defined_schemas
+    )
 
-    filtered_by_name = filtered_by_documentation_type.filter(
-        name__icontains=search_query
-    ) if search_query else filtered_by_documentation_type
+    filtered_by_name = (
+        filtered_by_documentation_type.filter(name__icontains=search_query)
+        if search_query
+        else filtered_by_documentation_type
+    )
 
-    filtered_by_specification_file_type = [
-        schema for schema in filtered_by_name
-        if any(schema_ref.language == specification_file_type for schema_ref in schema.schemaref_set.all())
-    ] if specification_file_type else filtered_by_name
-
-    return render(request, "core/index.html", {
-        "schemas": filtered_by_specification_file_type[:MAX_SCHEMA_RESULT_COUNT],
-        "documentation_roles": [
-            DocumentationItem.DocumentationItemRole.RFC,
-            DocumentationItem.DocumentationItemRole.W3C
+    filtered_by_specification_file_type = (
+        [
+            schema
+            for schema in filtered_by_name
+            if any(
+                schema_ref.language == specification_file_type
+                for schema_ref in schema.schemaref_set.all()
+            )
         ]
-    })
+        if specification_file_type
+        else filtered_by_name
+    )
+
+    return render(
+        request,
+        "core/index.html",
+        {
+            "schemas": filtered_by_specification_file_type[:MAX_SCHEMA_RESULT_COUNT],
+            "documentation_roles": [
+                DocumentationItem.DocumentationItemRole.RFC,
+                DocumentationItem.DocumentationItemRole.W3C,
+            ],
+        },
+    )
 
 
 @lookup_schema
@@ -136,21 +182,36 @@ def schema_detail(request, schema):
     if latest_readme:
         try:
             response_text = latest_readme.get_content()
-            if latest_readme.format == DocumentationItem.DocumentationItemFormat.Markdown:
+            if (
+                latest_readme.format
+                == DocumentationItem.DocumentationItemFormat.Markdown
+            ):
                 latest_readme_content = render_markdown(response_text)
-            elif latest_readme.format == DocumentationItem.DocumentationItemFormat.PlainText:
+            elif (
+                latest_readme.format
+                == DocumentationItem.DocumentationItemFormat.PlainText
+            ):
                 latest_readme_content = response_text
             else:
-                logging.error(f"Unhandled README content format: {latest_readme.format}")
+                logging.error(
+                    f"Unhandled README content format: {latest_readme.format}"
+                )
         except requests.exceptions.RequestException:
-            logging.error(f"Failed to fetch README content for schema {schema.id} (url={latest_readme.url})", exc_info=True)
+            logging.error(
+                f"Failed to fetch README content for schema {schema.id} (url={latest_readme.url})",
+                exc_info=True,
+            )
 
-    return render(request, "core/schemas/detail.html", {
-        "schema": schema,
-        "latest_readme": latest_readme,
-        "latest_readme_content": latest_readme_content,
-        "latest_license": schema.latest_license()
-    })
+    return render(
+        request,
+        "core/schemas/detail.html",
+        {
+            "schema": schema,
+            "latest_readme": latest_readme,
+            "latest_readme_content": latest_readme_content,
+            "latest_license": schema.latest_license(),
+        },
+    )
 
 
 @lookup_schema
@@ -163,44 +224,47 @@ def schema_ref_detail(request, schema, schema_ref_id):
         else:
             schema_ref.content = escape(text_content)
     except requests.exceptions.RequestException:
-        logging.error(f"Failed to fetch content for schema_ref {schema_ref.id} (url={schema_ref.url})", exc_info=True)
+        logging.error(
+            f"Failed to fetch content for schema_ref {schema_ref.id} (url={schema_ref.url})",
+            exc_info=True,
+        )
 
-    return render(request, "core/schemas/detail_schema_ref.html", {
-        "schema": schema,
-        "schema_ref": schema_ref,
-        "latest_license": schema.latest_license()
-    })
+    return render(
+        request,
+        "core/schemas/detail_schema_ref.html",
+        {
+            "schema": schema,
+            "schema_ref": schema_ref,
+            "latest_license": schema.latest_license(),
+        },
+    )
 
 
 @login_required
 def account_profile(request):
     user_schemas = Schema.objects.filter(created_by=request.user)
-    return render(request, "account/profile.html", {
-        'user_schemas': user_schemas
-    })
+    return render(request, "account/profile.html", {"user_schemas": user_schemas})
 
 
 @login_required
 def account_api_key(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         new_api_key = request.user.profile.set_new_api_key()
-        return render(request, "account/api_key.html", {
-            'new_api_key': new_api_key
-        })
+        return render(request, "account/api_key.html", {"new_api_key": new_api_key})
 
     return render(request, "account/api_key.html")
 
 
 # TODO: Refactor to use update_or_create
-def _sync_formset_to_reference_items(schema, existing_items_queryset, formset, model, attributes, created_by):
-    existing_items_by_id = {
-        item.id: item for item in existing_items_queryset
-    }
+def _sync_formset_to_reference_items(
+    schema, existing_items_queryset, formset, model, attributes, created_by
+):
+    existing_items_by_id = {item.id: item for item in existing_items_queryset}
     updated_item_ids = set()
 
     # Create/update items
     for form in formset:
-        id = form.cleaned_data.get('id')
+        id = form.cleaned_data.get("id")
         if id:
             db_item = existing_items_by_id[id]
             updated_item_ids.add(id)
@@ -218,14 +282,20 @@ def _sync_formset_to_reference_items(schema, existing_items_queryset, formset, m
 
 @login_required
 def manage_schema(request, schema_id=None):
-    schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id) if schema_id else None
+    schema = (
+        get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
+        if schema_id
+        else None
+    )
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = SchemaForm(request.POST, schema=schema)
         if form.is_valid():
-            schema = schema if schema else Schema.objects.create(created_by=request.user)
-            schema.name = form.cleaned_data['name']
-            schema.description = form.cleaned_data['description']
+            schema = (
+                schema if schema else Schema.objects.create(created_by=request.user)
+            )
+            schema.name = form.cleaned_data["name"]
+            schema.description = form.cleaned_data["description"]
             schema.save()
 
             _sync_formset_to_reference_items(
@@ -233,9 +303,9 @@ def manage_schema(request, schema_id=None):
                 existing_items_queryset=schema.schemaref_set.all(),
                 formset=form.schema_refs_formset,
                 model=SchemaRef,
-                attributes=['name', 'url'],
-                created_by=request.user
-            ) 
+                attributes=["name", "url"],
+                created_by=request.user,
+            )
 
             latest_readme = schema.latest_readme()
             if latest_readme is None:
@@ -243,13 +313,13 @@ def manage_schema(request, schema_id=None):
                     schema=schema,
                     created_by=request.user,
                     role=DocumentationItem.DocumentationItemRole.README,
-                    name="README"
+                    name="README",
                 )
-            latest_readme.url = form.cleaned_data['readme_url']
-            latest_readme.format = form.cleaned_data['readme_format']
+            latest_readme.url = form.cleaned_data["readme_url"]
+            latest_readme.format = form.cleaned_data["readme_format"]
             latest_readme.save()
 
-            license_url = form.cleaned_data['license_url']
+            license_url = form.cleaned_data["license_url"]
             if license_url:
                 latest_license = schema.latest_license()
                 if latest_license is None:
@@ -258,23 +328,25 @@ def manage_schema(request, schema_id=None):
                         created_by=request.user,
                         role=DocumentationItem.DocumentationItemRole.License,
                         name="License",
-                        format=DocumentationItem.DocumentationItemFormat.PlainText
+                        format=DocumentationItem.DocumentationItemFormat.PlainText,
                     )
                 latest_license.url = license_url
                 latest_license.save()
 
-            previous_documentation_items = schema.documentationitem_set.exclude(role__in=[
-                DocumentationItem.DocumentationItemRole.README,
-                DocumentationItem.DocumentationItemRole.License
-            ]).all()
+            previous_documentation_items = schema.documentationitem_set.exclude(
+                role__in=[
+                    DocumentationItem.DocumentationItemRole.README,
+                    DocumentationItem.DocumentationItemRole.License,
+                ]
+            ).all()
 
             _sync_formset_to_reference_items(
                 schema=schema,
                 existing_items_queryset=previous_documentation_items.all(),
                 formset=form.additional_documentation_items_formset,
                 model=DocumentationItem,
-                attributes=['name', 'url', 'role', 'format'],
-                created_by=request.user
+                attributes=["name", "url", "role", "format"],
+                created_by=request.user,
             )
 
             _sync_formset_to_reference_items(
@@ -282,41 +354,46 @@ def manage_schema(request, schema_id=None):
                 existing_items_queryset=schema.implementation_set.all(),
                 formset=form.implementation_formset,
                 model=Implementation,
-                attributes=['url', 'is_open_source'],
-                created_by=request.user
+                attributes=["url", "is_open_source"],
+                created_by=request.user,
             )
 
-            return redirect('schema_detail', schema_id=schema.id)
+            return redirect("schema_detail", schema_id=schema.id)
 
     else:
         form = SchemaForm(schema=schema)
 
-    return render(request, "core/manage/schema.html", {
-        'schema': schema,
-        'is_new': schema is None,
-        'form': form
-    })
+    return render(
+        request,
+        "core/manage/schema.html",
+        {"schema": schema, "is_new": schema is None, "form": form},
+    )
 
 
 @login_required
 def manage_schema_delete(request, schema_id):
-    schema = get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
+    schema = get_object_or_404(
+        Schema.objects.filter(created_by=request.user), pk=schema_id
+    )
 
     if schema.published_at:
-        raise PermissionDenied('Public schemas cannot be deleted except by an admin')
+        raise PermissionDenied("Public schemas cannot be deleted except by an admin")
 
-    if request.method == 'POST':
+    if request.method == "POST":
         schema.delete()
-        return redirect('account_profile')
-       
-    return render(request, "core/manage/delete_schema.html", {
-        'schema': schema
-    })
+        return redirect("account_profile")
+
+    return render(request, "core/manage/delete_schema.html", {"schema": schema})
 
 
 @login_required
 def manage_schema_publish(request, schema_id):
-    schema = get_object_or_404(Schema.objects.filter(created_by=request.user).prefetch_related('schemaref_set'), id=schema_id)
+    schema = get_object_or_404(
+        Schema.objects.filter(created_by=request.user).prefetch_related(
+            "schemaref_set"
+        ),
+        id=schema_id,
+    )
     conflicting_published_schema_ref = None
     conflict_reason = None
     try:
@@ -325,22 +402,30 @@ def manage_schema_publish(request, schema_id):
         conflicting_published_schema_ref = e.conflicting_schema_ref
         conflict_reason = e.reason
 
-    if request.method == 'POST':
+    if request.method == "POST":
         if conflicting_published_schema_ref:
-            raise PermissionDenied(f"Another public schema has claimed this definition's {conflict_reason}")
+            raise PermissionDenied(
+                f"Another public schema has claimed this definition's {conflict_reason}"
+            )
 
         if schema.schemaref_set.count() == 0:
-            raise PermissionDenied('Schemas without a definition cannot be published')
+            raise PermissionDenied("Schemas without a definition cannot be published")
 
-        schema.published_at = timezone.now() 
+        schema.published_at = timezone.now()
         schema.save()
-        return redirect('schema_detail', schema_id=schema.id)
-   
-    return render(request, "core/manage/publish_schema.html", {
-        'schema': schema,
-        'conflicting_schema': conflicting_published_schema_ref.schema if conflicting_published_schema_ref else None,
-        'conflict_reason': conflict_reason
-    })
+        return redirect("schema_detail", schema_id=schema.id)
+
+    return render(
+        request,
+        "core/manage/publish_schema.html",
+        {
+            "schema": schema,
+            "conflicting_schema": conflicting_published_schema_ref.schema
+            if conflicting_published_schema_ref
+            else None,
+            "conflict_reason": conflict_reason,
+        },
+    )
 
 
 def about(request):
@@ -357,9 +442,13 @@ def privacy_policy(request):
 
 def organization_detail(request, organization_id):
     organization = get_object_or_404(Organization, id=organization_id)
-    return render(request, "core/organizations/detail.html", {
-        'organization': organization,
-    })
+    return render(
+        request,
+        "core/organizations/detail.html",
+        {
+            "organization": organization,
+        },
+    )
 
 
 @login_required
@@ -369,82 +458,88 @@ def manage_schema_permanent_urls(request, schema_id):
         id=schema_id,
         created_by=request.user,
     )
-    
-    if request.method == 'POST':
+
+    if request.method == "POST":
         form = PermanentURLForm(request.POST, schema=schema)
         if form.is_valid():
-            link_type = form.cleaned_data.get('link_type')
-            target = form.cleaned_data.get('target')
-            target_type, target_id = target.split(':', 1)
-            target = schema if target_type == 'schema' else get_object_or_404(
-                SchemaRef,
-                schema=schema,
-                id=target_id
+            link_type = form.cleaned_data.get("link_type")
+            target = form.cleaned_data.get("target")
+            target_type, target_id = target.split(":", 1)
+            target = (
+                schema
+                if target_type == "schema"
+                else get_object_or_404(SchemaRef, schema=schema, id=target_id)
             )
             if link_type == form.LinkType.UUID:
                 PermanentURL.objects.create_from_uuid(
-                    created_by=request.user,
-                    content_object=target,
-                    uuid=uuid.uuid4()
+                    created_by=request.user, content_object=target, uuid=uuid.uuid4()
                 )
             elif link_type == form.LinkType.EMAIL:
                 PermanentURL.objects.create_from_email_suffix(
                     created_by=request.user,
                     content_object=target,
-                    suffix=form.cleaned_data.get('suffix')
+                    suffix=form.cleaned_data.get("suffix"),
                 )
-            elif request.user.profile.organization: # link_type == form.LinkType.Organization
+            elif (
+                request.user.profile.organization
+            ):  # link_type == form.LinkType.Organization
                 PermanentURL.objects.create_from_org_suffix(
                     created_by=request.user,
                     content_object=target,
-                    suffix=form.cleaned_data.get('suffix')
+                    suffix=form.cleaned_data.get("suffix"),
                 )
-            if target_type == 'schemaref':
-                return redirect('schema_ref_detail', schema_id=schema_id, schema_ref_id=target_id)
-            return redirect('schema_detail', schema_id=schema_id)
+            if target_type == "schemaref":
+                return redirect(
+                    "schema_ref_detail", schema_id=schema_id, schema_ref_id=target_id
+                )
+            return redirect("schema_detail", schema_id=schema_id)
 
     else:
-        link_type_param = request.GET.get('link_type', None)
-        if link_type_param == PermanentURLForm.LinkType.ORGANIZATION and not request.user.profile.organization:
+        link_type_param = request.GET.get("link_type", None)
+        if (
+            link_type_param == PermanentURLForm.LinkType.ORGANIZATION
+            and not request.user.profile.organization
+        ):
             link_type_param = None
-        target_param = request.GET.get('target', None)
-        form = PermanentURLForm(schema=schema, initial={'link_type': link_type_param, 'target': target_param})
-           
-    return render(request, "core/manage/permanent_urls.html", {
-        'schema': schema,
-        'form': form,
-    })
+        target_param = request.GET.get("target", None)
+        form = PermanentURLForm(
+            schema=schema,
+            initial={"link_type": link_type_param, "target": target_param},
+        )
+
+    return render(
+        request,
+        "core/manage/permanent_urls.html",
+        {
+            "schema": schema,
+            "form": form,
+        },
+    )
 
 
 @lookup_schema
 def schema_export(request, schema):
     manifest = schema.to_manifest()
-    response = JsonResponse(
-        manifest,
-        json_dumps_params={'indent': 4}
-    )
+    response = JsonResponse(manifest, json_dumps_params={"indent": 4})
     # Set the Content-Disposition header to attachment so the browser
     # will actually download the file
-    response['Content-Disposition'] = f'attachment; filename="{schema.name}.json"'
+    response["Content-Disposition"] = f'attachment; filename="{schema.name}.json"'
     return response
 
 
 def _permanent_url_redirect(request, permanent_url_query):
-    matching_url = get_object_or_404(
-        PermanentURL,
-        url=permanent_url_query
-    )
+    matching_url = get_object_or_404(PermanentURL, url=permanent_url_query)
     if isinstance(matching_url.content_object, Schema):
         schema = matching_url.content_object
-        new_path = reverse('schema_detail', kwargs={'schema_id': schema.id})
+        new_path = reverse("schema_detail", kwargs={"schema_id": schema.id})
         redirect_url = settings.SITE_URL + new_path
         return redirect(redirect_url)
     elif isinstance(matching_url.content_object, SchemaRef):
         schema_ref = matching_url.content_object
-        new_path = reverse('schema_ref_detail', kwargs={
-            'schema_id': schema_ref.schema.id,
-            'schema_ref_id': schema_ref.id
-        })
+        new_path = reverse(
+            "schema_ref_detail",
+            kwargs={"schema_id": schema_ref.schema.id, "schema_ref_id": schema_ref.id},
+        )
         redirect_url = settings.SITE_URL + new_path
         return redirect(redirect_url)
     else:

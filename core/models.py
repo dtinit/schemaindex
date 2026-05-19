@@ -35,48 +35,39 @@ class BaseModel(models.Model):
     def create(cls, created_by):
         return cls(created_by=created_by)
 
+
 class PermanentURLManager(models.Manager):
-    BASE_URL = f'https://{settings.PERMANENT_URL_HOST}/'
+    BASE_URL = f"https://{settings.PERMANENT_URL_HOST}/"
 
     def get_org_url_for_suffix(self, organization, suffix):
-        return self.BASE_URL + 'o/' + organization.slug + '/' + suffix
+        return self.BASE_URL + "o/" + organization.slug + "/" + suffix
 
     def create_from_org_suffix(self, created_by, suffix, **kwargs):
         """
         Creates a URL from the user's organization and a suffix.
         """
         url = self.get_org_url_for_suffix(
-            organization=created_by.profile.organization,
-            suffix=suffix
+            organization=created_by.profile.organization, suffix=suffix
         )
-        kwargs.update(
-            created_by=created_by,
-            url=url
-        )
+        kwargs.update(created_by=created_by, url=url)
         return super().create(**kwargs)
 
     def get_email_url_for_suffix(self, email_address, suffix):
-        return self.BASE_URL + 'e/' + email_address + '/' + suffix
+        return self.BASE_URL + "e/" + email_address + "/" + suffix
 
     def create_from_email_suffix(self, created_by, suffix, **kwargs):
         """
         Creates a URL from the user's email address and a suffix.
         """
         url = self.get_email_url_for_suffix(
-            email_address=created_by.email,
-            suffix=suffix
+            email_address=created_by.email, suffix=suffix
         )
-        kwargs.update(
-            created_by=created_by,
-            url=url
-        )
+        kwargs.update(created_by=created_by, url=url)
         return super().create(**kwargs)
 
     def create_from_uuid(self, uuid, **kwargs):
-        url = self.BASE_URL + 'u/' + str(uuid)
-        kwargs.update(
-            url=url
-        )
+        url = self.BASE_URL + "u/" + str(uuid)
+        kwargs.update(url=url)
         return super().create(**kwargs)
 
 
@@ -86,22 +77,19 @@ class PermanentURL(BaseModel):
     object_id = models.PositiveBigIntegerField()
     content_object = GenericForeignKey("content_type", "object_id")
     url = models.URLField()
-    
+
     class Meta:
         # As of writing, Django does *not* automatically create an index
         # on the GenericForeignKey as it does with ForeignKey.
-        indexes = [
-            models.Index(fields=["content_type", "object_id"])
-        ]
+        indexes = [models.Index(fields=["content_type", "object_id"])]
 
 
 class PublicSchemaManager(models.Manager):
     def get_queryset(self):
         return (
-            super().get_queryset().filter(
-                published_at__isnull=False,
-                published_at__lte=timezone.now()
-            )
+            super()
+            .get_queryset()
+            .filter(published_at__isnull=False, published_at__lte=timezone.now())
         )
 
 
@@ -110,10 +98,13 @@ class PublishedSchemaConflictError(Exception):
     Exception raised when publishing a schema
     would create a conflict with another published schema.
     """
+
     def __init__(self, conflicting_schema_ref, reason):
         self.conflicting_schema_ref = conflicting_schema_ref
         self.reason = reason
-        super().__init__(f"{reason} already in use by published SchemaRef {conflicting_schema_ref.id}")
+        super().__init__(
+            f"{reason} already in use by published SchemaRef {conflicting_schema_ref.id}"
+        )
 
 
 class Schema(BaseModel):
@@ -125,9 +116,7 @@ class Schema(BaseModel):
     description = models.CharField(blank=True, null=True, max_length=350)
 
     class Meta:
-        indexes = [
-            models.Index(fields=['published_at'])
-        ]
+        indexes = [models.Index(fields=["published_at"])]
 
     def __str__(self):
         return self.name
@@ -138,7 +127,7 @@ class Schema(BaseModel):
 
     @property
     def url_providers(self):
-        documentation_items =  self.documentationitem_set.all()
+        documentation_items = self.documentationitem_set.all()
         schema_refs = self.schemaref_set.all()
         provider_names = {
             reference_item.url_provider_info.provider_name
@@ -149,7 +138,7 @@ class Schema(BaseModel):
     @property
     def organization(self):
         return self.created_by.profile.organization
-    
+
     @property
     def closed_source_implementation_set(self):
         return self.implementation_set.filter(is_open_source=False)
@@ -163,33 +152,45 @@ class Schema(BaseModel):
         return self.open_source_implementation_set.exists()
 
     def _latest_documentation_item_of_type(self, role):
-        return self.documentationitem_set.filter(role=role).order_by('-created_at').first()
+        return (
+            self.documentationitem_set.filter(role=role).order_by("-created_at").first()
+        )
 
     def latest_reference(self):
-        return self.schemaref_set.order_by('-created_at').first()
+        return self.schemaref_set.order_by("-created_at").first()
 
     def latest_readme(self):
-        return self._latest_documentation_item_of_type(role=DocumentationItem.DocumentationItemRole.README)
+        return self._latest_documentation_item_of_type(
+            role=DocumentationItem.DocumentationItemRole.README
+        )
 
     def latest_license(self):
-        return self._latest_documentation_item_of_type(role=DocumentationItem.DocumentationItemRole.License)
-    
+        return self._latest_documentation_item_of_type(
+            role=DocumentationItem.DocumentationItemRole.License
+        )
+
     def latest_rfc(self):
-        return self._latest_documentation_item_of_type(role=DocumentationItem.DocumentationItemRole.RFC)
+        return self._latest_documentation_item_of_type(
+            role=DocumentationItem.DocumentationItemRole.RFC
+        )
 
     def latest_w3c(self):
-        return self._latest_documentation_item_of_type(role=DocumentationItem.DocumentationItemRole.W3C)
+        return self._latest_documentation_item_of_type(
+            role=DocumentationItem.DocumentationItemRole.W3C
+        )
 
     def additional_documentation_items(self):
-        return self.documentationitem_set.exclude(role__in=[
-            DocumentationItem.DocumentationItemRole.README,
-            DocumentationItem.DocumentationItemRole.License
-        ])
+        return self.documentationitem_set.exclude(
+            role__in=[
+                DocumentationItem.DocumentationItemRole.README,
+                DocumentationItem.DocumentationItemRole.License,
+            ]
+        )
 
     def check_for_published_conflicts(self):
         """
         Checks public schemas for matching SchemaRef URLs or $id values.
-    
+
         Raises:
             PublishedSchemaConflictError: If a conflict is found.
         """
@@ -202,41 +203,52 @@ class Schema(BaseModel):
         # Check for existing published SchemaRefs with the same URL or $id
         for schema_ref in self.schemaref_set.all():
             for published_schema_ref in published_schema_refs:
-                if published_schema_ref.url_provider_info.is_same_resource(schema_ref.url):
-                    raise PublishedSchemaConflictError(published_schema_ref, 'URL')
-                if schema_ref.id_value and schema_ref.id_value == published_schema_ref.id_value:
-                    raise PublishedSchemaConflictError(published_schema_ref, '$id')
+                if published_schema_ref.url_provider_info.is_same_resource(
+                    schema_ref.url
+                ):
+                    raise PublishedSchemaConflictError(published_schema_ref, "URL")
+                if (
+                    schema_ref.id_value
+                    and schema_ref.id_value == published_schema_ref.id_value
+                ):
+                    raise PublishedSchemaConflictError(published_schema_ref, "$id")
 
     def to_manifest(self):
         manifest = {
-            'name': self.name,
-            'public': bool(self.published_at),
+            "name": self.name,
+            "public": bool(self.published_at),
         }
         if self.description:
-            manifest['description'] = self.description
+            manifest["description"] = self.description
         reference_items = (
-            list(self.schemaref_set.all()) +
-            list(self.documentationitem_set.all()) +
-            list(self.implementation_set.all())
+            list(self.schemaref_set.all())
+            + list(self.documentationitem_set.all())
+            + list(self.implementation_set.all())
         )
         documents = {}
         for reference_item in reference_items:
-            documents[reference_item.url] = reference_item.to_manifest_document_metadata()
+            documents[reference_item.url] = (
+                reference_item.to_manifest_document_metadata()
+            )
 
         # We're intentionally inserting documents last so it's the last field
         # in the manifest when we serialize as JSON, which helps with readability.
-        manifest['documents'] = documents
-    
+        manifest["documents"] = documents
+
         return manifest
 
 
 class ReferenceItemManager(models.Manager):
     def get_published_by_domain_and_path(self, url):
-        published_schema_refs = super().get_queryset().select_related('schema').exclude(
-            schema__published_at__isnull=True
+        published_schema_refs = (
+            super()
+            .get_queryset()
+            .select_related("schema")
+            .exclude(schema__published_at__isnull=True)
         )
         matching_published_schema_ref_ids = [
-            schema_ref.id for schema_ref in published_schema_refs
+            schema_ref.id
+            for schema_ref in published_schema_refs
             if schema_ref.url_provider_info.is_same_resource(url)
         ]
         # Custom manager methods like this typically return a QuerySet.
@@ -252,8 +264,8 @@ class URLProviderInfo:
     """
     Encapsulates provider-specific (e.g. GitHub) URL info and helpers.
     """
-    provider_name = None
 
+    provider_name = None
 
     def __init__(self, url):
         self.url = url
@@ -268,7 +280,10 @@ class URLProviderInfo:
     def is_same_resource(self, url):
         parsed_url_1 = urlparse(self.url)
         parsed_url_2 = urlparse(url)
-        return parsed_url_1.netloc == parsed_url_2.netloc and parsed_url_1.path == parsed_url_2.path
+        return (
+            parsed_url_1.netloc == parsed_url_2.netloc
+            and parsed_url_1.path == parsed_url_2.path
+        )
 
 
 class GitHubURLInfo(URLProviderInfo):
@@ -293,7 +308,7 @@ class GitHubURLInfo(URLProviderInfo):
     REPO_NETLOC = "github.com"
     RAW_NETLOC = "raw.githubusercontent.com"
 
-    provider_name = 'GitHub'
+    provider_name = "GitHub"
 
     @classmethod
     def matches(cls, url):
@@ -305,7 +320,7 @@ class GitHubURLInfo(URLProviderInfo):
         parsed = urlparse(self.url)
         if parsed.netloc == self.RAW_NETLOC:
             return True
-        # {{REPO_NETLOC}}/{userorg}/{reponame}/raw/... 
+        # {{REPO_NETLOC}}/{userorg}/{reponame}/raw/...
         # is a special case for raw URLs even though it's
         # hosted at the netloc for repo URLs
         if parsed.netloc != self.REPO_NETLOC:
@@ -317,7 +332,7 @@ class GitHubURLInfo(URLProviderInfo):
     def _is_repo_url(self):
         parsed = urlparse(self.url)
         return parsed.netloc == self.REPO_NETLOC and not self._is_raw_url
-    
+
     @property
     def raw_url(self):
         """
@@ -350,10 +365,10 @@ class GitHubURLInfo(URLProviderInfo):
         if len(path_parts) < 4:
             return None
         # Handle special case for raw URLs hosted at REPO_NETLOC
-        if path_parts[2] == 'raw':
+        if path_parts[2] == "raw":
             del path_parts[2]
         # Permalinks don't have "/refs/heads"
-        if path_parts[2] == 'refs' and path_parts[3] == 'heads':
+        if path_parts[2] == "refs" and path_parts[3] == "heads":
             del path_parts[2:4]
         user, repo, branch, *filepath = path_parts
         normal_path = "/".join([user, repo, "blob", branch] + filepath)
@@ -365,12 +380,12 @@ class GitHubURLInfo(URLProviderInfo):
         if not self.matches(url):
             return False
 
-        url_provider_info = GitHubURLInfo(url) 
+        url_provider_info = GitHubURLInfo(url)
         # If either raw_url or repo_url has a value, compare 'url' to them.
         if self.raw_url is not None or self.repo_url is not None:
             return (
-                self.raw_url == url_provider_info.raw_url or
-                self.repo_url == url_provider_info.repo_url
+                self.raw_url == url_provider_info.raw_url
+                or self.repo_url == url_provider_info.repo_url
             )
 
         # Otherwise, fallback to the parent implementation.
@@ -395,18 +410,24 @@ class ReferenceItem(BaseModel):
         to their actual model classes
         """
         return {
-            'definition': SchemaRef,
-            'documentation': DocumentationItem,
-            'implementation': Implementation
+            "definition": SchemaRef,
+            "documentation": DocumentationItem,
+            "implementation": Implementation,
         }
 
     @classmethod
-    def update_or_create_from_manifest_document(cls, schema, document_url, document_metadata, created_by):
-        model_class = cls.get_manifest_document_type_model_map().get(document_metadata.get('type'))
+    def update_or_create_from_manifest_document(
+        cls, schema, document_url, document_metadata, created_by
+    ):
+        model_class = cls.get_manifest_document_type_model_map().get(
+            document_metadata.get("type")
+        )
         if not model_class:
             raise ValueError("Unsupported manifest document type")
 
-        return model_class.update_or_create_from_manifest_document(schema, document_url, document_metadata, created_by)
+        return model_class.update_or_create_from_manifest_document(
+            schema, document_url, document_metadata, created_by
+        )
 
     def __str__(self):
         return self.url
@@ -505,14 +526,17 @@ class ReferenceItem(BaseModel):
             logger.warning(
                 "content_cache_backend_fallback cache_key=%s "
                 "operation=get exception=%s message=%s",
-                cache_key, exc.__class__.__name__, exc,
+                cache_key,
+                exc.__class__.__name__,
+                exc,
             )
             cached = None
         if cached is not None:
             if observe:
                 logger.info(
                     "content_cache_hit cache_key=%s content_length=%s",
-                    cache_key, len(cached),
+                    cache_key,
+                    len(cached),
                 )
             return cached
 
@@ -520,7 +544,8 @@ class ReferenceItem(BaseModel):
             logger.info("content_cache_miss cache_key=%s", cache_key)
             logger.info(
                 "content_remote_fetch_started cache_key=%s url=%s",
-                cache_key, self._get_content_url(),
+                cache_key,
+                self._get_content_url(),
             )
 
         start = time.monotonic()
@@ -531,7 +556,9 @@ class ReferenceItem(BaseModel):
             logger.info(
                 "content_remote_fetch_succeeded cache_key=%s "
                 "content_length=%s duration_ms=%s",
-                cache_key, len(content), duration_ms,
+                cache_key,
+                len(content),
+                duration_ms,
             )
 
         try:
@@ -539,7 +566,8 @@ class ReferenceItem(BaseModel):
             if observe:
                 logger.info(
                     "content_cache_store_succeeded cache_key=%s ttl=%s",
-                    cache_key, settings.CONTENT_CACHE_TTL,
+                    cache_key,
+                    settings.CONTENT_CACHE_TTL,
                 )
         except Exception as exc:
             # IGNORE_EXCEPTIONS=True swallows backend errors internally but we still
@@ -547,7 +575,9 @@ class ReferenceItem(BaseModel):
             logger.warning(
                 "content_cache_backend_fallback cache_key=%s "
                 "operation=set exception=%s message=%s",
-                cache_key, exc.__class__.__name__, exc,
+                cache_key,
+                exc.__class__.__name__,
+                exc,
             )
 
         return content
@@ -572,9 +602,9 @@ class ReferenceItem(BaseModel):
             [recipient_email],
             fail_silently=True,
         )
-    
+
     def to_manifest_document_metadata(self):
-        return { 'name': self.name } if self.name else {}
+        return {"name": self.name} if self.name else {}
 
     @property
     def url_provider_info(self):
@@ -587,13 +617,12 @@ class SchemaRef(ReferenceItem):
     id_value = models.URLField(blank=True, null=True)
 
     @classmethod
-    def update_or_create_from_manifest_document(cls, schema, document_url, document_metadata, created_by):
+    def update_or_create_from_manifest_document(
+        cls, schema, document_url, document_metadata, created_by
+    ):
         return schema.schemaref_set.update_or_create(
             url=document_url,
-            defaults={
-                'name': document_metadata.get('name'),
-                'created_by': created_by
-            }
+            defaults={"name": document_metadata.get("name"), "created_by": created_by},
         )
 
     @property
@@ -601,17 +630,17 @@ class SchemaRef(ReferenceItem):
         return guess_specification_language_by_extension(self.url)
 
     def save(self, *args, **kwargs):
-        if self.language != 'json':
+        if self.language != "json":
             self.id_value = None
             super().save(*args, **kwargs)
             return
-        
+
         # Try to parse out an $id for the id_value field
         try:
             content = self.get_content()
             parsed_data = json.loads(content)
             if isinstance(parsed_data, dict):
-                self.id_value = parsed_data.get('$id')
+                self.id_value = parsed_data.get("$id")
         except (json.JSONDecodeError, TypeError, requests.exceptions.RequestException):
             self.id_value = None
 
@@ -619,40 +648,43 @@ class SchemaRef(ReferenceItem):
 
     def to_manifest_document_metadata(self):
         metadata = super().to_manifest_document_metadata()
-        return { 
-            'type': 'definition',
-            **metadata
-        }
-    
+        return {"type": "definition", **metadata}
+
 
 class DocumentationItem(ReferenceItem):
     class DocumentationItemRole(models.TextChoices):
-        README = 'readme', 'README'
-        License = 'license'
-        RFC = 'rfc', 'RFC'
-        W3C = 'w3c', 'W3C'
+        README = "readme", "README"
+        License = "license"
+        RFC = "rfc", "RFC"
+        W3C = "w3c", "W3C"
 
     class DocumentationItemFormat(models.TextChoices):
-        Markdown = 'markdown'
-        PlainText = 'plaintext', 'Plain text'
+        Markdown = "markdown"
+        PlainText = "plaintext", "Plain text"
 
     name = models.CharField(max_length=300)
     description = models.TextField(blank=True, null=True)
     schema = models.ForeignKey(Schema, on_delete=models.CASCADE)
-    role = models.CharField(max_length=100, choices=DocumentationItemRole, blank=True, null=True)
-    format = models.CharField(max_length=100, choices=DocumentationItemFormat, blank=True, null=True)
+    role = models.CharField(
+        max_length=100, choices=DocumentationItemRole, blank=True, null=True
+    )
+    format = models.CharField(
+        max_length=100, choices=DocumentationItemFormat, blank=True, null=True
+    )
 
     @classmethod
-    def update_or_create_from_manifest_document(cls, schema, document_url, document_metadata, created_by):
+    def update_or_create_from_manifest_document(
+        cls, schema, document_url, document_metadata, created_by
+    ):
         return schema.documentationitem_set.update_or_create(
             url=document_url,
             defaults={
-                'name': document_metadata['name'],
-                'description': document_metadata.get('description'),
-                'role': document_metadata.get('role'),
-                'format': document_metadata.get('format'),
-                'created_by': created_by
-            }
+                "name": document_metadata["name"],
+                "description": document_metadata.get("description"),
+                "role": document_metadata.get("role"),
+                "format": document_metadata.get("format"),
+                "created_by": created_by,
+            },
         )
 
     def __str__(self):
@@ -660,17 +692,17 @@ class DocumentationItem(ReferenceItem):
 
     @property
     def language(self):
-        return guess_language_by_extension(self.url, ['markdown'])
+        return guess_language_by_extension(self.url, ["markdown"])
 
     def to_manifest_document_metadata(self):
         metadata = super().to_manifest_document_metadata()
-        metadata['type'] = 'documentation'
+        metadata["type"] = "documentation"
         if self.description:
-            metadata['description'] = self.description
+            metadata["description"] = self.description
         if self.role:
-            metadata['role'] = self.role
+            metadata["role"] = self.role
         if self.format:
-            metadata['format'] = self.format
+            metadata["format"] = self.format
         return metadata
 
 
@@ -679,19 +711,21 @@ class Implementation(ReferenceItem):
     schema = models.ForeignKey(Schema, on_delete=models.CASCADE)
 
     @classmethod
-    def update_or_create_from_manifest_document(cls, schema, document_url, document_metadata, created_by):
+    def update_or_create_from_manifest_document(
+        cls, schema, document_url, document_metadata, created_by
+    ):
         return schema.implementation_set.update_or_create(
             url=document_url,
             defaults={
-                'is_open_source': document_metadata.get('isOpenSource') or False,
-                'created_by': created_by
-            }
+                "is_open_source": document_metadata.get("isOpenSource") or False,
+                "created_by": created_by,
+            },
         )
 
     def to_manifest_document_metadata(self):
         metadata = super().to_manifest_document_metadata()
-        metadata['type'] = 'implementation'
-        metadata['isOpenSource'] = self.is_open_source
+        metadata["type"] = "implementation"
+        metadata["isOpenSource"] = self.is_open_source
         return metadata
 
 
@@ -715,26 +749,26 @@ class Organization(BaseModel):
 
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    organization = models.ForeignKey(Organization, blank=True, null=True, on_delete=models.SET_NULL)
+    organization = models.ForeignKey(
+        Organization, blank=True, null=True, on_delete=models.SET_NULL
+    )
 
     def set_new_api_key(self):
         """
         Deletes any existing key and issues a brand new one.
         Returns the raw string '<prefix>.<secret>' to be shown to the user once.
         """
-        # We use a transaction to ensure we don't delete the old key 
+        # We use a transaction to ensure we don't delete the old key
         # and then fail to create the new one.
         with transaction.atomic():
-            if hasattr(self, 'api_key'):
+            if hasattr(self, "api_key"):
                 self.api_key.delete()
 
             new_prefix = secrets.token_urlsafe(6)[:8]
             new_secret = secrets.token_urlsafe(32)
 
             APIKey.objects.create(
-                profile=self,
-                prefix=new_prefix,
-                hashed_secret=make_password(new_secret)
+                profile=self, prefix=new_prefix, hashed_secret=make_password(new_secret)
             )
 
         return f"{new_prefix}.{new_secret}"
@@ -742,19 +776,20 @@ class Profile(models.Model):
 
 class APIKeyManager(models.Manager):
     def get_from_key(self, raw_api_key):
-        if '.' not in raw_api_key:
+        if "." not in raw_api_key:
             return None
 
-        prefix, secret = raw_api_key.split('.', 1)
+        prefix, secret = raw_api_key.split(".", 1)
         try:
-           api_key = self.select_related('profile').get(prefix=prefix)
+            api_key = self.select_related("profile").get(prefix=prefix)
         except self.model.DoesNotExist:
             return None
 
         if check_password(secret, api_key.hashed_secret):
             return api_key
-        
+
         return None
+
 
 # An API key consists of a plaintext prefix for querying,
 # and a hashed secret for actual authentication.
@@ -762,11 +797,12 @@ class APIKey(models.Model):
     objects = APIKeyManager()
     # If we need to allow multiple APIKeys per profile someday,
     # this can be changed to a ForeignKey.
-    profile = models.OneToOneField(Profile, on_delete=models.CASCADE, related_name="api_key")
+    profile = models.OneToOneField(
+        Profile, on_delete=models.CASCADE, related_name="api_key"
+    )
     prefix = models.CharField(max_length=8, unique=True, editable=False)
     hashed_secret = models.CharField(max_length=128, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Key {self.prefix} for {self.profile}"
-
