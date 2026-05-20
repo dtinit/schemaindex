@@ -2,7 +2,7 @@ from urllib.parse import urlparse
 from pygments.lexers import get_lexer_for_filename
 from pygments.util import ClassNotFound
 
-'''
+"""
 This is currently just a list of languages supported
 by our syntax highlighter, Highlight.js, *without plaintext.*
 You can regenerate this list by loading up the site,
@@ -14,9 +14,44 @@ can less tightly connect what file extension something is to what we tell the hi
 
 Note that the actual allowlist is an intersection
 of this list and the lexers from pygments.
-'''
+"""
 SPECIFICATION_LANGUAGE_ALLOWLIST = [
-"bash","c","cpp","csharp","css","diff","go","graphql","ini","java","javascript","json","kotlin","less","lua","makefile","markdown","objectivec","perl","php","php-template","python","python-repl","r","ruby","rust","scss","shell","sql","swift","typescript","vbnet","wasm","xml","yaml","cddl"
+    "bash",
+    "c",
+    "cpp",
+    "csharp",
+    "css",
+    "diff",
+    "go",
+    "graphql",
+    "ini",
+    "java",
+    "javascript",
+    "json",
+    "kotlin",
+    "less",
+    "lua",
+    "makefile",
+    "markdown",
+    "objectivec",
+    "perl",
+    "php",
+    "php-template",
+    "python",
+    "python-repl",
+    "r",
+    "ruby",
+    "rust",
+    "scss",
+    "shell",
+    "sql",
+    "swift",
+    "typescript",
+    "vbnet",
+    "wasm",
+    "xml",
+    "yaml",
+    "cddl",
 ]
 
 
@@ -33,10 +68,7 @@ def guess_language_by_extension(url, languages):
     except ClassNotFound:
         return None
 
-    return next(
-        (alias for alias in languages if alias in lexer.aliases),
-        None
-    )
+    return next((alias for alias in languages if alias in lexer.aliases), None)
 
 
 def guess_specification_language_by_extension(url):
@@ -45,4 +77,3 @@ def guess_specification_language_by_extension(url):
     of allowed specification languages, or None if no such match exists.
     """
     return guess_language_by_extension(url, SPECIFICATION_LANGUAGE_ALLOWLIST)
-

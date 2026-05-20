@@ -1,7 +1,5 @@
 import logging
 import os
-import sys
-import environ
 
 from django.core.exceptions import ImproperlyConfigured
 from google.oauth2 import service_account
@@ -10,28 +8,26 @@ from .base import *
 logger = logging.getLogger("schemaindex")
 
 DEBUG = False
-PERMANENT_URL_HOST = 'id.schemas.pub'
-ALLOWED_HOSTS = [ 
-    'schemas.pub',
-    'www.schemas.pub',
-    'schemaindex-prod-run-768243509223.us-central1.run.app',
-    PERMANENT_URL_HOST
+PERMANENT_URL_HOST = "id.schemas.pub"
+ALLOWED_HOSTS = [
+    "schemas.pub",
+    "www.schemas.pub",
+    "schemaindex-prod-run-768243509223.us-central1.run.app",
+    PERMANENT_URL_HOST,
 ]
-SITE_URL = 'https://schemas.pub'
-CSRF_TRUSTED_ORIGINS = ['https://' + url for url in ALLOWED_HOSTS]
+SITE_URL = "https://schemas.pub"
+CSRF_TRUSTED_ORIGINS = ["https://" + url for url in ALLOWED_HOSTS]
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
-    'service-account-credentials.json'
+    "service-account-credentials.json"
 )
-GS_BUCKET_NAME = 'schemaindex-prod-storage'
+GS_BUCKET_NAME = "schemaindex-prod-storage"
 
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', SECRET_KEY)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", SECRET_KEY)
 
 # Shared Valkey cache (Memorystore for Valkey in GCP)
-VALKEY_URL = env.str('VALKEY_URL', default='')
+VALKEY_URL = env.str("VALKEY_URL", default="")
 if not VALKEY_URL:
-    raise ImproperlyConfigured(
-        "VALKEY_URL is required in staging/production."
-    )
+    raise ImproperlyConfigured("VALKEY_URL is required in staging/production.")
 
 CACHES = {
     "default": {
@@ -68,12 +64,14 @@ if VALKEY_URL.startswith("rediss://") and VALKEY_SERVER_CA:
     _pool_kwargs["ssl_cert_reqs"] = "required"
     logger.info(
         "Valkey TLS CA configured (path=%s, exists=%s)",
-        _ca_path, os.path.exists(_ca_path),
+        _ca_path,
+        os.path.exists(_ca_path),
     )
 else:
     logger.info(
         "Valkey TLS CA not configured (tls=%s, ca_env_set=%s)",
-        VALKEY_URL.startswith("rediss://"), bool(VALKEY_SERVER_CA),
+        VALKEY_URL.startswith("rediss://"),
+        bool(VALKEY_SERVER_CA),
     )
 
 # Observability on so we can verify Valkey behavior end-to-end.
@@ -87,30 +85,30 @@ STORAGES = {
         "OPTIONS": {
             "bucket_name": GS_BUCKET_NAME,
             "location": "logos",
-        }
+        },
     },
     "staticfiles": {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
         "OPTIONS": {
             "bucket_name": GS_BUCKET_NAME,
             "location": "site-assets",
-        }
-    }
+        },
+    },
 }
 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
-if os.environ.get('USE_GCLOUD_LOGGING', '0') == '1':
+if os.environ.get("USE_GCLOUD_LOGGING", "0") == "1":
     LOGGING["handlers"]["cloud_logging"] = {
         "()": "schemaindex.utils.logging_utils.get_cloud_logging_handler",
     }
-    
+
     LOGGING["root"] = {
         "handlers": ["cloud_logging"],
         "level": "INFO",
     }
-    
+
     LOGGING["loggers"]["django"]["handlers"] = ["cloud_logging"]
     LOGGING["loggers"]["django"]["propagate"] = False
 
@@ -119,7 +117,7 @@ if os.environ.get('USE_GCLOUD_LOGGING', '0') == '1':
         "level": "INFO",
         "propagate": False,
     }
-    
+
     LOGGING["loggers"]["django.request"] = {
         "handlers": ["cloud_logging"],
         "level": "INFO",
@@ -132,6 +130,6 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 EMAIL_HOST_USER = "noreply@dtinit.org"
-EMAIL_HOST_PASSWORD = env.str('EMAIL_HOST_PASSWORD')
+EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = "noreply@dtinit.org"
 SERVER_EMAIL = "noreply@dtinit.org"

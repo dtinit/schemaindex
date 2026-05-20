@@ -5,12 +5,14 @@ from core.models import GitHubURLInfo
 
 register = template.Library()
 
+
 @register.filter
 def exists_and_is_in_past(value):
-    return value != None and value.timestamp() <= timezone.now().timestamp()
+    return value is not None and value.timestamp() <= timezone.now().timestamp()
 
-#"GitHub_Invertocat_Light.svg" from https://brand.github.com/foundations/logo
-GITHUB_LOGO = '''<?xml version="1.0" encoding="utf-8"?>
+
+# "GitHub_Invertocat_Light.svg" from https://brand.github.com/foundations/logo
+GITHUB_LOGO = """<?xml version="1.0" encoding="utf-8"?>
 <!-- Generator: Adobe Illustrator 28.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 viewBox="0 0 97.6 96" style="enable-background:new 0 0 97.6 96;" xml:space="preserve" class="icon--sm">
@@ -23,7 +25,8 @@ GITHUB_LOGO = '''<?xml version="1.0" encoding="utf-8"?>
 	c3.9-1.1,8.1-1.6,12.2-1.6s8.3,0.6,12.2,1.6c9.3-6.4,13.4-5.1,13.4-5.1c2.7,6.8,1,11.8,0.5,13c3.2,3.4,5,7.8,5,13.2
 	c0,18.9-11.4,23.1-22.3,24.3c1.8,1.5,3.3,4.5,3.3,9.1c0,6.6-0.1,11.9-0.1,13.5c0,1.3,0.9,2.9,3.3,2.4C83.6,89.4,97.6,71,97.6,49.2
 	C97.7,22,75.8,0,48.9,0z"/>
-</svg>'''
+</svg>"""
+
 
 @register.filter(is_safe=True)
 def branded_external_link_icon_for_reference_item(reference_item):
@@ -44,7 +47,10 @@ def try_github_repo_url(reference_item):
     just returns the URL.
     """
     provider_info = reference_item.url_provider_info
-    if provider_info.provider_name == GitHubURLInfo.provider_name and provider_info.repo_url:
+    if (
+        provider_info.provider_name == GitHubURLInfo.provider_name
+        and provider_info.repo_url
+    ):
         return provider_info.repo_url
     return reference_item.url
 
@@ -57,6 +63,9 @@ def try_github_raw_url(reference_item):
     just returns the URL.
     """
     provider_info = reference_item.url_provider_info
-    if provider_info.provider_name == GitHubURLInfo.provider_name and provider_info.raw_url:
+    if (
+        provider_info.provider_name == GitHubURLInfo.provider_name
+        and provider_info.raw_url
+    ):
         return provider_info.raw_url
     return reference_item.url

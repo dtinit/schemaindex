@@ -1,0 +1,11 @@
+[lint.per-file-ignores]
+# Suppress star import and usage warnings
+"schemaindex/settings/*.py" = ["F403", "F405"]
+
+[format]
+# Opting in to preview so we can use --output-format github
+# and get nice inline feedback
+preview = true
+exclude = [
+  "core/migrations/**"  
+]

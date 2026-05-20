@@ -2,14 +2,9 @@ import json
 from functools import wraps
 from django.utils import timezone
 from django.db import transaction
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-from django.views.decorators.http import (
-    require_GET,
-    require_POST,
-    require_http_methods
-)
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
 from jsonschema import validate, ValidationError as JSONValidationError
@@ -19,8 +14,8 @@ from core.views import lookup_schema
 
 
 def _load_manifest_schema():
-    schema_path = settings.BASE_DIR / 'core' / 'schemas' / 'manifest.schema.json'
-    with open(schema_path, 'r') as f:
+    schema_path = settings.BASE_DIR / "core" / "schemas" / "manifest.schema.json"
+    with open(schema_path, "r") as f:
         return json.load(f)
 
 
@@ -35,32 +30,33 @@ def require_manifest(function):
             validate(instance=data, schema=MANIFEST_SCHEMA)
         except json.JSONDecodeError as e:
             return ApiErrorResponse(
-                status_code=400,
-                message="Undecodable JSON payload",
-                details=e.msg
+                status_code=400, message="Undecodable JSON payload", details=e.msg
             )
         except JSONValidationError as e:
             return ApiErrorResponse(
                 status_code=400,
                 message="Incorrect JSON payload format",
-                details=e.message
+                details=e.message,
             )
         return function(request, manifest=data, *args, **kwargs)
+
     return _wrap_request
 
 
 @transaction.atomic
 def _save_manifest(manifest, schema, created_by):
-    schema.name = manifest['name']
-    schema.description = manifest.get('description')
-    public = manifest.get('public') or False
+    schema.name = manifest["name"]
+    schema.description = manifest.get("description")
+    public = manifest.get("public") or False
 
     # Prevent users from making public schemas private
     if not public and schema.published_at:
-        raise DjangoValidationError('Public schemas cannot be made private except by an admin. Please set `public: true` in your manifest.')
+        raise DjangoValidationError(
+            "Public schemas cannot be made private except by an admin. Please set `public: true` in your manifest."
+        )
 
     schema.save()
-    urls = manifest['documents'].keys()
+    urls = manifest["documents"].keys()
 
     # Delete any ReferenceItems with URLs
     # that aren't in the manifest
@@ -69,9 +65,11 @@ def _save_manifest(manifest, schema, created_by):
     schema.implementation_set.exclude(url__in=urls).delete()
 
     # Create or update reference items
-    for document_url, document_metadata in manifest['documents'].items():
-        ReferenceItem.update_or_create_from_manifest_document(schema, document_url, document_metadata, created_by)
-    
+    for document_url, document_metadata in manifest["documents"].items():
+        ReferenceItem.update_or_create_from_manifest_document(
+            schema, document_url, document_metadata, created_by
+        )
+
     if public:
         if schema.pk is None:
             # Django requires a pk before we can use
@@ -86,16 +84,16 @@ def _save_manifest(manifest, schema, created_by):
             schema.check_for_published_conflicts()
         except PublishedSchemaConflictError as e:
             conflict_url = reverse(
-                'schema_ref_detail', 
-                    kwargs={
-                        'schema_id': e.conflicting_schema_ref.schema.id, 
-                        'schema_ref_id': e.conflicting_schema_ref.id
-                    }
+                "schema_ref_detail",
+                kwargs={
+                    "schema_id": e.conflicting_schema_ref.schema.id,
+                    "schema_ref_id": e.conflicting_schema_ref.id,
+                },
             )
             raise DjangoValidationError(
-                f'`public: true` was set, but a public schema ({conflict_url})' +
-                f'is already using one of the {e.reason} values ' + 
-                'used in this schema. Please contact a Schemas.Pub administrator.'
+                f"`public: true` was set, but a public schema ({conflict_url})"
+                + f"is already using one of the {e.reason} values "
+                + "used in this schema. Please contact a Schemas.Pub administrator."
             )
 
     # We only update published_at when we initially publish
@@ -107,33 +105,35 @@ def _save_manifest(manifest, schema, created_by):
 
 @require_GET
 def find(request):
-    id_value = request.GET.get('id')
-    published_schema_refs = SchemaRef.objects.filter(schema__in=Schema.public_objects.all())
+    id_value = request.GET.get("id")
+    published_schema_refs = SchemaRef.objects.filter(
+        schema__in=Schema.public_objects.all()
+    )
     schema_ref = get_object_or_404(published_schema_refs, id_value=id_value)
-    return ApiResponse({'url': schema_ref.url})
+    return ApiResponse({"url": schema_ref.url})
 
 
 @require_POST
 @require_manifest
 @transaction.atomic
-def schemas_create(request, manifest): 
+def schemas_create(request, manifest):
     schema = Schema(created_by=request.user)
     try:
         _save_manifest(manifest, schema, created_by=request.user)
     except DjangoValidationError as e:
         return ApiErrorResponse(
-            status_code=400,
-            message="Validation Error",
-            details=e.message
+            status_code=400, message="Validation Error", details=e.message
         )
 
-    return ApiResponse(data={
-        'id': schema.id,
-        'url': reverse('schema_detail', kwargs={'schema_id': schema.id}) 
-    })
+    return ApiResponse(
+        data={
+            "id": schema.id,
+            "url": reverse("schema_detail", kwargs={"schema_id": schema.id}),
+        }
+    )
 
 
-@require_http_methods(['PUT'])
+@require_http_methods(["PUT"])
 @require_manifest
 @lookup_schema
 @transaction.atomic
@@ -142,18 +142,18 @@ def schemas_update(request, manifest, schema):
         return ApiErrorResponse(
             status_code=403,
             message="Forbbiden",
-            details="You are not authorized to make changes to this schema"
+            details="You are not authorized to make changes to this schema",
         )
     try:
         _save_manifest(manifest, schema, created_by=request.user)
     except DjangoValidationError as e:
         return ApiErrorResponse(
-            status_code=400,
-            message="Validation Error",
-            details=e.message
+            status_code=400, message="Validation Error", details=e.message
         )
 
-    return ApiResponse(data={
-        'id': schema.id,
-        'url': reverse('schema_detail', kwargs={'schema_id': schema.id})
-    })
+    return ApiResponse(
+        data={
+            "id": schema.id,
+            "url": reverse("schema_detail", kwargs={"schema_id": schema.id}),
+        }
+    )

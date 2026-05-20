@@ -8,7 +8,7 @@ from django.test import override_settings
 from django.utils import timezone
 from django.core import mail
 from django.contrib.auth.hashers import make_password
-from core.models import Schema, SchemaRef, DocumentationItem, APIKey
+from core.models import Schema, SchemaRef, APIKey
 from factories import (
     UserFactory,
     SchemaRefFactory,
@@ -16,7 +16,7 @@ from factories import (
     ProfileFactory,
     APIKeyFactory,
     ImplementationFactory,
-    SchemaFactory
+    SchemaFactory,
 )
 import requests.exceptions
 from utils import assert_schema_matches_manifest
@@ -27,47 +27,57 @@ def test_multiple_schemarefs():
     # A simple test but leaving it in as I used it to debug a simple thing
     user = UserFactory.create()
     my_schema = Schema.objects.create(name="Star Trek", created_by=user)
-    ship_schema = SchemaRef.objects.create(schema=my_schema, url="https://example.com/ships", created_by=user)
-    station_schema = SchemaRef.objects.create(schema=my_schema, url="https://example.com/stns", created_by=user)
+    SchemaRef.objects.create(
+        schema=my_schema, url="https://example.com/ships", created_by=user
+    )
+    SchemaRef.objects.create(
+        schema=my_schema, url="https://example.com/stns", created_by=user
+    )
     assert Schema.objects.all().count() == 1
     assert my_schema.schemaref_set.count() == 2
 
-@pytest.mark.parametrize("repo_url, raw_url", [
-    [
-        "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
-        "https://raw.githubusercontent.com/userorg/reponame/branch/path/to/file.json"
-    ],
-    [
-        "https://github.com/userorg/reponame/blob/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json",
-        "https://raw.githubusercontent.com/userorg/reponame/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json"
-    ],
 
-])
+@pytest.mark.parametrize(
+    "repo_url, raw_url",
+    [
+        [
+            "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
+            "https://raw.githubusercontent.com/userorg/reponame/branch/path/to/file.json",
+        ],
+        [
+            "https://github.com/userorg/reponame/blob/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json",
+            "https://raw.githubusercontent.com/userorg/reponame/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json",
+        ],
+    ],
+)
 def test_reference_item_github_url_info_converts_repo_url_to_raw(repo_url, raw_url):
     schema_ref = SchemaRef(url=repo_url)
     assert schema_ref.url_provider_info.raw_url == raw_url
-     
 
-@pytest.mark.parametrize("repo_url, raw_url", [
+
+@pytest.mark.parametrize(
+    "repo_url, raw_url",
     [
-        "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
-        "https://raw.githubusercontent.com/userorg/reponame/refs/heads/branch/path/to/file.json"
+        [
+            "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
+            "https://raw.githubusercontent.com/userorg/reponame/refs/heads/branch/path/to/file.json",
+        ],
+        [
+            "https://github.com/userorg/reponame/blob/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json",
+            "https://raw.githubusercontent.com/userorg/reponame/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json",
+        ],
+        [
+            "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
+            # GitHub provides this style of link in the web UI
+            # but redirects them to raw.githubusercontent.com
+            "https://github.com/userorg/reponame/raw/refs/heads/branch/path/to/file.json",
+        ],
+        [
+            "https://github.com/userorg/reponame/blob/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json",
+            "https://github.com/userorg/reponame/raw/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json",
+        ],
     ],
-    [
-        "https://github.com/userorg/reponame/blob/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json",
-        "https://raw.githubusercontent.com/userorg/reponame/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json"
-    ],
-    [
-        "https://github.com/userorg/reponame/blob/branch/path/to/file.json",
-        # GitHub provides this style of link in the web UI
-        # but redirects them to raw.githubusercontent.com
-        "https://github.com/userorg/reponame/raw/refs/heads/branch/path/to/file.json"
-    ],
-    [
-        "https://github.com/userorg/reponame/blob/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json",
-        "https://github.com/userorg/reponame/raw/2a7ec7e5f3006aadaadb9535b452d0d0352c7a39/path/to/file.json"
-    ]
-])
+)
 def test_reference_item_github_url_info_converts_raw_url_to_repo(repo_url, raw_url):
     schema_ref = SchemaRef(url=raw_url)
     assert schema_ref.url_provider_info.repo_url == repo_url
@@ -75,7 +85,9 @@ def test_reference_item_github_url_info_converts_raw_url_to_repo(repo_url, raw_u
 
 @pytest.mark.django_db
 def test_reference_item_content_is_fetched_from_raw_url_if_available():
-    schema_ref = SchemaRefFactory(url="https://github.com/userorg/reponame/blob/branch/path/to/file.json")
+    schema_ref = SchemaRefFactory(
+        url="https://github.com/userorg/reponame/blob/branch/path/to/file.json"
+    )
     mock_content = '{"MOCK_CONTENT":true}'
     # Make sure the URL we expect to be fetched isn't the one we provided
     assert schema_ref.url != schema_ref.url_provider_info.raw_url
@@ -114,11 +126,11 @@ def test_reference_item_get_content_failure_sends_email_and_sets_timestamp(mock_
 
 @pytest.mark.django_db
 @patch("core.models.time.sleep", return_value=None)
-def test_reference_item_get_content_subsequent_failure_no_email_or_timestamp_change(mock_sleep):
+def test_reference_item_get_content_subsequent_failure_no_email_or_timestamp_change(
+    mock_sleep,
+):
     mock_failure_time = timezone.now() - timezone.timedelta(hours=1)
-    schema_ref = SchemaRefFactory.create(
-        content_fetch_failing_since=mock_failure_time
-    )
+    schema_ref = SchemaRefFactory.create(content_fetch_failing_since=mock_failure_time)
     with requests_mock.Mocker() as m:
         m.get(schema_ref.url, status_code=500)
         with pytest.raises(requests.exceptions.HTTPError):
@@ -274,10 +286,12 @@ def test_reference_item_get_content_logs_backend_fallback_when_cache_set_raises(
     """
     schema_ref = SchemaRefFactory.create()
 
-    with requests_mock.Mocker() as m, \
-            patch.object(cache, "set", side_effect=RuntimeError("boom")), \
-            override_settings(CONTENT_CACHE_OBSERVABILITY=True), \
-            caplog.at_level(logging.WARNING, logger="schemaindex"):
+    with (
+        requests_mock.Mocker() as m,
+        patch.object(cache, "set", side_effect=RuntimeError("boom")),
+        override_settings(CONTENT_CACHE_OBSERVABILITY=True),
+        caplog.at_level(logging.WARNING, logger="schemaindex"),
+    ):
         m.get(schema_ref.url, text="remote content")
 
         result = schema_ref.get_content()
@@ -297,9 +311,11 @@ def test_reference_item_get_content_emits_observability_logs_when_enabled(caplog
     """
     schema_ref = SchemaRefFactory.create()
 
-    with requests_mock.Mocker() as m, \
-            override_settings(CONTENT_CACHE_OBSERVABILITY=True), \
-            caplog.at_level(logging.INFO, logger="schemaindex"):
+    with (
+        requests_mock.Mocker() as m,
+        override_settings(CONTENT_CACHE_OBSERVABILITY=True),
+        caplog.at_level(logging.INFO, logger="schemaindex"),
+    ):
         m.get(schema_ref.url, text="some content")
 
         schema_ref.get_content()
@@ -317,9 +333,11 @@ def test_reference_item_get_content_emits_observability_logs_when_enabled(caplog
 def test_reference_item_get_content_silent_when_observability_disabled(caplog):
     schema_ref = SchemaRefFactory.create()
 
-    with requests_mock.Mocker() as m, \
-            override_settings(CONTENT_CACHE_OBSERVABILITY=False), \
-            caplog.at_level(logging.INFO, logger="schemaindex"):
+    with (
+        requests_mock.Mocker() as m,
+        override_settings(CONTENT_CACHE_OBSERVABILITY=False),
+        caplog.at_level(logging.INFO, logger="schemaindex"),
+    ):
         m.get(schema_ref.url, text="some content")
         schema_ref.get_content()
         schema_ref.get_content()
@@ -333,14 +351,14 @@ def test_reference_item_get_content_silent_when_observability_disabled(caplog):
 def test_api_key_creation():
     profile = ProfileFactory.create()
     api_key = profile.set_new_api_key()
-    prefix = api_key.split('.')[0]
+    prefix = api_key.split(".")[0]
     assert APIKey.objects.filter(profile=profile).count() == 1
     assert profile.api_key.prefix == prefix
 
 
 @pytest.mark.django_db
 def test_api_key_replacement():
-    existing_api_key = APIKeyFactory.create();
+    existing_api_key = APIKeyFactory.create()
     profile = existing_api_key.profile
     profile.set_new_api_key()
     assert not APIKey.objects.filter(pk=existing_api_key.pk).exists()
@@ -350,18 +368,17 @@ def test_api_key_replacement():
 
 @pytest.mark.django_db
 def test_api_key_lookup():
-    mock_prefix = '1234abcd'
-    mock_secret = 'mock-secret'
-    mock_api_key = f'{mock_prefix}.{mock_secret}'
+    mock_prefix = "1234abcd"
+    mock_secret = "mock-secret"
+    mock_api_key = f"{mock_prefix}.{mock_secret}"
     hashed_secret = make_password(mock_secret)
     profile = ProfileFactory.create()
     inserted_key = APIKeyFactory.create(
-        hashed_secret=hashed_secret,
-        prefix=mock_prefix,
-        profile=profile
+        hashed_secret=hashed_secret, prefix=mock_prefix, profile=profile
     )
     matching_key = APIKey.objects.get_from_key(mock_api_key)
     assert inserted_key == matching_key
+
 
 @pytest.mark.django_db
 def test_schema_ref_parses_id_value_from_content_on_save():
@@ -373,6 +390,7 @@ def test_schema_ref_parses_id_value_from_content_on_save():
         schema_ref = SchemaRefFactory.create(url=mock_url)
         schema_ref.refresh_from_db()
         assert schema_ref.id_value == mock_id_value
+
 
 @pytest.mark.django_db
 def test_schema_ref_reparses_new_id_value_from_content_on_save():
@@ -391,36 +409,35 @@ def test_schema_ref_reparses_new_id_value_from_content_on_save():
 def test_schema_ref_serializes_as_manifest_document_metadata():
     schemaRef = SchemaRefFactory(name="Test Schema Ref")
     document = schemaRef.to_manifest_document_metadata()
-    assert document['type'] == 'definition'
-    assert document['name'] == schemaRef.name
+    assert document["type"] == "definition"
+    assert document["name"] == schemaRef.name
 
 
 @pytest.mark.django_db
 def test_documentation_item_serializes_as_manifest_document_metadata():
     documentationItem = DocumentationItemFactory()
     document = documentationItem.to_manifest_document_metadata()
-    assert document['type'] == 'documentation'
-    assert document['name'] == documentationItem.name
-    assert document['description'] == documentationItem.description
-    assert document['role'] == documentationItem.role
-    assert document['format'] == documentationItem.format
+    assert document["type"] == "documentation"
+    assert document["name"] == documentationItem.name
+    assert document["description"] == documentationItem.description
+    assert document["role"] == documentationItem.role
+    assert document["format"] == documentationItem.format
 
 
 @pytest.mark.django_db
 def test_implementation_serializes_as_manifest_document_metadata():
     implementation = ImplementationFactory(name="Test implementation")
     document = implementation.to_manifest_document_metadata()
-    assert document['type'] == 'implementation'
-    assert document['name'] == implementation.name
-    assert document['isOpenSource'] == implementation.is_open_source
+    assert document["type"] == "implementation"
+    assert document["name"] == implementation.name
+    assert document["isOpenSource"] == implementation.is_open_source
 
 
 @pytest.mark.django_db
 def test_schema_serializes_as_manifest():
     schema = SchemaFactory()
-    schemaRef = SchemaRefFactory(schema=schema)
-    documentationItem = DocumentationItemFactory(schema=schema)
-    implementation = ImplementationFactory(schema=schema)
+    SchemaRefFactory(schema=schema)
+    DocumentationItemFactory(schema=schema)
+    ImplementationFactory(schema=schema)
     manifest = schema.to_manifest()
     assert_schema_matches_manifest(schema, manifest)
-

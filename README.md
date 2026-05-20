@@ -54,6 +54,20 @@ This will change the select value when the URL in `#my-url-input` changes to som
 
 We use the CSS reset/normalizer from Tailwind named [preflight.css](core/static/css/preflight.css) which is fairly aggressive. Otherwise, all site styles are defined in [site.css](core/static/css/site.css) with global styles at the top and page styles at the bottom. We try to use BEM syntax where appropriate; for example, we have a `.button` class with modifiers like `.button--prominent` and `.button--danger`.
 
+## Python dev tooling
+
+Install dev requirements with `pip install -r dev-requirements.txt`.
+
+### Linting with Ruff
+
+You can run the linter by executing `ruff check`.
+
+To get type checking feedback in your code editor, [check here](https://docs.astral.sh/ruff/editors/setup/) for instructions. The configuration is in [ruff.toml](ruff.toml), but your editor/plugin should find it for you.
+
+### Formatting with Ruff
+
+You can format Python by executing `ruff format`.
+
 ## Frontend dev tooling
 
 Frontend dev tools like ESLint are delivered via [npm](https://www.npmjs.com/), which is included with Node.js. To use the tools locally, you'll need to:
@@ -65,25 +79,30 @@ Frontend dev tools like ESLint are delivered via [npm](https://www.npmjs.com/), 
 
 You can run the linter by executing `npm run lint`. If there are no issues, there won't be any output.
 
-To get linting feedback in your code editor, [check here](https://eslint.org/docs/latest/use/integrations) to find an ESLint integration or instructions for your editor. The configuration file is named [eslint.config.js](eslint.config.js), but your editor/plugin should find it for you.
+To get linting feedback in your code editor, [check here](https://eslint.org/docs/latest/use/integrations) for instructions. The configuration file is named [eslint.config.js](eslint.config.js), but your editor/plugin should find it for you.
 
 ### Formatting with Prettier
 
 You can format JavaScript and CSS files with `npm run format`.
 
-To enable formatting from your code editor, [check here](https://prettier.io/docs/en/editors) for instructions for your editor. The configuration is in [package.json](package.json), but your editor/plugin should find it for you.
+To enable formatting from your code editor, [check here](https://prettier.io/docs/en/editors) for instructions. The configuration is in [package.json](package.json), but your editor/plugin should find it for you.
 
 ### Typechecking with TypeScript
 
 You can check JavaScript types with `npm run typecheck`.
 
-To get type checking feedback in your code editor, [check here](https://github.com/microsoft/TypeScript/wiki/TypeScript-Editor-Support) for instructions for your editor. The configuration file is named [tsconfig.json](tsconfig.json), but your editor/plugin should find it for you.
+To get type checking feedback in your code editor, [check here](https://github.com/microsoft/TypeScript/wiki/TypeScript-Editor-Support) for instructions. The configuration file is named [tsconfig.json](tsconfig.json), but your editor/plugin should find it for you.
 
 Note that we only use TypeScript to _type check_ our JavaScript files; we do not _transpile_ from TypeScript to JavaScript. Don't try to write any TypeScript in this repository (except for declaration files like [globals.d.ts](globals.d.ts)). Check out the [TypeScript JSDoc Reference](https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html) to learn how to leverage types in JavaScript files.
 
-### Precommit checks/fixes
+## Precommit checks/fixes
 
 When commiting relevant files with git, the following steps are performed:
 
+- Python files are linted and formatted. If issues are found, your commit will fail; please correct your issues and try again.
 - JavaScript files are linted, typechecked, and formatted. If issues are found, your commit will fail; please correct your issues and try again.
 - README.md and CSS files are formatted.
+
+### Bypass
+
+To skip precommit hooks, use the `--no-verify` option (eg `git commit -m "Yee haw" --no-verify`).
