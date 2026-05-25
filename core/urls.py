@@ -4,6 +4,7 @@ from . import views
 from . import api_views
 
 api_endpoints = [
+    path("docs", api_views.docs, name="api_docs"),
     path("find", api_views.find, name="api_find"),
     path("schemas", api_views.schemas_create, name="api_schemas_create"),
     path(

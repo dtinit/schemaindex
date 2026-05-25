@@ -2,7 +2,7 @@ import json
 from functools import wraps
 from django.utils import timezone
 from django.db import transaction
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.conf import settings
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -101,6 +101,10 @@ def _save_manifest(manifest, schema, created_by):
         schema.published_at = timezone.now()
 
     schema.save()
+
+
+def docs(request):
+    return render(request, "core/api/docs.html")
 
 
 @require_GET

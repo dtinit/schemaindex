@@ -1,10 +1,12 @@
 <footer class="site-footer">
-  <div>
-    <a href="/about">About</a>&nbsp;&nbsp;
+  <nav>
+    <a href="/about">About</a>
     <a href="https://docs.google.com/forms/d/1yPMuDri2VLWdv0WW6gj_GPA7xOSg-Nqc7_nfTJmabQg"
-    >Contact</a>&nbsp;&nbsp;
-    <a href="{% url 'terms_of_use' %}">Terms of Use</a>&nbsp;&nbsp;
-    <a href="{% url 'privacy_policy' %}">Privacy Policy</a></div>
+    >Contact</a>
+    <a href="{% url 'terms_of_use' %}">Terms of Use</a>
+    <a href="{% url 'privacy_policy' %}">Privacy Policy</a>
+    <a href="{% url 'api_docs' %}">API</a>
+  </nav>
   <div>&copy; {% now "Y" %} <a href="https://dtinit.org">Data Transfer
     Initiative.</a></div>
 </footer>
