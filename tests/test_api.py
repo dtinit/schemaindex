@@ -169,7 +169,7 @@ def test_api_fails_open_when_rate_limiter_unavailable(api_client, caplog):
         fail_open = (True, "valkey_unavailable")
         with (
             patch(
-                "core.middleware.api_key_authentication_and_rate_limit.check_and_record_request",
+                "core.middleware.api_key_authentication.check_and_record_request",
                 return_value=fail_open,
             ),
             caplog.at_level(logging.WARNING, logger="schemaindex"),
@@ -179,6 +179,35 @@ def test_api_fails_open_when_rate_limiter_unavailable(api_client, caplog):
     assert response.status_code == 200
     assert any(
         "api_rate_limit_failed_open" in record.getMessage() for record in caplog.records
+    )
+
+
+@pytest.mark.django_db
+def test_rate_limit_fails_open_when_valkey_configured_but_client_unavailable(caplog):
+    from core.middleware.rate_limit import check_and_record_request
+
+    profile = ProfileFactory.create()
+    valkey_caches = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": "redis://does-not-resolve:6379/0",
+            "OPTIONS": {"IGNORE_EXCEPTIONS": True},
+        }
+    }
+    with (
+        override_settings(CACHES=valkey_caches),
+        patch(
+            "core.middleware.rate_limit._get_redis_client",
+            return_value=None,
+        ),
+        caplog.at_level(logging.WARNING, logger="schemaindex"),
+    ):
+        allowed, reason = check_and_record_request(profile)
+
+    assert allowed is True
+    assert reason == "valkey_unavailable"
+    assert any(
+        "rate_limiter_unavailable" in record.getMessage() for record in caplog.records
     )
 
 

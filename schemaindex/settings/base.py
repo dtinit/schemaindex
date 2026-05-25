@@ -58,7 +58,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    "core.middleware.api_key_authentication_and_rate_limit.APIKeyAuthenticationAndRateLimitMiddleware",
+    "core.middleware.api_key_authentication.APIKeyAuthenticationMiddleware",
 ]
 
 ROOT_URLCONF = "schemaindex.urls"
@@ -179,8 +179,7 @@ CACHES = {
     }
 }
 
-# Default: 1 hour
-CONTENT_CACHE_TTL = 60 * 60
+# CONTENT_CACHE_TTL is setup independently on staging and production settings files
 
 # Staging overrides these observability flags to True
 # so we can distinguish cache hits/misses and rate-limit backend selection in logs

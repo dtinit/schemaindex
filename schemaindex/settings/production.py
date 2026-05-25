@@ -45,7 +45,7 @@ CACHES = {
     }
 }
 
-DJANGO_REDIS_IGNORE_EXCEPTIONS = True
+CONTENT_CACHE_TTL = 60 * 60 * 5
 
 logger.info(
     "Valkey cache configured (tls=%s, auth=none)",

@@ -11,7 +11,7 @@ logger = logging.getLogger("schemaindex")
 API_KEY_HEADER = "X-API-Key"
 
 
-class APIKeyAuthenticationAndRateLimitMiddleware:
+class APIKeyAuthenticationMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 

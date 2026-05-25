@@ -26,6 +26,11 @@ def _get_redis_client():
         return None
 
 
+def _is_valkey_configured():
+    backend = settings.CACHES.get("default", {}).get("BACKEND", "")
+    return "django_redis" in backend
+
+
 def _check_and_record_valkey(client, key, now_ms, limit):
     """Sorted-set sliding window against Valkey/Redis.
 
@@ -91,6 +96,14 @@ def check_and_record_request(profile):
             )
         now_ms = int(time.time() * 1000)
         allowed, reason = _check_and_record_valkey(client, key, now_ms, limit)
+    elif _is_valkey_configured():
+        # Valkey is the configured backend but we couldn't get a client.
+        # Fail open with the same shape _check_and_record_valkey uses on
+        # RedisError so the middleware emits api_rate_limit_failed_open.
+        logger.warning(
+            "rate_limiter_unavailable: failing open reason=client_unavailable"
+        )
+        allowed, reason = True, "valkey_unavailable"
     else:
         if observe:
             logger.info(

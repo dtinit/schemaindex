@@ -466,11 +466,8 @@ class ReferenceItem(BaseModel):
         )
 
     def _fetch_content(self):
-        """Fetch content from the remote URL with retry logic.
-        Called by cache.get_or_set on a cache miss. Failed fetches
-        raise an exception, which prevents get_or_set from caching
-        the result — so failures are never cached.
-        """
+        # Fetch content from the remote URL with retry logic
+        # Failed fetches raise, so the caller (get_content) never caches a failure response
         content_url = self._get_content_url()
 
         # Retry logic with exponential backoff
@@ -507,16 +504,7 @@ class ReferenceItem(BaseModel):
                     raise last_exception  # Re-raise the last exception after all retries and email logic
 
     def get_content(self):
-        """Fetch remote file content, using cache when available."""
-        # For Valkey observability, we will make the content-cache flow explicit
-        # We'll go back once to it once we understand the problem
-        """
-        return cache.get_or_set(
-            self._cache_key(),
-            self._fetch_content,
-            timeout=settings.CONTENT_CACHE_TTL
-        )
-        """
+        # Fetch remote file content, using cache when available
         observe = getattr(settings, "CONTENT_CACHE_OBSERVABILITY", False)
         cache_key = self._cache_key()
 
@@ -570,8 +558,11 @@ class ReferenceItem(BaseModel):
                     settings.CONTENT_CACHE_TTL,
                 )
         except Exception as exc:
-            # IGNORE_EXCEPTIONS=True swallows backend errors internally but we still
-            # log a fallback signal if anything propagates so staging can see it
+            """
+            IGNORE_EXCEPTIONS only catches ConnectionInterrupted.
+            Anything else (serialization issues, etc.) is logged here so the
+            cache failure is visible without breaking the request.
+            """
             logger.warning(
                 "content_cache_backend_fallback cache_key=%s "
                 "operation=set exception=%s message=%s",
