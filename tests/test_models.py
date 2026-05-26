@@ -4,7 +4,6 @@ import pytest
 import requests_mock
 from unittest.mock import patch
 from django.core.cache import cache
-from django.test import override_settings
 from django.utils import timezone
 from django.core import mail
 from django.contrib.auth.hashers import make_password
@@ -289,7 +288,6 @@ def test_reference_item_get_content_logs_backend_fallback_when_cache_set_raises(
     with (
         requests_mock.Mocker() as m,
         patch.object(cache, "set", side_effect=RuntimeError("boom")),
-        override_settings(CONTENT_CACHE_OBSERVABILITY=True),
         caplog.at_level(logging.WARNING, logger="schemaindex"),
     ):
         m.get(schema_ref.url, text="remote content")
@@ -301,50 +299,6 @@ def test_reference_item_get_content_logs_backend_fallback_when_cache_set_raises(
         "content_cache_backend_fallback" in record.getMessage()
         for record in caplog.records
     )
-
-
-@pytest.mark.django_db
-def test_reference_item_get_content_emits_observability_logs_when_enabled(caplog):
-    """With observability on: first call emits miss + remote_fetch +
-    cache_store; second call emits hit. We assert event names rather
-    than exact text to avoid overfitting.
-    """
-    schema_ref = SchemaRefFactory.create()
-
-    with (
-        requests_mock.Mocker() as m,
-        override_settings(CONTENT_CACHE_OBSERVABILITY=True),
-        caplog.at_level(logging.INFO, logger="schemaindex"),
-    ):
-        m.get(schema_ref.url, text="some content")
-
-        schema_ref.get_content()
-        schema_ref.get_content()
-
-    messages = [r.getMessage() for r in caplog.records]
-    assert any("content_cache_miss" in msg for msg in messages)
-    assert any("content_remote_fetch_started" in msg for msg in messages)
-    assert any("content_remote_fetch_succeeded" in msg for msg in messages)
-    assert any("content_cache_store_succeeded" in msg for msg in messages)
-    assert any("content_cache_hit" in msg for msg in messages)
-
-
-@pytest.mark.django_db
-def test_reference_item_get_content_silent_when_observability_disabled(caplog):
-    schema_ref = SchemaRefFactory.create()
-
-    with (
-        requests_mock.Mocker() as m,
-        override_settings(CONTENT_CACHE_OBSERVABILITY=False),
-        caplog.at_level(logging.INFO, logger="schemaindex"),
-    ):
-        m.get(schema_ref.url, text="some content")
-        schema_ref.get_content()
-        schema_ref.get_content()
-
-    messages = [r.getMessage() for r in caplog.records]
-    assert not any("content_cache_hit" in msg for msg in messages)
-    assert not any("content_cache_miss" in msg for msg in messages)
 
 
 @pytest.mark.django_db

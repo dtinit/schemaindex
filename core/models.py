@@ -459,11 +459,6 @@ class ReferenceItem(BaseModel):
 
     def delete_cached_content(self):
         cache.delete(self._cache_key())
-        logger.info(
-            "Invalidated content cache for %s pk=%s",
-            self.__class__.__name__,
-            self.pk,
-        )
 
     def _fetch_content(self):
         # Fetch content from the remote URL with retry logic
@@ -505,7 +500,6 @@ class ReferenceItem(BaseModel):
 
     def get_content(self):
         # Fetch remote file content, using cache when available
-        observe = getattr(settings, "CONTENT_CACHE_OBSERVABILITY", False)
         cache_key = self._cache_key()
 
         try:
@@ -520,49 +514,16 @@ class ReferenceItem(BaseModel):
             )
             cached = None
         if cached is not None:
-            if observe:
-                logger.info(
-                    "content_cache_hit cache_key=%s content_length=%s",
-                    cache_key,
-                    len(cached),
-                )
             return cached
 
-        if observe:
-            logger.info("content_cache_miss cache_key=%s", cache_key)
-            logger.info(
-                "content_remote_fetch_started cache_key=%s url=%s",
-                cache_key,
-                self._get_content_url(),
-            )
-
-        start = time.monotonic()
         content = self._fetch_content()
-        duration_ms = int((time.monotonic() - start) * 1000)
-
-        if observe:
-            logger.info(
-                "content_remote_fetch_succeeded cache_key=%s "
-                "content_length=%s duration_ms=%s",
-                cache_key,
-                len(content),
-                duration_ms,
-            )
 
         try:
             cache.set(cache_key, content, timeout=settings.CONTENT_CACHE_TTL)
-            if observe:
-                logger.info(
-                    "content_cache_store_succeeded cache_key=%s ttl=%s",
-                    cache_key,
-                    settings.CONTENT_CACHE_TTL,
-                )
         except Exception as exc:
-            """
-            IGNORE_EXCEPTIONS only catches ConnectionInterrupted.
-            Anything else (serialization issues, etc.) is logged here so the
-            cache failure is visible without breaking the request.
-            """
+            # django_redis IGNORE_EXCEPTIONS only catches ConnectionInterrupted.
+            # Anything else (serialization issues, etc.) is logged here so the
+            # cache failure is visible without breaking the request.
             logger.warning(
                 "content_cache_backend_fallback cache_key=%s "
                 "operation=set exception=%s message=%s",

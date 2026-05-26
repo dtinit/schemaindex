@@ -85,41 +85,18 @@ def _check_and_record_locmem(key, now, limit):
 def check_and_record_request(profile):
     limit = settings.HOURLY_API_REQUEST_LIMIT
     key = get_profile_rate_limit_key(profile)
-    observe = getattr(settings, "RATE_LIMIT_OBSERVABILITY", False)
 
     client = _get_redis_client()
     if client is not None:
-        if observe:
-            logger.info(
-                "rate_limit_backend_selected backend=valkey profile_id=%s",
-                profile.id,
-            )
         now_ms = int(time.time() * 1000)
-        allowed, reason = _check_and_record_valkey(client, key, now_ms, limit)
-    elif _is_valkey_configured():
+        return _check_and_record_valkey(client, key, now_ms, limit)
+    if _is_valkey_configured():
         # Valkey is the configured backend but we couldn't get a client.
         # Fail open with the same shape _check_and_record_valkey uses on
         # RedisError so the middleware emits api_rate_limit_failed_open.
         logger.warning(
             "rate_limiter_unavailable: failing open reason=client_unavailable"
         )
-        allowed, reason = True, "valkey_unavailable"
-    else:
-        if observe:
-            logger.info(
-                "rate_limit_backend_selected backend=locmem profile_id=%s",
-                profile.id,
-            )
-        now = int(time.time())
-        allowed, reason = _check_and_record_locmem(key, now, limit)
-
-    if observe:
-        logger.info(
-            "rate_limit_decision allowed=%s reason=%s profile_id=%s limit=%s",
-            allowed,
-            reason or "ok",
-            profile.id,
-            limit,
-        )
-
-    return allowed, reason
+        return True, "valkey_unavailable"
+    now = int(time.time())
+    return _check_and_record_locmem(key, now, limit)
