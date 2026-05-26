@@ -1,7 +1,5 @@
 import logging
 
-from django.conf import settings
-
 from core.api_responses import ApiErrorResponse
 from core.models import APIKey
 from .rate_limit import check_and_record_request
@@ -11,7 +9,7 @@ logger = logging.getLogger("schemaindex")
 API_KEY_HEADER = "X-API-Key"
 
 
-class APIKeyAuthenticationAndRateLimitMiddleware:
+class APIKeyAuthenticationMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -44,12 +42,6 @@ class APIKeyAuthenticationAndRateLimitMiddleware:
         # reason="valkey_unavailable"
         allowed, reason = check_and_record_request(profile)
         if not allowed:
-            if getattr(settings, "RATE_LIMIT_OBSERVABILITY", False):
-                logger.info(
-                    "api_rate_limit_blocked profile_id=%s path=%s",
-                    profile.id,
-                    request.path,
-                )
             return ApiErrorResponse(
                 status_code=429,
                 message="Too many requests",

@@ -1,7 +1,6 @@
 import logging
 import os
 
-from django.core.exceptions import ImproperlyConfigured
 from google.oauth2 import service_account
 from .base import *
 
@@ -24,10 +23,7 @@ GS_BUCKET_NAME = "schemaindex-prod-storage"
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", SECRET_KEY)
 
-# Shared Valkey cache (Memorystore for Valkey in GCP)
-VALKEY_URL = env.str("VALKEY_URL", default="")
-if not VALKEY_URL:
-    raise ImproperlyConfigured("VALKEY_URL is required in staging/production.")
+VALKEY_URL = env.str("VALKEY_URL")
 
 CACHES = {
     "default": {
@@ -45,15 +41,9 @@ CACHES = {
     }
 }
 
-DJANGO_REDIS_IGNORE_EXCEPTIONS = True
+CONTENT_CACHE_TTL = 60 * 60 * 5
 
-logger.info(
-    "Valkey cache configured (tls=%s, auth=none)",
-    VALKEY_URL.startswith("rediss://"),
-)
-
-# Shared Valkey TLS CA trust.
-# The deploy workflow writes the PEM to disk and points us at it via VALKEY_SERVER_CA
+# Shared Valkey TLS CA trust
 VALKEY_SERVER_CA = env.str("VALKEY_SERVER_CA", default="")
 if VALKEY_URL.startswith("rediss://") and VALKEY_SERVER_CA:
     _ca_path = VALKEY_SERVER_CA
@@ -67,17 +57,6 @@ if VALKEY_URL.startswith("rediss://") and VALKEY_SERVER_CA:
         _ca_path,
         os.path.exists(_ca_path),
     )
-else:
-    logger.info(
-        "Valkey TLS CA not configured (tls=%s, ca_env_set=%s)",
-        VALKEY_URL.startswith("rediss://"),
-        bool(VALKEY_SERVER_CA),
-    )
-
-# Observability on so we can verify Valkey behavior end-to-end.
-# TODO: Cleanup these flags and associated logging after we've verified Valkey is working well in staging/production. Upcoming PR!
-CONTENT_CACHE_OBSERVABILITY = True
-RATE_LIMIT_OBSERVABILITY = True
 
 STORAGES = {
     "default": {

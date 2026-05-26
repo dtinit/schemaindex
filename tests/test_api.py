@@ -169,7 +169,7 @@ def test_api_fails_open_when_rate_limiter_unavailable(api_client, caplog):
         fail_open = (True, "valkey_unavailable")
         with (
             patch(
-                "core.middleware.api_key_authentication_and_rate_limit.check_and_record_request",
+                "core.middleware.api_key_authentication.check_and_record_request",
                 return_value=fail_open,
             ),
             caplog.at_level(logging.WARNING, logger="schemaindex"),
@@ -183,72 +183,32 @@ def test_api_fails_open_when_rate_limiter_unavailable(api_client, caplog):
 
 
 @pytest.mark.django_db
-@override_settings(RATE_LIMIT_OBSERVABILITY=True)
-def test_rate_limit_observability_logs_backend_and_decision(api_client, caplog):
-    """When the flag is on, every gated request should produce both a
-    backend-selection log and a decision log. We don't pin the backend
-    to a specific value — locmem in tests, valkey in staging — only
-    that the structured event was emitted.
-    """
-    mock_url = "https://example.com/schema.json"
-    mock_id_value = "https://example.com/mockid"
-    mock_content = f'{{"$id":"{mock_id_value}"}}'
-    with (
-        requests_mock.Mocker() as m,
-        caplog.at_level(logging.INFO, logger="schemaindex"),
-    ):
-        m.get(mock_url, text=mock_content)
-        SchemaRefFactory.create(url=mock_url)
-        response = api_client.get(f"/api/find?id={mock_id_value}")
+def test_rate_limit_fails_open_when_valkey_configured_but_client_unavailable(caplog):
+    from core.middleware.rate_limit import check_and_record_request
 
-    assert response.status_code == 200
-    messages = [r.getMessage() for r in caplog.records]
-    assert any("rate_limit_backend_selected" in msg for msg in messages)
+    profile = ProfileFactory.create()
+    valkey_caches = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": "redis://does-not-resolve:6379/0",
+            "OPTIONS": {"IGNORE_EXCEPTIONS": True},
+        }
+    }
+    with (
+        override_settings(CACHES=valkey_caches),
+        patch(
+            "core.middleware.rate_limit._get_redis_client",
+            return_value=None,
+        ),
+        caplog.at_level(logging.WARNING, logger="schemaindex"),
+    ):
+        allowed, reason = check_and_record_request(profile)
+
+    assert allowed is True
+    assert reason == "valkey_unavailable"
     assert any(
-        "rate_limit_decision" in msg and "allowed=True" in msg for msg in messages
+        "rate_limiter_unavailable" in record.getMessage() for record in caplog.records
     )
-
-
-@pytest.mark.django_db
-@override_settings(RATE_LIMIT_OBSERVABILITY=True, HOURLY_API_REQUEST_LIMIT=1)
-def test_rate_limit_observability_logs_blocked(api_client, caplog):
-    mock_url = "https://example.com/schema.json"
-    mock_id_value = "https://example.com/mockid"
-    mock_content = f'{{"$id":"{mock_id_value}"}}'
-    with (
-        requests_mock.Mocker() as m,
-        caplog.at_level(logging.INFO, logger="schemaindex"),
-    ):
-        m.get(mock_url, text=mock_content)
-        SchemaRefFactory.create(url=mock_url)
-        api_client.get(f"/api/find?id={mock_id_value}")
-        blocked = api_client.get(f"/api/find?id={mock_id_value}")
-
-    assert blocked.status_code == 429
-    messages = [r.getMessage() for r in caplog.records]
-    assert any("api_rate_limit_blocked" in msg for msg in messages)
-    assert any(
-        "rate_limit_decision" in msg and "allowed=False" in msg for msg in messages
-    )
-
-
-@pytest.mark.django_db
-@override_settings(RATE_LIMIT_OBSERVABILITY=False)
-def test_rate_limit_silent_when_observability_disabled(api_client, caplog):
-    mock_url = "https://example.com/schema.json"
-    mock_id_value = "https://example.com/mockid"
-    mock_content = f'{{"$id":"{mock_id_value}"}}'
-    with (
-        requests_mock.Mocker() as m,
-        caplog.at_level(logging.INFO, logger="schemaindex"),
-    ):
-        m.get(mock_url, text=mock_content)
-        SchemaRefFactory.create(url=mock_url)
-        api_client.get(f"/api/find?id={mock_id_value}")
-
-    messages = [r.getMessage() for r in caplog.records]
-    assert not any("rate_limit_backend_selected" in msg for msg in messages)
-    assert not any("rate_limit_decision" in msg for msg in messages)
 
 
 @pytest.mark.django_db

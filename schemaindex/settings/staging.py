@@ -8,6 +8,9 @@ GS_BUCKET_NAME = "schemaindex-stg-storage"
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# Reset to the base default
+CONTENT_CACHE_TTL = 60 * 60
+
 # Update the STORAGES configuration with the staging bucket
 for key in STORAGES:
     STORAGES[key]["OPTIONS"]["bucket_name"] = GS_BUCKET_NAME
