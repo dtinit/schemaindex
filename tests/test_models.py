@@ -7,6 +7,7 @@ from django.core.cache import cache
 from django.utils import timezone
 from django.core import mail
 from django.contrib.auth.hashers import make_password
+from django.core.exceptions import ValidationError
 from core.models import Schema, SchemaRef, APIKey
 from factories import (
     UserFactory,
@@ -395,3 +396,48 @@ def test_schema_serializes_as_manifest():
     ImplementationFactory(schema=schema)
     manifest = schema.to_manifest()
     assert_schema_matches_manifest(schema, manifest)
+
+
+@pytest.mark.django_db
+def test_schema_published_at_cannot_be_unset():
+    schema = SchemaFactory.create()
+    schema.published_at = None
+    with pytest.raises(ValidationError):
+        schema.save()
+
+
+@pytest.mark.django_db
+def test_schema_published_at_cannot_be_changed():
+    schema = SchemaFactory.create()
+    schema.published_at = timezone.now()
+    with pytest.raises(ValidationError):
+        schema.save()
+
+
+@pytest.mark.django_db
+def test_schema_published_at_can_be_set_first_time():
+    schema = SchemaFactory.create(published_at=None)
+    published_at_value = timezone.now()
+    schema.published_at = published_at_value
+    schema.save()
+    schema.refresh_from_db()
+    assert schema.published_at == published_at_value
+
+
+@pytest.mark.django_db
+def test_schema_published_at_can_be_unset_by_admins():
+    schema = SchemaFactory.create()
+    schema.published_at = None
+    schema.save(is_admin_change=True)
+    schema.refresh_from_db()
+    assert schema.published_at is None
+
+
+@pytest.mark.django_db
+def test_schema_published_at_can_be_changed_by_admins():
+    schema = SchemaFactory.create()
+    published_at_value = timezone.now()
+    schema.published_at = published_at_value
+    schema.save(is_admin_change=True)
+    schema.refresh_from_db()
+    assert schema.published_at == published_at_value

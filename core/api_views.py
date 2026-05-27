@@ -49,7 +49,7 @@ def _save_manifest(manifest, schema, created_by):
     schema.description = manifest.get("description")
     public = manifest.get("public") or False
 
-    # Prevent users from making public schemas private
+    # Warn users when attempting to make public schemas private
     if not public and schema.published_at:
         raise DjangoValidationError(
             "Public schemas cannot be made private except by an admin. Please set `public: true` in your manifest."
