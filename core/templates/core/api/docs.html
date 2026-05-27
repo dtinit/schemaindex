@@ -1,0 +1,112 @@
+{% extends "core/layouts/base.html" %}
+{% block head_title %}
+Schemas.Pub - API Documentation
+{% endblock %}
+
+{% block page_content %}
+<main class="api-docs">
+  <h1>API Documentation</h1>
+  <h2>Authentication</h2>
+  <p>
+    All API methods require an X-API-Key header with an API key.
+  {% if request.user %}
+  You can create an API key <a href="{% url 'account_api_key' %}">here</a>.
+  {% else %}
+  <a href="{ url 'account_signup'}">Create an account</a> to get an API key.
+  {% endif %}
+  </p>
+  <h2>Methods</h2>
+  <section class="method">
+    <h3>GET /api/find?id=[$id]</h3>
+    <p>Looks up a JSON schema by its $id value.</p>
+    <h4>Parameters</h4>
+    <ul>
+      <li><b>id</b>: The $id value of a JSON schema</li>
+    </ul>
+    <h4>Response</h4>
+    <p>A JSON object containing a "data" object with the following property:</p>
+    <ul>
+      <li><b>url</b>: A URL to the matching definition file</li>
+    </ul>
+    <code>
+      <pre>
+{
+  "data": {
+    "url": "https://example.com/schema.json"
+  }
+}</pre>
+    </code>
+    <h4>Response</h4>
+    <p>A JSON object containing a "data" object with the following proprties:</p>
+    <ul>
+      <li><b>id</b>: The created schema's ID</li>
+      <li><b>url</b>: A URL for the schema on Schemas.Pub</li>
+    </ul>
+    <code>
+      <pre>
+{
+  "data": {
+    "url": "https://schemas.pub/schemas/30/definition/341"
+  }
+}</pre>
+    </code>
+
+  </section>
+  <section class="method">
+    <h3>POST /api/schema/create</h3>
+    <p>Creates a new schema.</p>
+    <h4>Body</h4>
+    <p>
+      The body of your request should be a <a href="https://schemas.pub/schemas/30">Schemas.Pub manifest</a>.
+    </p>
+    <h4>Response</h4>
+    <p>A JSON object containing a "data" object with the following proprties:</p>
+    <ul>
+      <li><b>id</b>: The schema's ID</li>
+      <li><b>url</b>: A URL for the schema on Schemas.Pub</li>
+    </ul>
+    <code>
+      <pre>
+{
+  "data": {
+    "id": 30,
+    "url": "https://schemas.pub/schemas/30"
+  }
+}</pre>
+    </code>
+  </section>
+  <section class="method">
+    <h3>PUT /api/schema/[schema_id]</h3>
+    <p>Updates the specified schema.</p>
+    <h4>Body</h4>
+    <p>
+      The body of your request should be a <a href="https://schemas.pub/schemas/30">Schemas.Pub manifest</a>.
+    </p>
+    <h4>Response</h4>
+    <p>A JSON object containing a "data" object with the following proprties:</p>
+    <ul>
+      <li><b>id</b>: The schema's ID</li>
+      <li><b>url</b>: A URL for the schema on Schemas.Pub</li>
+    </ul>
+    <code>
+      <pre>
+{
+  "data": {
+    "id": 30,
+    "url": "https://schemas.pub/schemas/30"
+  }
+}</pre>
+    </code>
+
+  </section>
+  <h2>Errors</h2>
+  <p>
+    Error responses will be a JSON object containing an "error": object with the following properties:
+    <ul>
+      <li><b>code</b>: A status code for the error</li>
+      <li><b>message</b>: An error message</li>
+      <li><b>details</b>: (Optional) Additional information about the message</li>
+    </ul>
+  </p>
+ </main>
+{% endblock %}

@@ -639,6 +639,11 @@ a.button--primary:hover {
   padding: 2rem 0 1rem;
 }
 
+.site-footer nav {
+  display: flex;
+  gap: 1rem;
+}
+
 .badge {
   padding: 0.15rem 0.75rem;
   border-radius: 8px;
@@ -1300,4 +1305,45 @@ a.badge--w3c {
   color: var(--text-secondary);
   letter-spacing: -0.05em;
   user-select: none;
+}
+
+/* API docs page */
+.api-docs {
+  margin: 1rem auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: flex-start;
+  max-width: 60rem;
+  width: 100%;
+}
+
+.api-docs .method {
+  width: 100%;
+  background: #222;
+  padding: 1rem;
+  border-radius: 8px;
+  color: #ccc;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.api-docs .method h1,
+.api-docs .method h2,
+.api-docs .method h3,
+.api-docs .method h4 {
+  font-weight: 500;
+  color: #fff;
+}
+
+.api-docs .method h3 {
+  font-size: 18px;
+}
+
+.api-docs code pre {
+  background: #000;
+  border-radius: 8px;
+  padding: 1rem;
 }
