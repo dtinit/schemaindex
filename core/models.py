@@ -8,6 +8,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from urllib.parse import urlparse
 import time
 import requests
@@ -120,6 +121,19 @@ class Schema(BaseModel):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, is_admin_change=False, **kwargs):
+        # Validate published_at if the object already exists,
+        # unless an admin is making the change.
+        if self.id and not is_admin_change:
+            original = Schema.objects.get(id=self.id)
+
+            if original.published_at and original.published_at != self.published_at:
+                raise ValidationError(
+                    "A public schema cannot have its visibility changed except by an administrator."
+                )
+
+        super().save(*args, **kwargs)
 
     @property
     def is_published(self):

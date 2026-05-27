@@ -32,7 +32,6 @@ def test_api_key_allows_valid_api_key(api_client):
     with requests_mock.Mocker() as m:
         m.get(url, text=content)
         schema_ref = SchemaRefFactory.create(url=url)
-        schema_ref.save()
         schema_ref.refresh_from_db()
         response = api_client.get(f"/api/find?id={id_value}")
         assert response.status_code == 200
@@ -103,11 +102,10 @@ def test_find_returns_404s_for_matching_private_schemas(api_client):
     url = "https://example.com/schema.json"
     id_value = "https://example.com/testid"
     content = f'{{"$id":"{id_value}"}}'
+    private_schema = SchemaFactory.create(published_at=None)
     with requests_mock.Mocker() as m:
         m.get(url, text=content)
-        schema_ref = SchemaRefFactory.create(url=url)
-        schema_ref.schema.published_at = None
-        schema_ref.schema.save()
+        SchemaRefFactory.create(url=url, schema=private_schema)
         response = api_client.get(
             f"/api/find?id={id_value}",
         )

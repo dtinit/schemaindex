@@ -35,6 +35,11 @@ class SchemaAdmin(admin.ModelAdmin):
     def formatted_is_published(self, obj):
         return "✓" if obj.is_published else ""
 
+    def save_model(self, request, obj, form, change):
+        # Passing this flag allows us to
+        # override custom validation
+        obj.save(is_admin_change=True)
+
 
 @register(SchemaRef)
 class SchemaRefAdmin(admin.ModelAdmin):
