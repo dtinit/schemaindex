@@ -50,7 +50,7 @@ Activity
     <div class="detail-list-item__value">{{ schema_ref.created_at|date }}</div>
   </li>
 </ul>
-{% if schema_ref.permanent_urls.count > 0 or schema_ref.created_by == request.user %}
+{% if schema_ref.permanent_urls.count > 0 or schema_ref.created_by == request.user and schema.published_at|exists_and_is_in_past %}
 Permanent URL{{ schema_ref.permanent_urls.count|pluralize }}
 <ul class="detail-list">
   {% for permanent_url in schema_ref.permanent_urls.all|dictsort:"url" %}  
