@@ -551,12 +551,11 @@ class ReferenceItem(BaseModel):
     def _send_failure_notification_email(self):
         recipient_email = self.created_by.email
         subject = "Schemas.Pub Content Failure"
+        resource = f"{self.name}: {self.url}" if self.name else self.url
         message = (
             f"Hello,\n\n"
             f'One of the URLs associated with "{self.schema.name}" could not be reached:\n'
-            f"{self.name}: {self.url}\n"
-            if self.name
-            else f"{self.url}\n"
+            f"{resource}\n"
             f"Please check the URL is correct or replace it if necessary.\n\n"
             f"Thank you!\n\n"
             f"The Schemas.Pub Admin Team"
