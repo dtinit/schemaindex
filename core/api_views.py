@@ -5,6 +5,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, render
 from django.conf import settings
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
 from jsonschema import validate, ValidationError as JSONValidationError
@@ -120,6 +121,7 @@ def find(request):
 @require_POST
 @require_manifest
 @transaction.atomic
+@csrf_exempt
 def schemas_create(request, manifest):
     schema = Schema(created_by=request.user)
     try:
@@ -141,6 +143,7 @@ def schemas_create(request, manifest):
 @require_manifest
 @lookup_schema
 @transaction.atomic
+@csrf_exempt
 def schemas_update(request, manifest, schema):
     if schema.created_by != request.user:
         return ApiErrorResponse(
