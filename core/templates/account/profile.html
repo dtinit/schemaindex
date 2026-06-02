@@ -13,7 +13,31 @@ Account
       {% for schema in user_schemas|dictsort:"name" %}
       <li class="schema">
         <div class="schema__info">
-          <a href="{% url 'schema_detail' schema_id=schema.id %}">{{schema.name}}</a>
+          <div>
+            <a href="{% url 'schema_detail' schema_id=schema.id %}">{{schema.name}}</a>
+            <ul class="schema__badges">
+              {% if schema.latest_rfc %}
+              <li class="badge badge--rfc" title="Linked RFC">
+                RFC
+              </li>
+              {% endif %}
+              {% if schema.latest_w3c %}
+              <li class="badge badge--w3c" title="Linked W3C specification">
+                W3C
+              </li>
+              {% endif %}
+              {% if schema.implementation_set.count %}
+              <li title="Linked {% if schema.has_open_source_implementation %}open source {% endif %}implementations" class="badge--implementations">
+                <i
+                  data-lucide="layers-2"
+                  class="icon--sm
+                    {% if schema.has_open_source_implementation%}implementation-icon--open-source{% endif %}
+                "
+                ></i>
+              </li>
+              {% endif %}
+            </ul>
+          </div>
           {% if schema.published_at|exists_and_is_in_past %}
           <div class="visibility-badge visibility-badge--published">
           Public
@@ -25,20 +49,20 @@ Account
           </div>
         </div>
         <div class="schema__action-group">
-          <a href="{% url 'manage_schema' schema_id=schema.id %}">
-            <i data-lucide="square-pen" class="icon--md"></i>
+          <a href="{% url 'manage_schema' schema_id=schema.id %}" class="action-button">
+            <i data-lucide="square-pen" class="icon--sm"></i> Edit
           </a>
-          <a href="{% url 'schema_export' schema_id=schema.id %}">
-            <i data-lucide="file-braces" class="icon--md"></i>
+          <a href="{% url 'schema_export' schema_id=schema.id %}" class="action-button">
+            <i data-lucide="file-braces" class="icon--sm"></i> Export
           </a>
           {% if schema.published_at|exists_and_is_in_past %}
-          <a href="{% url 'manage_schema_permanent_urls' schema_id=schema.id %}">
-            <i data-lucide="link" class="icon--md"></i>
+          <a href="{% url 'manage_schema_permanent_urls' schema_id=schema.id %}" class="action-button">
+            <i data-lucide="link" class="icon--sm"></i> Manage URLs
           </a>
           {% endif %}
           {% if not schema.published_at|exists_and_is_in_past %}
-          <a href="{% url 'manage_schema_delete' schema_id=schema.id %}">
-            <i data-lucide="trash" class="icon--md"></i>
+          <a href="{% url 'manage_schema_delete' schema_id=schema.id %}" class="action-button action-button--danger">
+            <i data-lucide="trash" class="icon--sm"></i> Delete
           </a>
           {% endif %}
         </div>
