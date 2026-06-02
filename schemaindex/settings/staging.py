@@ -6,8 +6,6 @@ SITE_URL = "https://schemaindex-stg-run-799626592344.us-central1.run.app"
 CSRF_TRUSTED_ORIGINS = ["https://" + url for url in ALLOWED_HOSTS]
 GS_BUCKET_NAME = "schemaindex-stg-storage"
 
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
 # Reset to the base default
 CONTENT_CACHE_TTL = 60 * 60
 

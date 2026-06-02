@@ -77,6 +77,7 @@ STORAGES = {
 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 if os.environ.get("USE_GCLOUD_LOGGING", "0") == "1":
     LOGGING["handlers"]["cloud_logging"] = {
