@@ -59,6 +59,10 @@ Account
           <a href="{% url 'manage_schema_permanent_urls' schema_id=schema.id %}" class="action-button">
             <i data-lucide="link" class="icon--sm"></i> Manage URLs
           </a>
+          {% else %}
+          <a href="{% url 'manage_schema_publish' schema_id=schema.id %}" class="action-button">
+            <i data-lucide="eye" class="icon--sm"></i> Make public
+          </a>
           {% endif %}
           {% if not schema.published_at|exists_and_is_in_past %}
           <a href="{% url 'manage_schema_delete' schema_id=schema.id %}" class="action-button action-button--danger">
