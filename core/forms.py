@@ -391,21 +391,22 @@ class PermanentURLForm(forms.Form):
             ))
         self.fields["target"].choices = target_choices
 
-        link_type_choices = [
-            (self.LinkType.UUID, "schemas.pub/u/"),
-            (self.LinkType.EMAIL, f"schemas.pub/e/{schema.created_by.email}/"),
-        ]
-        # Only users in an org can create org URLs
+        link_type_choices = []
+        # Only users in an org can create org URLs; org is the default when available
         if schema.created_by.profile.organization:
             link_type_choices.append((
                 self.LinkType.ORGANIZATION,
                 f"schemas.pub/o/{schema.created_by.profile.organization.slug}/",
             ))
+        link_type_choices += [
+            (self.LinkType.UUID, "schemas.pub/u/"),
+            (self.LinkType.EMAIL, f"schemas.pub/e/{schema.created_by.email}/"),
+        ]
         self.fields["link_type"].choices = link_type_choices
 
         link_type = self.data.get("link_type") or self.initial.get("link_type")
         if link_type not in (choice[0] for choice in link_type_choices):
-            link_type = self.LinkType.UUID
+            link_type = link_type_choices[0][0]
         # When creating a UUID, change the suffix field to an uneditable placeholder.
         # We'll generate a UUID on submission.
         if link_type == self.LinkType.UUID:
