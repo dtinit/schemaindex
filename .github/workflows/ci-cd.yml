@@ -205,6 +205,13 @@ jobs:
       - check-pending-migrations
       - test-python
       - check-python-formatting
+    # Prevent parallel workflow runs from deploying to the same environment at the same time.
+    concurrency:
+      # Separate by environment so staging deployments don't interrupt production and vice versa. 
+      group: deploy_${{ inputs.environment || 'Staging' }}
+      # Just to be safe, allow in-progress production deployments to fully complete
+      # before starting another one.
+      cancel-in-progress: ${{ inputs.environment != 'Production' }}
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment || 'Staging' }}
