@@ -113,6 +113,24 @@ def test_find_returns_404s_for_matching_private_schemas(api_client):
 
 
 @pytest.mark.django_db
+def test_find_ignores_case(api_client):
+    url = "https://example.com/schema.json"
+    id_value = "https://example.com/testid"
+    content = f'{{"$id":"{id_value}"}}'
+    with requests_mock.Mocker() as m:
+        m.get(url, text=content)
+        SchemaRefFactory.create(url=url)
+        response = api_client.get(
+            f"/api/find?id={id_value.upper()}",
+        )
+        assert response.status_code == 200
+        response_json = response.json()
+        data = response_json.get("data")
+        url = data.get("url")
+        assert url == url
+
+
+@pytest.mark.django_db
 @override_settings(HOURLY_API_REQUEST_LIMIT=1)
 def test_rate_limit_is_isolated_per_profile():
     # One profile hitting its limit must not affect a different profile.

@@ -114,7 +114,7 @@ def find(request):
     published_schema_refs = SchemaRef.objects.filter(
         schema__in=Schema.public_objects.all()
     )
-    schema_ref = get_object_or_404(published_schema_refs, id_value=id_value)
+    schema_ref = get_object_or_404(published_schema_refs, id_value__iexact=id_value)
     return ApiResponse({"url": schema_ref.url})
 
 
