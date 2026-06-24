@@ -13,4 +13,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy local code to the container image.
 COPY . .
 
-CMD exec gunicorn --capture-output --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 0 schemaindex.wsgi
+CMD exec gunicorn --capture-output --bind 0.0.0.0:$PORT --workers 1 -k uvicorn.workers.UvicornWorker --timeout 0 schemaindex.asgi:application
