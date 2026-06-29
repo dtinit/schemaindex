@@ -187,3 +187,6 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 HOURLY_API_REQUEST_LIMIT = 500
+
+# Feature flags
+ENABLE_MCP_SERVER = False
