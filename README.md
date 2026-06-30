@@ -9,7 +9,7 @@ To run locally, you'll first need to install Python and pip.
 To install project dependencies with pip, run `pip install -r requirements.txt`.
 
 This project uses PostgreSQL in every environment, including local development.
-   
+
 The settings default to `postgres://postgres:postgres@localhost:5432/schemaindex`. If your local PostgreSQL uses different credentials, host, port, or database name, override the connection string by creating a git-ignored `.env` file in the project root:
 
 ```sh
