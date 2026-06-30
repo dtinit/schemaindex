@@ -180,13 +180,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Create test environment file
-        run: |
-          echo "DEBUG=True" > .env
-          echo "DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres" >> .env
-          echo "SECRET_KEY=test-secret-key-for-ci" >> .env
-
       - name: Run Tests
+        env:
+          # Point suite at the postgres service defined above so tests run on PostgreSQL
+          DJ_DATABASE_CONN_STRING: postgres://postgres:postgres@localhost:5432/postgres
         run: pytest
 
   # Deploy to Google Cloud Run (staging environment)
