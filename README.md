@@ -8,6 +8,15 @@ To run locally, you'll first need to install Python and pip.
 
 To install project dependencies with pip, run `pip install -r requirements.txt`.
 
+This project uses PostgreSQL in every environment, including local development.
+   
+The settings default to `postgres://postgres:postgres@localhost:5432/schemaindex`. If your local PostgreSQL uses different credentials, host, port, or database name, override the connection string by creating a git-ignored `.env` file in the project root:
+
+```sh
+# .env
+DJ_DATABASE_CONN_STRING=postgres://<user>:<password>@localhost:5432/<database>
+```
+
 To access the database management portal, create a superuser for yourself with `python3 manage.py createsuperuser`.
 
 To start the project, run `python3 manage.py runserver`.

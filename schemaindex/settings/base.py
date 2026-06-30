@@ -22,10 +22,11 @@ PROJECT_NAME = "SchemaIndex"
 SITE_URL = "[localhost]"
 SUPPORT_EMAIL = "support@dtinit.org"
 
-env = environ.Env()
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+env = environ.Env()
+env.read_env(os.path.join(BASE_DIR, ".env"))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # This will be overridden in production/staging settings
@@ -80,10 +81,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "schemaindex.wsgi.application"
 
-# Database (default SQLite for development)
+# Database (default PostgreSQL for every environment)
 DATABASES = {
     "default": env.db_url(
-        "DJ_DATABASE_CONN_STRING", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
+        "DJ_DATABASE_CONN_STRING",
+        default="postgres://postgres:postgres@localhost:5432/schemaindex",
     )
 }
 
