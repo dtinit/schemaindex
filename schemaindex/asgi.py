@@ -33,6 +33,8 @@ def create_application():
     from core.mcp import mcp  # noqa: E402
 
     # Create a lifespan context manager to run the session manager
+    # At time of writing, MCP requires the lifespan protocol but Daphne doesn't support it,
+    # which is why we must use uvicorn.
     @contextlib.asynccontextmanager
     async def lifespan(app: Starlette):
         async with mcp.session_manager.run():

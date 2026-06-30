@@ -9,7 +9,12 @@ def main():
     """Run administrative tasks."""
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "schemaindex.settings.development")
 
-    # Intercept runserver so we can use an ASGI server
+    # Intercept runserver so we can use an ASGI server.
+    #
+    # Django supports Daphne natively, but at time of writing,
+    # Daphne doesn't support the lifespan protocol, which is required by our MCP server.
+    # See https://github.com/django/daphne/issues/264
+    # and https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/daphne/
     if len(sys.argv) > 1 and sys.argv[1] == "runserver":
         import uvicorn
 
