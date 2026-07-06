@@ -1,7 +1,7 @@
 from django.urls import path, include
 
 from . import views
-from . import api_views
+from core.api import views as api_views
 
 api_endpoints = [
     path("docs", api_views.docs, name="api_docs"),

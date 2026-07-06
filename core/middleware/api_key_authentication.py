@@ -1,6 +1,6 @@
 import logging
 
-from core.api_responses import ApiErrorResponse
+from core.api.responses import ApiErrorResponse
 from core.models import APIKey
 from .rate_limit import check_and_record_request
 
