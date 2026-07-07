@@ -5,6 +5,7 @@ from django.conf import settings
 from mcp.server.fastmcp import FastMCP
 from core.models import Schema
 from asgiref.sync import sync_to_async
+from core.mcp.context import current_user
 
 mcp = FastMCP(
     "Schemas.Pub", stateless_http=True, json_response=True, streamable_http_path="/"
@@ -44,14 +45,15 @@ async def get_manifest_schema():
 async def get_schema(schema_id):
     """Get a schema's manifest"""
 
+    user = current_user.get()
+
     @sync_to_async
     def fetch_from_db():
         # TODO: dedupe from core.views:lookup_schema
         schema_filter = Q(published_at__lte=timezone.now())
 
-        # TODO: get the user from the API key
-        # if request.user.is_authenticated:
-        #    schema_filter |= Q(created_by=request.user)
+        if user and user.is_authenticated:
+            schema_filter |= Q(created_by=user)
 
         schema = (
             Schema.objects

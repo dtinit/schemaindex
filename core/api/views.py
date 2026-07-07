@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
 from jsonschema import validate, ValidationError as JSONValidationError
 from core.models import SchemaRef, Schema, ReferenceItem, PublishedSchemaConflictError
-from core.api_responses import ApiResponse, ApiErrorResponse
+from core.api.responses import ApiResponse, ApiErrorResponse
 from core.views import lookup_schema
 
 
