@@ -55,15 +55,24 @@ async def get_schema(schema_id):
         if user and user.is_authenticated:
             schema_filter |= Q(created_by=user)
 
-        schema = (
-            Schema.objects
-            .prefetch_related("schemaref_set")
-            .prefetch_related("documentationitem_set")
-            .filter(schema_filter)
-            .get(pk=schema_id)
-        )
-        return schema.to_manifest()
+        try:
+            schema = (
+                Schema.objects
+                .prefetch_related("schemaref_set")
+                .prefetch_related("documentationitem_set")
+                .filter(schema_filter)
+                .get(pk=schema_id)
+            )
+            return schema.to_manifest()
+        except Schema.DoesNotExist:
+            return None
 
-    # Await the sync-to-async execution
     manifest = await fetch_from_db()
+
+    if manifest is None:
+        # The MCP SDK will wrap this nicely for the MCP client
+        raise ValueError(
+            f"Resource not found: Schema with ID '{schema_id}' does not exist or you lack permission to view it."
+        )
+
     return json.dumps(manifest, indent=2)

@@ -1,7 +1,5 @@
 import pytest
-from collections.abc import AsyncGenerator
 import json
-from mcp.client.session import ClientSession
 from mcp.shared.memory import create_connected_server_and_client_session
 from asgiref.sync import sync_to_async
 from unittest.mock import patch, MagicMock
@@ -9,7 +7,7 @@ from starlette.responses import JSONResponse
 from django.test import override_settings
 from core.mcp.server import mcp
 from core.mcp.api_key_authentication import MCPAPIKeyAuthenticationMiddleware
-from factories import SchemaFactory, ProfileFactory
+from factories import SchemaFactory, ProfileFactory, UserFactory
 
 
 # Force all database tests in this file to flush tables instead of rolling back,
@@ -24,11 +22,22 @@ def anyio_backend():
 
 
 @pytest.fixture
-async def client_session() -> AsyncGenerator[ClientSession, None]:
+async def client_session():
     # Creates an isolated in-memory client session connected to your FastMCP server.
     # raise_exceptions=True ensures that internal server errors fail the test immediately.
     async with create_connected_server_and_client_session(
         mcp, raise_exceptions=True
+    ) as session:
+        yield session
+
+
+@pytest.fixture
+async def error_client_session():
+    # Creates a client session where the server catches unhandled exceptions
+    # and serializes them into MCP error payloads over the wire. Use this
+    # specifically for testing expected error states.
+    async with create_connected_server_and_client_session(
+        mcp, raise_exceptions=False
     ) as session:
         yield session
 
@@ -133,3 +142,21 @@ async def test_schema_by_id_resource_supports_own_private_schemas(client_session
     expected_manifest_str = json.dumps(manifest, sort_keys=True)
     # Now we have two JSON strings with sorted keys we can just compare directly
     assert sorted_contents_str == expected_manifest_str
+
+
+@pytest.mark.anyio
+async def test_schema_by_id_resource_errors_for_inaccessible_schemas(
+    error_client_session,
+):
+    # Create a private schema
+    schema = await sync_to_async(SchemaFactory.create)(published_at=None)
+
+    # Mock the current_user to be a completely different user from the creator
+    mock_current_user = MagicMock()
+    mock_current_user.get.return_value = await sync_to_async(UserFactory.create)()
+
+    with patch("core.mcp.server.current_user", mock_current_user):
+        expected_error_message = f"Resource not found: Schema with ID '{schema.id}' does not exist or you lack permission to view it."
+
+        with pytest.raises(Exception, match=expected_error_message):
+            await error_client_session.read_resource(f"schema://{schema.id}")
