@@ -1,8 +1,33 @@
 import pytest
 from django.core.cache import cache
 from django.test import Client
+from django.db import connection
 import requests_mock as requests_mock_lib
 from factories import ProfileFactory
+
+
+@pytest.fixture(scope="session", autouse=True)
+def force_terminate_db_connections(django_db_setup, django_db_blocker):
+    """
+    Hooks into pytest-django's teardown lifecycle.
+    Guarantees that all background thread connections are killed
+    before pytest tries to drop the test database.
+    """
+    yield
+
+    with django_db_blocker.unblock():
+        with connection.cursor() as cursor:
+            db_name = connection.settings_dict["NAME"]
+            cursor.execute(
+                f"""
+                SELECT pg_terminate_backend(pg_stat_activity.pid)
+                FROM pg_stat_activity
+                WHERE pg_stat_activity.datname = '{db_name}'
+                  AND pid <> pg_backend_pid();
+                """
+            )
+
+        connection.close()
 
 
 @pytest.fixture(autouse=True)

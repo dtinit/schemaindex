@@ -1,7 +1,9 @@
 import json
+from jsonschema import ValidationError as JSONValidationError
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.urls import reverse
 from django.db.models import Q
 from django.utils import timezone
-from django.conf import settings
 from mcp.server.fastmcp import FastMCP
 from core.models import Schema
 from asgiref.sync import sync_to_async
@@ -35,10 +37,7 @@ def list_schemas():
 @mcp.resource("schema://manifest.json")
 async def get_manifest_schema():
     """Get the Schemas.Pub manifest schema"""
-    # TODO: dedupe from api_views.py
-    schema_path = settings.BASE_DIR / "core" / "schemas" / "manifest.schema.json"
-    with open(schema_path, "r") as f:
-        return f.read()
+    return json.dumps(Schema.get_manifest_schema())
 
 
 @mcp.resource("schema://{schema_id}")
@@ -76,3 +75,33 @@ async def get_schema(schema_id):
         )
 
     return json.dumps(manifest, indent=2)
+
+
+@mcp.tool()
+async def create_schema(manifest: str):
+    """
+    Create a new schema from a manifest.
+    The manifest should be a JSON string following the Schemas.Pub manifest schema available from schema://manifest.json
+    """
+    user = current_user.get()
+    if not user or not user.is_authenticated:
+        raise ValueError("You must be authenticated to create a schema.")
+
+    @sync_to_async
+    def do_create():
+        try:
+            manifest_data = Schema.validate_manifest(manifest)
+            schema = Schema(created_by=user)
+            schema.overwrite_from_manifest(manifest_data)
+            return {
+                "id": schema.id,
+                "url": reverse("schema_detail", kwargs={"schema_id": schema.id}),
+            }
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Undecodable JSON payload: {e.msg}")
+        except JSONValidationError as e:
+            raise ValueError(f"Incorrect JSON payload format: {e.message}")
+        except DjangoValidationError as e:
+            raise ValueError(f"Validation Error: {e.message}")
+
+    return await do_create()
