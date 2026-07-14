@@ -25,6 +25,19 @@ ID: {schema.id}
     return formatted_schema
 
 
+# This is just a fallback since our middleware
+# rejects any request without an API key tied to a user.
+def ensure_current_user():
+    user = current_user.get()
+    if not user:
+        raise ValueError("Not authenticated.")
+    return user
+
+
+# Note: We don't use type hints elsewhere in the codebase,
+# but they can influence FastMCP's behavior for tools and resources.
+
+
 # TODO: This will need to be paginated
 @mcp.tool()
 @sync_to_async
@@ -41,7 +54,7 @@ async def get_manifest_schema():
 
 
 @mcp.resource("schema://{schema_id}")
-async def get_schema(schema_id):
+async def get_schema(schema_id: int):
     """Get a schema's manifest"""
 
     user = current_user.get()
@@ -77,31 +90,59 @@ async def get_schema(schema_id):
     return json.dumps(manifest, indent=2)
 
 
+def _validate_manifest_and_update_schema(manifest, schema):
+    """
+    Shared synchronous helper to validate a manifest, apply it to a Schema instance,
+    and handle common validation exceptions.
+    """
+    try:
+        manifest_data = Schema.validate_manifest(manifest)
+        schema.overwrite_from_manifest(manifest_data)
+        return {
+            "id": schema.id,
+            "url": reverse("schema_detail", kwargs={"schema_id": schema.id}),
+        }
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Undecodable JSON payload: {e.msg}")
+    except JSONValidationError as e:
+        raise ValueError(f"Incorrect JSON payload format: {e.message}")
+    except DjangoValidationError as e:
+        raise ValueError(f"Validation Error: {e.message}")
+
+
 @mcp.tool()
 async def create_schema(manifest: str):
     """
     Create a new schema from a manifest.
-    The manifest should be a JSON string following the Schemas.Pub manifest schema available from schema://manifest.json
+    The manifest should be a JSON string following the Schemas.Pub manifest schema available at schema://manifest.json
     """
-    user = current_user.get()
-    if not user or not user.is_authenticated:
-        raise ValueError("You must be authenticated to create a schema.")
+    user = ensure_current_user()
 
     @sync_to_async
     def do_create():
-        try:
-            manifest_data = Schema.validate_manifest(manifest)
-            schema = Schema(created_by=user)
-            schema.overwrite_from_manifest(manifest_data)
-            return {
-                "id": schema.id,
-                "url": reverse("schema_detail", kwargs={"schema_id": schema.id}),
-            }
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Undecodable JSON payload: {e.msg}")
-        except JSONValidationError as e:
-            raise ValueError(f"Incorrect JSON payload format: {e.message}")
-        except DjangoValidationError as e:
-            raise ValueError(f"Validation Error: {e.message}")
+        schema = Schema(created_by=user)
+        return _validate_manifest_and_update_schema(manifest, schema)
 
     return await do_create()
+
+
+@mcp.tool()
+async def update_schema(schema_id: int, manifest: str):
+    """
+    Update an existing schema from a manifest.
+    The manifest should be a JSON string following the Schemas.Pub manifest schema available at schema://manifest.json
+    """
+    user = ensure_current_user()
+
+    @sync_to_async
+    def do_update():
+        try:
+            schema = Schema.objects.get(pk=schema_id)
+            if schema.created_by != user:
+                raise Schema.DoesNotExist
+        except Schema.DoesNotExist:
+            raise ValueError(f"Schema with ID '{schema_id}' not found.")
+
+        return _validate_manifest_and_update_schema(manifest, schema)
+
+    return await do_update()
