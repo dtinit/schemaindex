@@ -7,7 +7,9 @@ from starlette.responses import JSONResponse
 from django.test import override_settings
 from core.mcp.server import mcp
 from core.mcp.api_key_authentication import MCPAPIKeyAuthenticationMiddleware
-from factories import SchemaFactory, ProfileFactory, UserFactory
+from factories import SchemaFactory, ProfileFactory, UserFactory, SchemaRefFactory
+from utils import assert_schema_matches_manifest
+from core.models import Schema
 
 
 # Force all database tests in this file to flush tables instead of rolling back,
@@ -29,6 +31,14 @@ async def client_session():
         mcp, raise_exceptions=True
     ) as session:
         yield session
+
+
+@pytest.fixture
+def current_user_mock():
+    # Patches current_user for the duration of the test.
+    mock = MagicMock()
+    with patch("core.mcp.server.current_user", mock):
+        yield mock
 
 
 @pytest.fixture
@@ -128,14 +138,14 @@ async def test_schema_by_id_resource(client_session):
 
 
 @pytest.mark.anyio
-async def test_schema_by_id_resource_supports_own_private_schemas(client_session):
+async def test_schema_by_id_resource_supports_own_private_schemas(
+    client_session, current_user_mock
+):
     schema = await sync_to_async(SchemaFactory.create)(published_at=None)
     manifest = await sync_to_async(schema.to_manifest)()
     # Mock the current_user (normally provided by middleware)
-    mock_current_user = MagicMock()
-    mock_current_user.get.return_value = schema.created_by
-    with patch("core.mcp.server.current_user", mock_current_user):
-        result = await client_session.read_resource(f"schema://{schema.id}")
+    current_user_mock.get.return_value = schema.created_by
+    result = await client_session.read_resource(f"schema://{schema.id}")
     # We parse the string result as JSON so we can stringify it with sorted keys
     parsed_contents = json.loads(result.contents[0].text)
     sorted_contents_str = json.dumps(parsed_contents, sort_keys=True)
@@ -147,16 +157,247 @@ async def test_schema_by_id_resource_supports_own_private_schemas(client_session
 @pytest.mark.anyio
 async def test_schema_by_id_resource_errors_for_inaccessible_schemas(
     error_client_session,
+    current_user_mock,
 ):
     # Create a private schema
     schema = await sync_to_async(SchemaFactory.create)(published_at=None)
 
     # Mock the current_user to be a completely different user from the creator
-    mock_current_user = MagicMock()
-    mock_current_user.get.return_value = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = await sync_to_async(UserFactory.create)()
 
-    with patch("core.mcp.server.current_user", mock_current_user):
-        expected_error_message = f"Resource not found: Schema with ID '{schema.id}' does not exist or you lack permission to view it."
+    expected_error_message = f"Resource not found: Schema with ID '{schema.id}' does not exist or you lack permission to view it."
 
-        with pytest.raises(Exception, match=expected_error_message):
-            await error_client_session.read_resource(f"schema://{schema.id}")
+    with pytest.raises(Exception, match=expected_error_message):
+        await error_client_session.read_resource(f"schema://{schema.id}")
+
+
+@pytest.mark.anyio
+async def test_create_schema_success(client_session, current_user_mock):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+
+    manifest = {
+        "name": "Test Schema",
+        "description": "A schema created via MCP tool",
+        "documents": {
+            "https://example.com/mcp-definition.json": {
+                "type": "definition",
+                "name": "Test Definition",
+            },
+        },
+    }
+    manifest_str = json.dumps(manifest)
+
+    result = await client_session.call_tool(
+        "create_schema", arguments={"manifest": manifest_str}
+    )
+
+    parsed_result = json.loads(result.content[0].text)
+    assert "id" in parsed_result
+    assert "url" in parsed_result
+
+    schema = await sync_to_async(Schema.objects.get)(id=parsed_result["id"])
+    await sync_to_async(assert_schema_matches_manifest)(schema, manifest)
+
+
+@pytest.mark.anyio
+async def test_create_schema_unauthenticated(error_client_session, current_user_mock):
+    # Mock the current_user to be None or unauthenticated
+    current_user_mock.get.return_value = None
+
+    expected_error_message = "Not authenticated."
+    result = await error_client_session.call_tool(
+        "create_schema", arguments={"manifest": "{}"}
+    )
+    assert result.isError
+    assert expected_error_message in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_create_schema_invalid_json(error_client_session, current_user_mock):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+
+    # Intentionally invalid JSON
+    manifest_str = '{"name": "Invalid JSON", '
+    expected_error_message = "Undecodable JSON payload"
+    result = await error_client_session.call_tool(
+        "create_schema", arguments={"manifest": manifest_str}
+    )
+    assert result.isError
+    assert expected_error_message in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_create_schema_invalid_manifest_format(
+    error_client_session, current_user_mock
+):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+
+    # Valid JSON, but not a valid manifest
+    manifest_str = json.dumps({"wrong_key": "wrong_value"})
+    expected_error_message = "Incorrect JSON payload format"
+    result = await error_client_session.call_tool(
+        "create_schema", arguments={"manifest": manifest_str}
+    )
+    assert result.isError
+    assert expected_error_message in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_create_schema_validation_error(error_client_session, current_user_mock):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+    other_user = await sync_to_async(UserFactory.create)()
+    published_schema = await sync_to_async(SchemaFactory.create)(created_by=other_user)
+    url = "https://example.com/conflict.json"
+    await sync_to_async(SchemaRefFactory.create)(schema=published_schema, url=url)
+
+    manifest = {
+        "name": "Conflict Schema",
+        "public": True,
+        "documents": {url: {"type": "definition"}},
+    }
+    manifest_str = json.dumps(manifest)
+
+    expected_error_message = "Validation Error"
+    result = await error_client_session.call_tool(
+        "create_schema", arguments={"manifest": manifest_str}
+    )
+    assert result.isError
+    assert expected_error_message in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_update_schema_success(client_session, current_user_mock):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+    schema = await sync_to_async(SchemaFactory.create)(created_by=user)
+
+    manifest = {
+        "name": "Test Schema",
+        "description": "A schema updated via MCP tool",
+        "documents": {
+            "https://example.com/mcp-definition.json": {
+                "type": "definition",
+                "name": "Test Definition",
+            },
+        },
+        "public": True,
+    }
+    manifest_str = json.dumps(manifest)
+
+    result = await client_session.call_tool(
+        "update_schema", arguments={"schema_id": schema.id, "manifest": manifest_str}
+    )
+
+    parsed_result = json.loads(result.content[0].text)
+    assert "id" in parsed_result
+    assert "url" in parsed_result
+    assert parsed_result["id"] == schema.id
+
+    updated_schema = await sync_to_async(Schema.objects.get)(id=parsed_result["id"])
+    await sync_to_async(assert_schema_matches_manifest)(updated_schema, manifest)
+
+
+@pytest.mark.anyio
+async def test_update_schema_unauthenticated(error_client_session, current_user_mock):
+    # Mock the current_user to be None or unauthenticated
+    current_user_mock.get.return_value = None
+    schema = await sync_to_async(SchemaFactory.create)()
+
+    expected_error_message = "Not authenticated."
+    result = await error_client_session.call_tool(
+        "update_schema", arguments={"schema_id": schema.id, "manifest": "{}"}
+    )
+    assert result.isError
+    assert expected_error_message in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_update_schema_forbidden(error_client_session, current_user_mock):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+    # Schema created by another user
+    other_user = await sync_to_async(UserFactory.create)()
+    schema = await sync_to_async(SchemaFactory.create)(created_by=other_user)
+
+    expected_error_message = f"Schema with ID '{schema.id}' not found."
+    result = await error_client_session.call_tool(
+        "update_schema", arguments={"schema_id": schema.id, "manifest": "{}"}
+    )
+    assert result.isError
+    assert expected_error_message in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_update_schema_not_found(error_client_session, current_user_mock):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+    # Schema does not exist
+    non_existent_id = 99999
+    expected_error_message = f"Schema with ID '{non_existent_id}' not found."
+    result = await error_client_session.call_tool(
+        "update_schema", arguments={"schema_id": non_existent_id, "manifest": "{}"}
+    )
+    assert result.isError
+    assert expected_error_message in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_update_schema_invalid_json(error_client_session, current_user_mock):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+    schema = await sync_to_async(SchemaFactory.create)(created_by=user)
+    # Intentionally invalid JSON
+    manifest_str = '{"name": "Invalid JSON", '
+    expected_error_message = "Undecodable JSON payload"
+    result = await error_client_session.call_tool(
+        "update_schema", arguments={"schema_id": schema.id, "manifest": manifest_str}
+    )
+    assert result.isError
+    assert expected_error_message in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_update_schema_invalid_manifest_format(
+    error_client_session, current_user_mock
+):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+    schema = await sync_to_async(SchemaFactory.create)(created_by=user)
+    # Valid JSON, but not a valid manifest
+    manifest_str = json.dumps({"wrong_key": "wrong_value"})
+    expected_error_message = "Incorrect JSON payload format"
+    result = await error_client_session.call_tool(
+        "update_schema", arguments={"schema_id": schema.id, "manifest": manifest_str}
+    )
+    assert result.isError
+    assert expected_error_message in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_update_schema_validation_error(error_client_session, current_user_mock):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+    schema = await sync_to_async(SchemaFactory.create)(created_by=user)
+
+    other_user = await sync_to_async(UserFactory.create)()
+    published_schema = await sync_to_async(SchemaFactory.create)(created_by=other_user)
+    url = "https://example.com/conflict.json"
+    await sync_to_async(SchemaRefFactory.create)(schema=published_schema, url=url)
+
+    manifest = {
+        "name": "Conflict Schema",
+        "public": True,
+        "documents": {url: {"type": "definition"}},
+    }
+    manifest_str = json.dumps(manifest)
+
+    expected_error_message = "Validation Error"
+    result = await error_client_session.call_tool(
+        "update_schema", arguments={"schema_id": schema.id, "manifest": manifest_str}
+    )
+    assert result.isError
+    assert expected_error_message in result.content[0].text

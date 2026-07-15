@@ -9,12 +9,14 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 from urllib.parse import urlparse
 import time
 import requests
 import requests.exceptions
 import secrets
 import json
+from jsonschema import validate as validate_json_schema
 from django.core.mail import send_mail
 from .utils import (
     guess_specification_language_by_extension,
@@ -135,6 +137,18 @@ class Schema(BaseModel):
 
         super().save(*args, **kwargs)
 
+    @classmethod
+    def get_manifest_schema(cls):
+        schema_path = settings.BASE_DIR / "core" / "schemas" / "manifest.schema.json"
+        with open(schema_path, "r") as f:
+            return json.load(f)
+
+    @classmethod
+    def validate_manifest(cls, manifest_string):
+        data = json.loads(manifest_string)
+        validate_json_schema(instance=data, schema=cls.get_manifest_schema())
+        return data
+
     @property
     def is_published(self):
         return self.published_at is not None and self.published_at <= timezone.now()
@@ -250,6 +264,65 @@ class Schema(BaseModel):
         manifest["documents"] = documents
 
         return manifest
+
+    @transaction.atomic
+    def overwrite_from_manifest(self, manifest):
+        self.name = manifest["name"]
+        self.description = manifest.get("description")
+        public = manifest.get("public") or False
+
+        # Warn users when attempting to make public schemas private
+        if not public and self.published_at:
+            raise ValidationError(
+                "Public schemas cannot be made private except by an admin. Please set `public: true` in your manifest."
+            )
+
+        self.save()
+        urls = manifest["documents"].keys()
+
+        # Delete any ReferenceItems with URLs
+        # that aren't in the manifest
+        self.schemaref_set.exclude(url__in=urls).delete()
+        self.documentationitem_set.exclude(url__in=urls).delete()
+        self.implementation_set.exclude(url__in=urls).delete()
+
+        # Create or update reference items
+        for document_url, document_metadata in manifest["documents"].items():
+            ReferenceItem.update_or_create_from_manifest_document(
+                self, document_url, document_metadata, created_by=self.created_by
+            )
+
+        if public:
+            if self.pk is None:
+                # Django requires a pk before we can use
+                # schema.check_for_published_conflicts()
+                self.save()
+            else:
+                # Existing schemas were using stale schemaref_set
+                # data without this
+                self.refresh_from_db()
+
+            try:
+                self.check_for_published_conflicts()
+            except PublishedSchemaConflictError as e:
+                conflict_url = reverse(
+                    "schema_ref_detail",
+                    kwargs={
+                        "schema_id": e.conflicting_schema_ref.schema.id,
+                        "schema_ref_id": e.conflicting_schema_ref.id,
+                    },
+                )
+                raise ValidationError(
+                    f"`public: true` was set, but a public schema ({conflict_url})"
+                    + f"is already using one of the {e.reason} values "
+                    + "used in this schema. Please contact a Schemas.Pub administrator."
+                )
+
+        # We only update published_at when we initially publish
+        if public and not self.published_at:
+            self.published_at = timezone.now()
+
+        self.save()
 
 
 class ReferenceItemManager(models.Manager):
