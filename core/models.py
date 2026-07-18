@@ -7,6 +7,13 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.postgres.search import (
+    SearchVector,
+    SearchQuery,
+    SearchRank,
+    SearchVectorField,
+)
+from django.contrib.postgres.indexes import GinIndex
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.urls import reverse
@@ -87,7 +94,29 @@ class PermanentURL(BaseModel):
         indexes = [models.Index(fields=["content_type", "object_id"])]
 
 
-class PublicSchemaManager(models.Manager):
+class SchemaQuerySet(models.QuerySet):
+    def search(self, query_text):
+        """
+        Rank schemas by full-text relevance against `query_text`.
+        `name` weighted above description.
+        
+        When `query_text` is blank the queryset is returned unchanged,
+        so the existing ordering (alphabetical on index) is preserved for plain browsing.
+        """
+        query_text = (query_text or "").strip()
+        if not query_text:
+            return self
+        search_query = SearchQuery(
+            query_text, config="english", search_type="websearch"
+        )
+        return (
+            self.filter(search_vector=search_query)
+            .annotate(rank=SearchRank("search_vector", search_query))
+            .order_by("-rank", "name")
+        )
+
+
+class PublicSchemaManager(models.Manager.from_queryset(SchemaQuerySet)):
     def get_queryset(self):
         return (
             super()
@@ -117,9 +146,20 @@ class Schema(BaseModel):
     published_at = models.DateTimeField(blank=True, null=True)
     permanent_urls = GenericRelation(PermanentURL, related_query_name="schema")
     description = models.CharField(blank=True, null=True, max_length=350)
+    search_vector = models.GeneratedField(
+        expression=(
+            SearchVector("name", weight="A", config="english")
+            + SearchVector("description", weight="B", config="english")
+        ),
+        output_field=SearchVectorField(),
+        db_persist=True,
+    )
 
     class Meta:
-        indexes = [models.Index(fields=["published_at"])]
+        indexes = [
+            models.Index(fields=["published_at"]),
+            GinIndex(fields=["search_vector"], name="schema_search_vec_gin"),
+        ]
 
     def __str__(self):
         return self.name
