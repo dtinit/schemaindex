@@ -143,23 +143,21 @@ def index(request):
         else defined_schemas
     )
 
-    filtered_by_name = (
-        filtered_by_documentation_type.filter(name__icontains=search_query)
-        if search_query
-        else filtered_by_documentation_type
-    )
+    # Full-text ranked search. When the box is empty, .search() returns the
+    # queryset unchanged, preserving the alphabetical browse ordering above.
+    searched_schemas = filtered_by_documentation_type.search(search_query)
 
     filtered_by_specification_file_type = (
         [
             schema
-            for schema in filtered_by_name
+            for schema in searched_schemas
             if any(
                 schema_ref.language == specification_file_type
                 for schema_ref in schema.schemaref_set.all()
             )
         ]
         if specification_file_type
-        else filtered_by_name
+        else searched_schemas
     )
 
     return render(
