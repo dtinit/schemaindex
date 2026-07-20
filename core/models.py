@@ -111,7 +111,7 @@ class SchemaQuerySet(models.QuerySet):
         )
         return (
             self.filter(search_vector=search_query)
-            .annotate(rank=SearchRank("search_vector", search_query))
+            .annotate(rank=SearchRank(models.F("search_vector"), search_query))
             .order_by("-rank", "name")
         )
 
