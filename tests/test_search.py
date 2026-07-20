@@ -1,8 +1,17 @@
 import pytest
+from django.db import connection
 
 from tests.factories import SchemaFactory
 from core.models import Schema
 
+"""
+def test_database_is_postgres():
+    # Postgres FTS has no SQLite equivalent
+    assert connection.vendor == "postgresql", (
+        "Requires PostgreSQL for full-text search; the configured "
+        f"database backend is '{connection.vendor}'."
+    )
+"""
 
 @pytest.mark.django_db
 def test_stemming_makes_singular_and_plural_equivalent():
