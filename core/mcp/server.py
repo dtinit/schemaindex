@@ -2,8 +2,6 @@ import json
 from jsonschema import ValidationError as JSONValidationError
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
-from django.db.models import Q
-from django.utils import timezone
 from mcp.server.fastmcp import FastMCP
 from core.models import Schema
 from asgiref.sync import sync_to_async
@@ -61,20 +59,15 @@ async def get_schema(schema_id: int):
 
     @sync_to_async
     def fetch_from_db():
-        # TODO: dedupe from core.views:lookup_schema
-        schema_filter = Q(published_at__lte=timezone.now())
-
-        if user and user.is_authenticated:
-            schema_filter |= Q(created_by=user)
-
         try:
             schema = (
                 Schema.objects
+                .accessible_to(user)
                 .prefetch_related("schemaref_set")
                 .prefetch_related("documentationitem_set")
-                .filter(schema_filter)
                 .get(pk=schema_id)
             )
+
             return schema.to_manifest()
         except Schema.DoesNotExist:
             return None

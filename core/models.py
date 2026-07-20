@@ -1,6 +1,7 @@
 import logging
 from itertools import chain
 from django.db import models, transaction
+from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
@@ -96,6 +97,10 @@ class PermanentURL(BaseModel):
 
 
 class SchemaQuerySet(models.QuerySet):
+    def _get_public_q(self):
+        """Helper method to return the Q object for public schemas."""
+        return Q(published_at__isnull=False, published_at__lte=timezone.now())
+
     def search(self, query_text):
         """
         Rank schemas by full-text relevance against `query_text`.
@@ -117,14 +122,18 @@ class SchemaQuerySet(models.QuerySet):
             .order_by("-rank", "name")
         )
 
+    def public(self):
+        """Returns only public schemas."""
+        return self.filter(self._get_public_q())
 
-class PublicSchemaManager(models.Manager.from_queryset(SchemaQuerySet)):
-    def get_queryset(self):
-        return (
-            super()
-            .get_queryset()
-            .filter(published_at__isnull=False, published_at__lte=timezone.now())
-        )
+    def accessible_to(self, user):
+        """Returns schemas that are either public OR created by the user."""
+        q_filter = self._get_public_q()
+
+        if user and user.is_authenticated:
+            q_filter |= Q(created_by=user)
+
+        return self.filter(q_filter)
 
 
 class PublishedSchemaConflictError(Exception):
@@ -142,8 +151,7 @@ class PublishedSchemaConflictError(Exception):
 
 
 class Schema(BaseModel):
-    objects = models.Manager()
-    public_objects = PublicSchemaManager()
+    objects = SchemaQuerySet.as_manager()
     name = models.CharField(max_length=200)
     published_at = models.DateTimeField(blank=True, null=True)
     permanent_urls = GenericRelation(PermanentURL, related_query_name="schema")
@@ -265,7 +273,7 @@ class Schema(BaseModel):
             PublishedSchemaConflictError: If a conflict is found.
         """
         published_schema_refs = SchemaRef.objects.filter(
-            schema__in=Schema.public_objects.all()
+            schema__in=Schema.objects.public()
         ).exclude(
             # We don't want to check against this Schema's own SchemaRefs
             schema=self
@@ -826,7 +834,7 @@ class Organization(BaseModel):
 
     @property
     def public_schemas(self):
-        return Schema.public_objects.filter(
+        return Schema.objects.public().filter(
             created_by_id__in=self.profile_set.values_list("user_id", flat=True)
         )
 

@@ -2,7 +2,6 @@ import logging
 import uuid
 
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Q
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
@@ -78,16 +77,11 @@ MARKDOWN_HTML_ATTRIBUTES = {
 def lookup_schema(function):
     @wraps(function)
     def _wrap_request(request, schema_id, *args, **kwargs):
-        schema_filter = Q(published_at__lte=timezone.now())
-
-        if request.user.is_authenticated:
-            schema_filter |= Q(created_by=request.user)
-
         schema = get_object_or_404(
             Schema.objects
+            .accessible_to(request.user)
             .prefetch_related("schemaref_set")
-            .prefetch_related("documentationitem_set")
-            .filter(schema_filter),
+            .prefetch_related("documentationitem_set"),
             pk=schema_id,
         )
 
@@ -127,7 +121,8 @@ def render_markdown(markdown_source_text):
 
 def index(request):
     defined_schemas = (
-        Schema.public_objects
+        Schema.objects
+        .public()
         .prefetch_related("schemaref_set")
         .exclude(schemaref__isnull=True)
         .order_by("name")
@@ -452,7 +447,7 @@ def organization_detail(request, organization_id):
 @login_required
 def manage_schema_permanent_urls(request, schema_id):
     schema = get_object_or_404(
-        Schema.public_objects,
+        Schema.objects.public(),
         id=schema_id,
         created_by=request.user,
     )
