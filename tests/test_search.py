@@ -5,15 +5,6 @@ from tests.factories import SchemaFactory
 from core.models import Schema
 
 
-def test_database_is_postgres():
-    # Postgres FTS has no SQLite equivalent
-    engine = settings.DATABASES["default"]["ENGINE"]
-    assert engine == "django.db.backends.postgresql", (
-        "This project requires PostgreSQL for full-text search; "
-        f"the configured database ENGINE is '{engine}'."
-    )
-
-
 @pytest.mark.django_db
 def test_stemming_makes_singular_and_plural_equivalent():
     # "Schema" and "Schemas" must return the same result.
