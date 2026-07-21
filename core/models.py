@@ -99,7 +99,7 @@ class SchemaQuerySet(models.QuerySet):
         """
         Rank schemas by full-text relevance against `query_text`.
         `name` weighted above description.
-        
+
         When `query_text` is blank the queryset is returned unchanged,
         so the existing ordering (alphabetical on index) is preserved for plain browsing.
         """
@@ -110,7 +110,8 @@ class SchemaQuerySet(models.QuerySet):
             query_text, config="english", search_type="websearch"
         )
         return (
-            self.filter(search_vector=search_query)
+            self
+            .filter(search_vector=search_query)
             .annotate(rank=SearchRank(models.F("search_vector"), search_query))
             .order_by("-rank", "name")
         )
