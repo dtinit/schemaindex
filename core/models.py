@@ -21,6 +21,7 @@ from django.core.mail import send_mail
 from .utils import (
     guess_specification_language_by_extension,
     guess_language_by_extension,
+    is_trusted_content_host_url,
 )
 
 logger = logging.getLogger("schemaindex")
@@ -527,6 +528,7 @@ class ReferenceItem(BaseModel):
             if original.url != self.url:
                 self.content_fetch_failing_since = None
                 self.delete_cached_content()
+
         super().save(*args, **kwargs)
 
     def _get_content_url(self):
@@ -586,6 +588,9 @@ class ReferenceItem(BaseModel):
                     raise last_exception  # Re-raise the last exception after all retries and email logic
 
     def get_content(self):
+        if not is_trusted_content_host_url(self._get_content_url()):
+            return ""
+
         # Fetch remote file content, using cache when available
         cache_key = self._cache_key()
 

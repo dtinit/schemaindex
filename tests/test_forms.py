@@ -88,7 +88,6 @@ def test_schema_management_form_prevents_duplicate_published_id_values():
             },
         )
         assert not form.is_valid()
-        print(form.schema_refs_formset.errors[0])
         error = form.schema_refs_formset.errors[0]["url"][
             0
         ]  # Form 0, error list for 'url', error 0

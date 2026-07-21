@@ -4,7 +4,10 @@ from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 import requests
 from .models import DocumentationItem, SchemaRef, Schema, PermanentURL
-from .utils import guess_specification_language_by_extension
+from .utils import (
+    guess_specification_language_by_extension,
+    is_trusted_content_host_url,
+)
 
 
 # These are just alphabetized and shown as help text
@@ -34,6 +37,9 @@ class ReferenceItemForm(forms.Form):
 
 
 def clean_url_and_get_body(url):
+    if not is_trusted_content_host_url(url):
+        return ""
+
     try:
         response = requests.get(url)
     except requests.exceptions.RequestException:

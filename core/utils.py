@@ -1,6 +1,7 @@
 from urllib.parse import urlparse
 from pygments.lexers import get_lexer_for_filename
 from pygments.util import ClassNotFound
+from django.conf import settings
 
 """
 This is currently just a list of languages supported
@@ -77,3 +78,18 @@ def guess_specification_language_by_extension(url):
     of allowed specification languages, or None if no such match exists.
     """
     return guess_language_by_extension(url, SPECIFICATION_LANGUAGE_ALLOWLIST)
+
+
+def is_trusted_content_host_url(url):
+    parsed_url = urlparse(url)
+    hostname = parsed_url.hostname
+
+    if not hostname:
+        return False
+
+    if hostname in settings.TRUSTED_CONTENT_DOMAINS:
+        return True
+
+    return any(
+        hostname.endswith("." + domain) for domain in settings.TRUSTED_CONTENT_DOMAINS
+    )

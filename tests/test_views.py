@@ -410,6 +410,7 @@ def test_schema_detail_renders_readme_on_successful_fetch():
         schema=schema,
         role=DocumentationItem.DocumentationItemRole.README,
         format=DocumentationItem.DocumentationItemFormat.PlainText,
+        url="https://example.com/readme",
     )
     client = Client()
     with requests_mock.Mocker() as m:

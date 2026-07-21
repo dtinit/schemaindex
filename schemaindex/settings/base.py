@@ -192,3 +192,14 @@ HOURLY_API_REQUEST_LIMIT = 500
 
 # Feature flags
 ENABLE_MCP_SERVER = False
+
+# An allowlist of domains we can safely fetch file content from
+TRUSTED_CONTENT_DOMAINS = [
+    "github.com",
+    "githubusercontent.com",
+    "w3.org",
+    "happenstance.ai",
+    "osirisjson.org",
+    "ietf.org",
+    "rfc-editor.org",
+]
