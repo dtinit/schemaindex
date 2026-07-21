@@ -1,5 +1,4 @@
 import pytest
-from django.conf import settings
 
 from tests.factories import SchemaFactory
 from core.models import Schema
