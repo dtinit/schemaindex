@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.core import mail
 from django.contrib.auth.hashers import make_password
 from django.core.exceptions import ValidationError
+from django.test import override_settings
 from core.models import Schema, SchemaRef, APIKey
 from factories import (
     UserFactory,
@@ -99,7 +100,7 @@ def test_reference_item_content_is_fetched_from_raw_url_if_available():
 @pytest.mark.django_db
 @patch("core.models.time.sleep", return_value=None)
 def test_reference_item_get_content_success(mock_sleep):
-    schema_ref = SchemaRefFactory.create()
+    schema_ref = SchemaRefFactory.create(url="https://example.com/definition.md")
     mock_content = "some content"
     with requests_mock.Mocker() as m:
         m.get(schema_ref.url, text=mock_content)
@@ -112,7 +113,7 @@ def test_reference_item_get_content_success(mock_sleep):
 @pytest.mark.django_db
 @patch("core.models.time.sleep", return_value=None)
 def test_reference_item_get_content_failure_sends_email_and_sets_timestamp(mock_sleep):
-    schema_ref = SchemaRefFactory.create()
+    schema_ref = SchemaRefFactory.create(url="https://example.com/definition")
     with requests_mock.Mocker() as m:
         m.get(schema_ref.url, status_code=500)
         with pytest.raises(requests.exceptions.HTTPError):
@@ -130,7 +131,10 @@ def test_reference_item_get_content_subsequent_failure_no_email_or_timestamp_cha
     mock_sleep,
 ):
     mock_failure_time = timezone.now() - timezone.timedelta(hours=1)
-    schema_ref = SchemaRefFactory.create(content_fetch_failing_since=mock_failure_time)
+    schema_ref = SchemaRefFactory.create(
+        content_fetch_failing_since=mock_failure_time,
+        url="https://example.com/definition",
+    )
     with requests_mock.Mocker() as m:
         m.get(schema_ref.url, status_code=500)
         with pytest.raises(requests.exceptions.HTTPError):
@@ -145,7 +149,8 @@ def test_reference_item_get_content_subsequent_failure_no_email_or_timestamp_cha
 @patch("core.models.time.sleep", return_value=None)
 def test_reference_item_get_content_success_after_failure_clears_timestamp(mock_sleep):
     schema_ref = SchemaRefFactory.create(
-        content_fetch_failing_since=timezone.now() - timezone.timedelta(hours=1)
+        content_fetch_failing_since=timezone.now() - timezone.timedelta(hours=1),
+        url="https://example.com/definition",
     )
     mock_content = "some content"
     with requests_mock.Mocker() as m:
@@ -159,7 +164,7 @@ def test_reference_item_get_content_success_after_failure_clears_timestamp(mock_
 @pytest.mark.django_db
 @patch("core.models.time.sleep", return_value=None)
 def test_reference_item_get_content_retries_on_unreachable(mock_sleep):
-    schema_ref = SchemaRefFactory.create()
+    schema_ref = SchemaRefFactory.create(url="https://example.com/definition")
     with requests_mock.Mocker() as m:
         m.get(schema_ref.url, exc=requests.exceptions.HTTPError)
         with pytest.raises(requests.exceptions.HTTPError):
@@ -173,7 +178,7 @@ def test_reference_item_get_content_retries_on_unreachable(mock_sleep):
 @pytest.mark.django_db
 def test_reference_item_save_resets_failure_timestamp_on_url_change():
     schema_ref = SchemaRefFactory.create(
-        content_fetch_failing_since=timezone.now(),
+        content_fetch_failing_since=timezone.now(), url="https://example.com/definition"
     )
     schema_ref.url = "https://example.com/new-url"
     schema_ref.save()
@@ -186,6 +191,7 @@ def test_reference_item_save_does_not_reset_failure_timestamp_on_other_change():
     schema_ref = SchemaRefFactory.create(
         content_fetch_failing_since=now,
         name="Old Name",
+        url="https://example.com/definition",
     )
     schema_ref.name = "New Name"
     schema_ref.save()
@@ -195,7 +201,7 @@ def test_reference_item_save_does_not_reset_failure_timestamp_on_other_change():
 @pytest.mark.django_db
 @patch("core.models.time.sleep", return_value=None)
 def test_reference_item_get_content_no_email_on_non_http_error(mock_sleep):
-    schema_ref = SchemaRefFactory.create()
+    schema_ref = SchemaRefFactory.create(url="https://example.com/definition")
     with requests_mock.Mocker() as m:
         m.get(schema_ref.url, exc=requests.exceptions.ConnectionError)
         with pytest.raises(requests.exceptions.ConnectionError):
@@ -212,7 +218,7 @@ def test_reference_item_get_content_returns_cached_on_second_call():
     After a successful fetch, subsequent calls should return
     cached content without making another HTTP request.
     """
-    schema_ref = SchemaRefFactory.create()
+    schema_ref = SchemaRefFactory.create(url="https://example.com/definition")
     mock_content = "cached schema content"
     with requests_mock.Mocker() as m:
         m.get(schema_ref.url, text=mock_content)
@@ -248,8 +254,8 @@ def test_reference_item_url_change_invalidates_cached_content():
 
 @pytest.mark.django_db
 def test_reference_item_cache_key_is_class_scoped():
-    schema_ref = SchemaRefFactory.create()
-    doc_item = DocumentationItemFactory.create()
+    schema_ref = SchemaRefFactory.create(url="https://example.com/definition")
+    doc_item = DocumentationItemFactory.create(url="https://example.com/readme.md")
 
     # Force the same pk to make the collision risk explicit. Even if
     # both rows share pk=N, the cache keys must differ.
@@ -267,7 +273,7 @@ def test_reference_item_get_content_falls_through_when_cache_get_returns_none():
     unreachable with IGNORE_EXCEPTIONS=True returning None). Each call
     must re-fetch from the remote URL and must not crash.
     """
-    schema_ref = SchemaRefFactory.create()
+    schema_ref = SchemaRefFactory.create(url="https://example.com/definition")
 
     with requests_mock.Mocker() as m, patch.object(cache, "get", return_value=None):
         m.get(schema_ref.url, text="fresh remote content")
@@ -284,7 +290,7 @@ def test_reference_item_get_content_logs_backend_fallback_when_cache_set_raises(
     """If cache.set raises (IGNORE_EXCEPTIONS should swallow, but we still want a signal),
     get_content must still return the remote content and emit the backend-fallback log.
     """
-    schema_ref = SchemaRefFactory.create()
+    schema_ref = SchemaRefFactory.create(url="https://example.com/definition")
 
     with (
         requests_mock.Mocker() as m,
@@ -441,3 +447,38 @@ def test_schema_published_at_can_be_changed_by_admins():
     schema.save(is_admin_change=True)
     schema.refresh_from_db()
     assert schema.published_at == published_at_value
+
+
+@pytest.mark.django_db
+@override_settings(TRUSTED_CONTENT_DOMAINS=["example.com"])
+def test_schema_ref_get_content_fetches_from_trusted_domain():
+    mock_url = "https://example.com/definition"
+    expected_content = "hello from a safe domain"
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text=expected_content)
+        schema_ref = SchemaRefFactory.create(url=mock_url)
+        content = schema_ref.get_content()
+        assert expected_content == content
+
+
+@pytest.mark.django_db
+@override_settings(TRUSTED_CONTENT_DOMAINS=["example.com"])
+def test_schema_ref_get_content_fetches_from_trusted_subdomain():
+    mock_url = "https://schemas.example.com/definition"
+    expected_content = "hello from a safe domain"
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text=expected_content)
+        schema_ref = SchemaRefFactory.create(url=mock_url)
+        content = schema_ref.get_content()
+        assert expected_content == content
+
+
+@pytest.mark.django_db
+@override_settings(TRUSTED_CONTENT_DOMAINS=[])
+def test_schema_ref_get_content_ignores_untrusted_domain():
+    mock_url = "https://example.com/definition"
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text="If you can read this, the test failed")
+        schema_ref = SchemaRefFactory.create(url=mock_url)
+        content = schema_ref.get_content()
+        assert content == ""
