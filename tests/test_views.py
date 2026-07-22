@@ -432,3 +432,21 @@ def test_schema_export_sends_manifest():
     assert response.status_code == 200
     manifest = json.loads(response.content)
     assert_schema_matches_manifest(schema, manifest)
+
+
+@pytest.mark.django_db
+def test_homepage_search_is_stemmed():
+    schema = SchemaFactory(name="Invoice Schema")
+    SchemaRefFactory(schema=schema)
+    response = Client().get("/?search_query=Schemas")
+    assert schema.name in str(response.content)
+
+
+@pytest.mark.django_db
+def test_homepage_no_query_lists_alphabetically():
+    last_schema = SchemaFactory(name="ZZZ Last Schema")
+    SchemaRefFactory(schema=last_schema)
+    first_schema = SchemaFactory(name="AAA First Schema")
+    SchemaRefFactory(schema=first_schema)
+    names = [s.name for s in Client().get("/").context["schemas"]]
+    assert names == ["AAA First Schema", "ZZZ Last Schema"]
