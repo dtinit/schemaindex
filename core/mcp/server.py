@@ -1,7 +1,10 @@
 import json
+from typing import Literal
 from jsonschema import ValidationError as JSONValidationError
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Q
 from django.urls import reverse
+from django.utils import timezone
 from mcp.server.fastmcp import FastMCP
 from core.models import Schema
 from asgiref.sync import sync_to_async
@@ -14,12 +17,15 @@ mcp = FastMCP(
 
 def format_schema(schema):
     formatted_schema = f"""
-Name: {schema.name}
 ID: {schema.id}
+Name: {schema.name}
 """
     if schema.description:
-        formatted_schema += f"""Description: {schema.description}
-"""
+        formatted_schema += f"Description: {schema.description}\n"
+
+    if schema.published_at is None or schema.published_at > timezone.now():
+        formatted_schema += "Visibility: Private\n"
+
     return formatted_schema
 
 
@@ -34,15 +40,69 @@ def ensure_current_user():
 
 # Note: We don't use type hints elsewhere in the codebase,
 # but they can influence FastMCP's behavior for tools and resources.
+# Function descriptions are the actual descriptions surfaced to models.
+
+MAX_PAGE_SIZE = 10
 
 
-# TODO: This will need to be paginated
 @mcp.tool()
 @sync_to_async
-def list_schemas():
-    """List all available schemas."""
-    public_schemas = [format_schema(schema) for schema in Schema.public_objects.all()]
-    return "\n---\n".join(public_schemas)
+def search_schemas(
+    keywords: list[str] = [], scope: Literal["all", "user"] = "all", page: int = 1
+):
+    """
+    Search for schemas.
+
+    Args:
+      keywords: A list of search keywords. Keywords are compared to each schema's $id, name, and description for possible matches. Omit to list all schemas in scope.
+      scope: 'user' to search only the user's own schemas (including private), or 'all' to search the entire registry. Defaults to 'all.'
+      page: Which page of search results to return. Defaults to 1.
+    """
+
+    user = ensure_current_user()
+
+    results = (
+        Schema.objects.accessible_to(user)
+        if scope == "all"
+        else Schema.objects.filter(created_by=user)
+    )
+    for keyword in keywords:
+        results = results.filter(
+            Q(name__icontains=keyword)
+            | Q(description__icontains=keyword)
+            | Q(schemaref__id_value__iexact=keyword)
+        )
+    results = results.distinct()
+
+    total_count = results.count()
+    if total_count == 0:
+        return "No results matched your query."
+
+    total_pages = (total_count + MAX_PAGE_SIZE - 1) // MAX_PAGE_SIZE
+    if page < 1 or page > total_pages:
+        raise ValueError(
+            f"Invalid page number for query. Please request a page between 1 and {total_pages}."
+        )
+
+    start = (page - 1) * MAX_PAGE_SIZE
+    end = start + MAX_PAGE_SIZE
+    paginated_results = results[start:end]
+
+    formatted_results = [format_schema(schema) for schema in paginated_results]
+    formatted_page = "\n---\n".join(formatted_results)
+
+    response = f"Found {results.count()} schemas matching your query{':' if total_pages == 1 else '.'}"
+
+    if total_pages == 1:
+        response += f"\n\n{formatted_page}"
+        return response
+
+    response += f"\n\nThe results are truncated. Showing page {page} of {total_pages}:"
+    response += f"\n\n{formatted_page}"
+
+    response += f'\n\nTo get the next page, use `search_schemas(keywords: <keywords>, scope: "{scope}", page: {page + 1})'
+
+    return response
 
 
 @mcp.resource("schema://manifest.json")
