@@ -40,12 +40,15 @@ def test_name_hit_outranks_description_only_hit():
 
 
 @pytest.mark.django_db
-def test_blank_query_returns_all_without_ranking():
+def test_blank_query_returns_all_and_preserves_order():
     SchemaFactory(name="One")
     SchemaFactory(name="Two")
-    # Blank / None must not filter or reorder — plain browsing is preserved.
-    assert Schema.public_objects.search("").count() == 2
-    assert Schema.public_objects.search(None).count() == 2
+    # A blank / None query must neither filter nor reorder: .search() returns the
+    # queryset unchanged, so the caller's ordering survives and no relevance
+    # ranking is applied. (Whitespace-only counts as blank via .strip().)
+    for blank in ("", "   ", None):
+        results = Schema.public_objects.order_by("name").search(blank)
+        assert [schema.name for schema in results] == ["One", "Two"]
 
 
 @pytest.mark.django_db
