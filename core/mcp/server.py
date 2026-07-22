@@ -2,7 +2,6 @@ import json
 from typing import Literal
 from jsonschema import ValidationError as JSONValidationError
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 from mcp.server.fastmcp import FastMCP
@@ -48,31 +47,32 @@ MAX_PAGE_SIZE = 10
 @mcp.tool()
 @sync_to_async
 def search_schemas(
-    keywords: list[str] = [], scope: Literal["all", "user"] = "all", page: int = 1
+    query: str = None, scope: Literal["all", "user"] = "all", page: int = 1
 ):
     """
     Search for schemas.
 
     Args:
-      keywords: A list of search keywords. Keywords are compared to each schema's $id, name, and description for possible matches. Omit to list all schemas in scope.
+      query: A search query. Can be a list of keywords or an $id. Pass None or an empty string to list all schemas in scope.
       scope: 'user' to search only the user's own schemas (including private), or 'all' to search the entire registry. Defaults to 'all.'
       page: Which page of search results to return. Defaults to 1.
     """
 
     user = ensure_current_user()
 
-    results = (
+    scope_results = (
         Schema.objects.accessible_to(user)
         if scope == "all"
         else Schema.objects.filter(created_by=user)
     )
-    for keyword in keywords:
-        results = results.filter(
-            Q(name__icontains=keyword)
-            | Q(description__icontains=keyword)
-            | Q(schemaref__id_value__iexact=keyword)
-        )
-    results = results.distinct()
+
+    matched_by_id_value = scope_results.filter(schemaref__id_value__iexact=query)
+
+    # If there is a query and it matches an exact ID, skip the full-text search.
+    if query and matched_by_id_value.exists():
+        results = matched_by_id_value
+    else:
+        results = scope_results.search(query)
 
     total_count = results.count()
     if total_count == 0:

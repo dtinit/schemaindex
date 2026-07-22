@@ -422,7 +422,7 @@ async def test_search_schemas_no_results(client_session, current_user_mock):
     current_user_mock.get.return_value = user
 
     result = await client_session.call_tool(
-        "search_schemas", arguments={"keywords": ["nonexistent_keyword"]}
+        "search_schemas", arguments={"query": "nonexistent"}
     )
 
     assert result.content[0].text == "No results matched your query."
@@ -460,7 +460,7 @@ async def test_search_schemas_scope(client_session, current_user_mock):
 
 
 @pytest.mark.anyio
-async def test_search_schemas_description_keyword_filtering(
+async def test_search_schemas_description_query_filtering(
     client_session, current_user_mock
 ):
     user = await sync_to_async(UserFactory.create)()
@@ -474,7 +474,7 @@ async def test_search_schemas_description_keyword_filtering(
     )
 
     result = await client_session.call_tool(
-        "search_schemas", arguments={"keywords": ["SPECIAL"]}
+        "search_schemas", arguments={"query": "SPECIAL"}
     )
     text = result.content[0].text
 
@@ -483,7 +483,7 @@ async def test_search_schemas_description_keyword_filtering(
 
 
 @pytest.mark.anyio
-async def test_search_schemas_name_keyword_filtering(client_session, current_user_mock):
+async def test_search_schemas_name_query_filtering(client_session, current_user_mock):
     user = await sync_to_async(UserFactory.create)()
     current_user_mock.get.return_value = user
 
@@ -495,7 +495,7 @@ async def test_search_schemas_name_keyword_filtering(client_session, current_use
     )
 
     result = await client_session.call_tool(
-        "search_schemas", arguments={"keywords": ["alpha"]}
+        "search_schemas", arguments={"query": "alpha"}
     )
     text = result.content[0].text
 
@@ -504,7 +504,7 @@ async def test_search_schemas_name_keyword_filtering(client_session, current_use
 
 
 @pytest.mark.anyio
-async def test_search_schemas_id_value_keyword_filtering(
+async def test_search_schemas_id_value_query_filtering(
     client_session, current_user_mock
 ):
     user = await sync_to_async(UserFactory.create)()
@@ -525,7 +525,7 @@ async def test_search_schemas_id_value_keyword_filtering(
     )
 
     result = await client_session.call_tool(
-        "search_schemas", arguments={"keywords": ["special"]}
+        "search_schemas", arguments={"query": mock_id_value.upper()}
     )
     text = result.content[0].text
 
