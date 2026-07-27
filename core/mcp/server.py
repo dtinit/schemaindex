@@ -91,7 +91,7 @@ def search_schemas(
     formatted_results = [format_schema(schema) for schema in paginated_results]
     formatted_page = "\n---\n".join(formatted_results)
 
-    response = f"Found {results.count()} schemas matching your query{':' if total_pages == 1 else '.'}"
+    response = f"Found {results.count()} schema{'s' if results.count() > 1 else ''} matching your query{':' if total_pages == 1 else '.'}"
 
     if total_pages == 1:
         response += f"\n\n{formatted_page}"
