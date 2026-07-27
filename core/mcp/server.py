@@ -1,8 +1,8 @@
 import json
+from typing import Literal
 from jsonschema import ValidationError as JSONValidationError
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
-from django.db.models import Q
 from django.utils import timezone
 from mcp.server.fastmcp import FastMCP
 from core.models import Schema
@@ -16,12 +16,15 @@ mcp = FastMCP(
 
 def format_schema(schema):
     formatted_schema = f"""
-Name: {schema.name}
 ID: {schema.id}
+Name: {schema.name}
 """
     if schema.description:
-        formatted_schema += f"""Description: {schema.description}
-"""
+        formatted_schema += f"Description: {schema.description}\n"
+
+    if schema.published_at is None or schema.published_at > timezone.now():
+        formatted_schema += "Visibility: Private\n"
+
     return formatted_schema
 
 
@@ -36,15 +39,70 @@ def ensure_current_user():
 
 # Note: We don't use type hints elsewhere in the codebase,
 # but they can influence FastMCP's behavior for tools and resources.
+# Function descriptions are the actual descriptions surfaced to models.
+
+MAX_PAGE_SIZE = 10
 
 
-# TODO: This will need to be paginated
 @mcp.tool()
 @sync_to_async
-def list_schemas():
-    """List all available schemas."""
-    public_schemas = [format_schema(schema) for schema in Schema.public_objects.all()]
-    return "\n---\n".join(public_schemas)
+def search_schemas(
+    query: str = None, scope: Literal["all", "user"] = "all", page: int = 1
+):
+    """
+    Search for schemas.
+
+    Args:
+      query: A search query. Can be a list of keywords or an $id. Pass None or an empty string to list all schemas in scope.
+      scope: 'user' to search only the user's own schemas (including private), or 'all' to search the entire registry. Defaults to 'all.'
+      page: Which page of search results to return. Defaults to 1.
+    """
+
+    user = ensure_current_user()
+
+    scope_results = (
+        Schema.objects.accessible_to(user)
+        if scope == "all"
+        else Schema.objects.filter(created_by=user)
+    )
+
+    matched_by_id_value = scope_results.filter(schemaref__id_value__iexact=query)
+
+    # If there is a query and it matches an exact ID, skip the full-text search.
+    if query and matched_by_id_value.exists():
+        results = matched_by_id_value
+    else:
+        results = scope_results.search(query)
+
+    total_count = results.count()
+    if total_count == 0:
+        return "No results matched your query."
+
+    total_pages = (total_count + MAX_PAGE_SIZE - 1) // MAX_PAGE_SIZE
+    if page < 1 or page > total_pages:
+        raise ValueError(
+            f"Invalid page number for query. Please request a page between 1 and {total_pages}."
+        )
+
+    start = (page - 1) * MAX_PAGE_SIZE
+    end = start + MAX_PAGE_SIZE
+    paginated_results = results[start:end]
+
+    formatted_results = [format_schema(schema) for schema in paginated_results]
+    formatted_page = "\n---\n".join(formatted_results)
+
+    response = f"Found {total_count} schema{'s' if total_count > 1 else ''} matching your query{':' if total_pages == 1 else '.'}"
+
+    if total_pages == 1:
+        response += f"\n\n{formatted_page}"
+        return response
+
+    response += f"\n\nThe results are truncated. Showing page {page} of {total_pages}:"
+    response += f"\n\n{formatted_page}"
+
+    response += f'\n\nTo get the next page, use `search_schemas(query: <keywords>, scope: "{scope}", page: {page + 1})'
+
+    return response
 
 
 @mcp.resource("schema://manifest.json")
@@ -61,20 +119,15 @@ async def get_schema(schema_id: int):
 
     @sync_to_async
     def fetch_from_db():
-        # TODO: dedupe from core.views:lookup_schema
-        schema_filter = Q(published_at__lte=timezone.now())
-
-        if user and user.is_authenticated:
-            schema_filter |= Q(created_by=user)
-
         try:
             schema = (
                 Schema.objects
+                .accessible_to(user)
                 .prefetch_related("schemaref_set")
                 .prefetch_related("documentationitem_set")
-                .filter(schema_filter)
                 .get(pk=schema_id)
             )
+
             return schema.to_manifest()
         except Schema.DoesNotExist:
             return None

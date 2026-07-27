@@ -39,9 +39,7 @@ def docs(request):
 @require_GET
 def find(request):
     id_value = request.GET.get("id")
-    published_schema_refs = SchemaRef.objects.filter(
-        schema__in=Schema.public_objects.all()
-    )
+    published_schema_refs = SchemaRef.objects.filter(schema__in=Schema.objects.public())
     schema_ref = get_object_or_404(published_schema_refs, id_value__iexact=id_value)
     return ApiResponse({"url": schema_ref.url})
 

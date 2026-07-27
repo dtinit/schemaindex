@@ -83,13 +83,13 @@ class SchemaRefForm(ReferenceItemForm):
         # If the schema is unpublished, we don't care if the URL or $id are already in use
         if (
             self.schema_id is None
-            or not Schema.public_objects.filter(id=self.schema_id).exists()
+            or not Schema.objects.public().filter(id=self.schema_id).exists()
         ):
             return url
 
         # But if it's a published schema, we need to make sure the URL and $id aren't already in use
         schema_refs = SchemaRef.objects.select_related("schema").filter(
-            schema__in=Schema.public_objects.exclude(id=self.schema_id)
+            schema__in=Schema.objects.public().exclude(id=self.schema_id)
         )
         # First check the URL
         for schema_ref in schema_refs:

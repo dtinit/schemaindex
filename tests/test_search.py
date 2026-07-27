@@ -11,7 +11,7 @@ def test_stemming_makes_singular_and_plural_equivalent():
     schema = SchemaFactory(name="Invoice Schema")
     decoy = SchemaFactory(name="Weather Report")
     for term in ("Schemas", "Schema"):
-        results = Schema.public_objects.search(term)
+        results = Schema.objects.public().search(term)
         assert schema in results
         assert decoy not in results
 
@@ -19,13 +19,13 @@ def test_stemming_makes_singular_and_plural_equivalent():
 @pytest.mark.django_db
 def test_search_is_case_insensitive():
     schema = SchemaFactory(name="Invoice Schema")
-    assert schema in Schema.public_objects.search("INVOICE")
+    assert schema in Schema.objects.public().search("INVOICE")
 
 
 @pytest.mark.django_db
 def test_search_matches_description_field():
     schema = SchemaFactory(name="ACME Format", description="A standard for invoices")
-    assert schema in Schema.public_objects.search("invoice")
+    assert schema in Schema.objects.public().search("invoice")
 
 
 @pytest.mark.django_db
@@ -35,7 +35,7 @@ def test_name_hit_outranks_description_only_hit():
     # which would hide a weight bug for some names.
     SchemaFactory(name="Invoice Format", description=None)
     SchemaFactory(name="ACME Format", description="Used for invoice data")
-    ranks = {s.name: s.rank for s in Schema.public_objects.search("invoice")}
+    ranks = {s.name: s.rank for s in Schema.objects.public().search("invoice")}
     assert ranks["Invoice Format"] > ranks["ACME Format"]
 
 
@@ -47,7 +47,7 @@ def test_blank_query_returns_all_and_preserves_order():
     # queryset unchanged, so the caller's ordering survives and no relevance
     # ranking is applied. (Whitespace-only counts as blank via .strip().)
     for blank in ("", "   ", None):
-        results = Schema.public_objects.order_by("name").search(blank)
+        results = Schema.objects.public().order_by("name").search(blank)
         assert [schema.name for schema in results] == ["One", "Two"]
 
 
@@ -55,7 +55,7 @@ def test_blank_query_returns_all_and_preserves_order():
 def test_search_excludes_unpublished_schemas():
     SchemaFactory(name="Public Invoice")
     SchemaFactory(name="Private Invoice", published_at=None)
-    assert Schema.public_objects.search("invoice").count() == 1
+    assert Schema.objects.public().search("invoice").count() == 1
 
 
 @pytest.mark.django_db
@@ -63,7 +63,7 @@ def test_malformed_query_does_not_raise():
     SchemaFactory(name="Invoice")
     # websearch_to_tsquery tolerates junk such as unbalanced quote plus dangling operator.
     # The guarantee is that evaluating the queryset does not raise.
-    results = Schema.public_objects.search('"invoice OR -')
+    results = Schema.objects.public().search('"invoice OR -')
     assert results.count() >= 0
 
 

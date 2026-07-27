@@ -1,11 +1,12 @@
 import pytest
 import json
+import requests_mock
 from mcp.shared.memory import create_connected_server_and_client_session
 from asgiref.sync import sync_to_async
 from unittest.mock import patch, MagicMock
 from starlette.responses import JSONResponse
 from django.test import override_settings
-from core.mcp.server import mcp
+from core.mcp.server import mcp, MAX_PAGE_SIZE
 from core.mcp.api_key_authentication import MCPAPIKeyAuthenticationMiddleware
 from factories import SchemaFactory, ProfileFactory, UserFactory, SchemaRefFactory
 from utils import assert_schema_matches_manifest
@@ -401,3 +402,181 @@ async def test_update_schema_validation_error(error_client_session, current_user
     )
     assert result.isError
     assert expected_error_message in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_search_schemas_unauthenticated(error_client_session, current_user_mock):
+    # Mock the current_user to be None
+    current_user_mock.get.return_value = None
+
+    expected_error_message = "Not authenticated."
+    result = await error_client_session.call_tool("search_schemas", arguments={})
+
+    assert result.isError
+    assert expected_error_message in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_search_schemas_no_results(client_session, current_user_mock):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+
+    result = await client_session.call_tool(
+        "search_schemas", arguments={"query": "nonexistent"}
+    )
+
+    assert result.content[0].text == "No results matched your query."
+
+
+@pytest.mark.anyio
+async def test_search_schemas_scope(client_session, current_user_mock):
+    user1 = await sync_to_async(UserFactory.create)()
+    user2 = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user1
+
+    # Create a schema for user1
+    await sync_to_async(SchemaFactory.create)(created_by=user1, name="User One Schema")
+
+    # Create an accessible (published) schema for user2
+    from django.utils import timezone
+
+    await sync_to_async(SchemaFactory.create)(
+        created_by=user2, name="User Two Public Schema", published_at=timezone.now()
+    )
+
+    # Search with 'user' scope - should only return user1's schema
+    user_scope_result = await client_session.call_tool(
+        "search_schemas", arguments={"scope": "user"}
+    )
+    assert "User One Schema" in user_scope_result.content[0].text
+    assert "User Two Public Schema" not in user_scope_result.content[0].text
+
+    # Search with 'all' scope - should return both
+    all_scope_result = await client_session.call_tool(
+        "search_schemas", arguments={"scope": "all"}
+    )
+    assert "User One Schema" in all_scope_result.content[0].text
+    assert "User Two Public Schema" in all_scope_result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_search_schemas_description_query_filtering(
+    client_session, current_user_mock
+):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+
+    await sync_to_async(SchemaFactory.create)(
+        created_by=user, name="Alpha", description="A special testing schema"
+    )
+    await sync_to_async(SchemaFactory.create)(
+        created_by=user, name="Beta", description="Another item entirely"
+    )
+
+    result = await client_session.call_tool(
+        "search_schemas", arguments={"query": "SPECIAL"}
+    )
+    text = result.content[0].text
+
+    assert "Alpha" in text
+    assert "Beta" not in text
+
+
+@pytest.mark.anyio
+async def test_search_schemas_name_query_filtering(client_session, current_user_mock):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+
+    await sync_to_async(SchemaFactory.create)(
+        created_by=user, name="Alpha", description="A special testing schema"
+    )
+    await sync_to_async(SchemaFactory.create)(
+        created_by=user, name="Beta", description="Another item entirely"
+    )
+
+    result = await client_session.call_tool(
+        "search_schemas", arguments={"query": "alpha"}
+    )
+    text = result.content[0].text
+
+    assert "Alpha" in text
+    assert "Beta" not in text
+
+
+@pytest.mark.anyio
+async def test_search_schemas_id_value_query_filtering(
+    client_session, current_user_mock
+):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+
+    schema = await sync_to_async(SchemaFactory.create)(
+        created_by=user, name="Alpha", description="A special testing schema"
+    )
+    mock_url = "https://example.com/schema.json"
+    mock_id_value = "https://example.com/mockid"
+    mock_content = f'{{"$id":"{mock_id_value}"}}'
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text=mock_content)
+        await sync_to_async(SchemaRefFactory.create)(url=mock_url, schema=schema)
+
+    await sync_to_async(SchemaFactory.create)(
+        created_by=user, name="Beta", description="Another item entirely"
+    )
+
+    result = await client_session.call_tool(
+        "search_schemas", arguments={"query": mock_id_value.upper()}
+    )
+    text = result.content[0].text
+
+    assert "Alpha" in text
+    assert "Beta" not in text
+
+
+@pytest.mark.anyio
+async def test_search_schemas_pagination(client_session, current_user_mock):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+
+    # Trigger pagination
+    for i in range(MAX_PAGE_SIZE + 1):
+        await sync_to_async(SchemaFactory.create)(
+            created_by=user, name=f"Pagination Schema {i}"
+        )
+
+    # Fetch page 1
+    result_page_1 = await client_session.call_tool(
+        "search_schemas", arguments={"page": 1}
+    )
+    text_1 = result_page_1.content[0].text
+
+    assert f"Found {MAX_PAGE_SIZE + 1} schemas matching your query." in text_1
+    assert "The results are truncated. Showing page 1 of 2:" in text_1
+    assert "To get the next page, use `search_schemas" in text_1
+
+    # Fetch page 2
+    result_page_2 = await client_session.call_tool(
+        "search_schemas", arguments={"page": 2}
+    )
+    text_2 = result_page_2.content[0].text
+
+    assert "Showing page 2 of 2:" in text_2
+
+
+@pytest.mark.anyio
+async def test_search_schemas_invalid_page(error_client_session, current_user_mock):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+
+    # Create 1 schema so there is only 1 page
+    await sync_to_async(SchemaFactory.create)(created_by=user)
+
+    result = await error_client_session.call_tool(
+        "search_schemas", arguments={"page": 5}
+    )
+
+    assert result.isError
+    assert (
+        "Invalid page number for query. Please request a page between 1 and 1."
+        in result.content[0].text
+    )
