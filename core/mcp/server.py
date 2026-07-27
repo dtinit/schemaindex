@@ -91,7 +91,7 @@ def search_schemas(
     formatted_results = [format_schema(schema) for schema in paginated_results]
     formatted_page = "\n---\n".join(formatted_results)
 
-    response = f"Found {results.count()} schema{'s' if results.count() > 1 else ''} matching your query{':' if total_pages == 1 else '.'}"
+    response = f"Found {total_count} schema{'s' if total_count > 1 else ''} matching your query{':' if total_pages == 1 else '.'}"
 
     if total_pages == 1:
         response += f"\n\n{formatted_page}"
@@ -100,7 +100,7 @@ def search_schemas(
     response += f"\n\nThe results are truncated. Showing page {page} of {total_pages}:"
     response += f"\n\n{formatted_page}"
 
-    response += f'\n\nTo get the next page, use `search_schemas(keywords: <keywords>, scope: "{scope}", page: {page + 1})'
+    response += f'\n\nTo get the next page, use `search_schemas(query: <keywords>, scope: "{scope}", page: {page + 1})'
 
     return response
 
