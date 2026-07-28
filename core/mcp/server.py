@@ -47,7 +47,7 @@ MAX_PAGE_SIZE = 10
 @mcp.tool()
 @sync_to_async
 def search_schemas(
-    query: str = None, scope: Literal["all", "user"] = "all", page: int = 1
+    query: str | None = None, scope: Literal["all", "user"] = "all", page: int = 1
 ):
     """
     Search for schemas.
@@ -108,7 +108,7 @@ def search_schemas(
 @mcp.resource("schema://manifest.json")
 async def get_manifest_schema():
     """Get the Schemas.Pub manifest schema"""
-    return json.dumps(Schema.get_manifest_schema())
+    return json.dumps(Schema.get_manifest_schema(), indent=2)
 
 
 @mcp.resource("schema://{schema_id}")
