@@ -14,6 +14,7 @@ from django.conf import settings
 from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "schemaindex.settings.development")
 
@@ -37,6 +38,7 @@ def create_application():
     # Create a lifespan context manager to run the session manager
     # At time of writing, MCP requires the lifespan protocol but Daphne doesn't support it,
     # which is why we must use uvicorn.
+    # https://github.com/django/daphne/issues/264
     @contextlib.asynccontextmanager
     async def lifespan(app: Starlette):
         async with mcp.session_manager.run():
@@ -48,6 +50,16 @@ def create_application():
         routes=mcp_app.routes,
         middleware=[Middleware(MCPAPIKeyAuthenticationMiddleware)],
     )
+
+    # We mount the MCP server at "/mcp" but it requires its own "/" at its root,
+    # making the actual url "/mcp/" (trailing slash) and causing "/mcp" (no trailing slash) to 404.
+    # This tiny middleware just redirects the latter to the former.
+    class MCPTrailingSlashMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            if request.url.path == "/mcp":
+                request.scope["path"] = "/mcp/"
+            return await call_next(request)
+
     # Use Starlette (which is bundled with mcp)
     # to route /mcp requests to the mcp server,
     # and anything else to Django
@@ -55,6 +67,9 @@ def create_application():
         routes=[
             Mount("/mcp", app=mcp_app_with_auth),
             Mount("/", app=django_app),
+        ],
+        middleware=[
+            Middleware(MCPTrailingSlashMiddleware),
         ],
         lifespan=lifespan,
     )
