@@ -452,6 +452,12 @@ def test_homepage_no_query_lists_alphabetically():
     assert names == ["AAA First Schema", "ZZZ Last Schema"]
 
 
+@override_settings(ENABLE_MCP_SERVER=True)
+def test_mcp_docs_available_when_feature_flag_enabled():
+    response = Client().get("/docs/mcp")
+    assert response.status_code == 200
+
+
 @override_settings(ENABLE_MCP_SERVER=False)
 def test_mcp_docs_404_when_feature_flag_disabled():
     response = Client().get("/docs/mcp")

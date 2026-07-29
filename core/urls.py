@@ -1,5 +1,4 @@
 from django.urls import path, include
-from django.conf import settings
 
 from . import views
 from core.api import views as api_views
@@ -16,6 +15,7 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("about", views.about),
     path("docs/api", views.docs_api, name="docs_api"),
+    path("docs/mcp", views.docs_mcp, name="docs_mcp"),
     path("terms-of-use", views.terms_of_use, name="terms_of_use"),
     path("privacy", views.privacy_policy, name="privacy_policy"),
     path("schemas/<int:schema_id>", views.schema_detail, name="schema_detail"),
@@ -66,6 +66,3 @@ urlpatterns = [
     ),
     path("api/", include(api_endpoints)),
 ]
-
-if settings.ENABLE_MCP_SERVER:
-    urlpatterns.append(path("docs/mcp", views.docs_mcp, name="docs_mcp"))
