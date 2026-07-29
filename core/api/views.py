@@ -1,7 +1,7 @@
 import json
 from functools import wraps
 from django.db import transaction
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -30,10 +30,6 @@ def require_manifest(function):
         return function(request, manifest=data, *args, **kwargs)
 
     return _wrap_request
-
-
-def docs(request):
-    return render(request, "core/api/docs.html")
 
 
 @require_GET

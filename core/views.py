@@ -421,6 +421,10 @@ def manage_schema_publish(request, schema_id):
     )
 
 
+def docs_api(request):
+    return render(request, "core/docs/api.html")
+
+
 def docs_mcp(request):
     return render(request, "core/docs/mcp.html")
 

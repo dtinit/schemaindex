@@ -5,7 +5,10 @@
     >Contact</a>
     <a href="{% url 'terms_of_use' %}">Terms of Use</a>
     <a href="{% url 'privacy_policy' %}">Privacy Policy</a>
-    <a href="{% url 'api_docs' %}">API</a>
+    <a href="{% url 'docs_api' %}">API</a>
+    {% if feature_flags.mcp_server %}
+    <a href="{% url 'docs_mcp' %}">MCP</a>
+    {% endif %}
   </nav>
   <div>&copy; {% now "Y" %} <a href="https://dtinit.org">Data Transfer
     Initiative.</a></div>

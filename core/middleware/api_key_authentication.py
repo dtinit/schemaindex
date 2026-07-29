@@ -14,7 +14,7 @@ class APIKeyAuthenticationMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if not request.path.startswith("/api/") or request.path == "/api/docs":
+        if not request.path.startswith("/api/"):
             return self.get_response(request)
 
         api_key_header = request.headers.get(API_KEY_HEADER)
