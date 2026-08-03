@@ -552,11 +552,47 @@ async def test_search_schemas_pagination(client_session, current_user_mock):
 
     assert f"Found {MAX_PAGE_SIZE + 1} schemas matching your query." in text_1
     assert "The results are truncated. Showing page 1 of 2:" in text_1
-    assert "To get the next page, use `search_schemas" in text_1
+    assert (
+        'To get the next page, use `search_schemas(query: None, scope: "all", page: 2)`'
+        in text_1
+    )
 
     # Fetch page 2
     result_page_2 = await client_session.call_tool(
         "search_schemas", arguments={"page": 2}
+    )
+    text_2 = result_page_2.content[0].text
+
+    assert "Showing page 2 of 2:" in text_2
+
+
+@pytest.mark.anyio
+async def test_search_schemas_pagination_with_query(client_session, current_user_mock):
+    user = await sync_to_async(UserFactory.create)()
+    current_user_mock.get.return_value = user
+
+    # Trigger pagination with a specific query
+    for i in range(MAX_PAGE_SIZE + 1):
+        await sync_to_async(SchemaFactory.create)(
+            created_by=user, name=f"Alpha Schema {i}"
+        )
+
+    # Fetch page 1
+    result_page_1 = await client_session.call_tool(
+        "search_schemas", arguments={"query": "alpha", "page": 1}
+    )
+    text_1 = result_page_1.content[0].text
+
+    assert f"Found {MAX_PAGE_SIZE + 1} schemas matching your query." in text_1
+    assert "The results are truncated. Showing page 1 of 2:" in text_1
+    assert (
+        "To get the next page, use `search_schemas(query: 'alpha', scope: \"all\", page: 2)`"
+        in text_1
+    )
+
+    # Fetch page 2
+    result_page_2 = await client_session.call_tool(
+        "search_schemas", arguments={"query": "alpha", "page": 2}
     )
     text_2 = result_page_2.content[0].text
 

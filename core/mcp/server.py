@@ -100,7 +100,8 @@ def search_schemas(
     response += f"\n\nThe results are truncated. Showing page {page} of {total_pages}:"
     response += f"\n\n{formatted_page}"
 
-    response += f'\n\nTo get the next page, use `search_schemas(query: <keywords>, scope: "{scope}", page: {page + 1})'
+    if page < total_pages:
+        response += f'\n\nTo get the next page, use `search_schemas(query: {query!r}, scope: "{scope}", page: {page + 1})`'
 
     return response
 
