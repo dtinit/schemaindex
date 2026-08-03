@@ -4,7 +4,6 @@ from . import views
 from core.api import views as api_views
 
 api_endpoints = [
-    path("docs", api_views.docs, name="api_docs"),
     path("find", api_views.find, name="api_find"),
     path("schemas", api_views.schemas_create, name="api_schemas_create"),
     path(
@@ -15,6 +14,8 @@ api_endpoints = [
 urlpatterns = [
     path("", views.index, name="index"),
     path("about", views.about),
+    path("docs/api", views.docs_api, name="docs_api"),
+    path("docs/mcp", views.docs_mcp, name="docs_mcp"),
     path("terms-of-use", views.terms_of_use, name="terms_of_use"),
     path("privacy", views.privacy_policy, name="privacy_policy"),
     path("schemas/<int:schema_id>", views.schema_detail, name="schema_detail"),

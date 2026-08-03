@@ -12,7 +12,7 @@ Schemas.Pub - API Documentation
   {% if request.user %}
   You can create an API key <a href="{% url 'account_api_key' %}">here</a>.
   {% else %}
-  <a href="{ url 'account_signup'}">Create an account</a> to get an API key.
+  <a href="{% url 'account_signup' %}">Create an account</a> to get an API key.
   {% endif %}
   </p>
   <h2>Methods</h2>
@@ -57,7 +57,7 @@ Schemas.Pub - API Documentation
     <p>Creates a new schema.</p>
     <h4>Body</h4>
     <p>
-      The body of your request should be a <a href="https://schemas.pub/schemas/30">Schemas.Pub manifest</a>.
+      The body of your request should be a <a href="https://id.schemas.pub/o/DTI/manifest.schema.json">Schemas.Pub manifest</a>.
     </p>
     <h4>Response</h4>
     <p>A JSON object containing a "data" object with the following proprties:</p>
@@ -80,7 +80,7 @@ Schemas.Pub - API Documentation
     <p>Updates the specified schema.</p>
     <h4>Body</h4>
     <p>
-      The body of your request should be a <a href="https://schemas.pub/schemas/30">Schemas.Pub manifest</a>.
+      The body of your request should be a <a href="https://id.schemas.pub/o/DTI/manifest.schema.json">Schemas.Pub manifest</a>.
     </p>
     <h4>Response</h4>
     <p>A JSON object containing a "data" object with the following proprties:</p>

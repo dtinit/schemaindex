@@ -13,7 +13,7 @@ API Key
     <input readonly value="{{ new_api_key }}" />
     This API key will not be shown again, but you can replace it with a new key later. Please treat it as you would a password.
     {% else %}
-    <p>Create an API key to use with the <a href="{% url 'api_docs' %}">Schemas.Pub API</a>.</p>
+    <p>Create an API key to use with the <a href="{% url 'docs_api' %}">Schemas.Pub API</a>{% if feature_flags.mcp_server %} and <a href="{% url 'docs_mcp' %}">MCP server</a>{% endif %}.</p>
     {% if request.user.profile.api_key %}
     <p>Warning: Creating a new API key will invalidate your previous key created on {{ request.user.profile.api_key.created_at|date }}.</p>
     {% endif %}

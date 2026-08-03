@@ -39,6 +39,7 @@ def main():
             host="127.0.0.1",
             port=port,
             reload=True,
+            reload_includes=["*.html", "*.css"],
         )
         return
 

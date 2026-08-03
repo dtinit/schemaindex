@@ -421,6 +421,17 @@ def manage_schema_publish(request, schema_id):
     )
 
 
+def docs_api(request):
+    return render(request, "core/docs/api.html")
+
+
+def docs_mcp(request):
+    if not settings.ENABLE_MCP_SERVER:
+        raise Http404()
+
+    return render(request, "core/docs/mcp.html")
+
+
 def about(request):
     return render(request, "core/about.html")
 

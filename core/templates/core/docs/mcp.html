@@ -1,0 +1,62 @@
+{% extends "core/layouts/base.html" %}
+{% block head_title %}
+Schemas.Pub - MCP Documentation
+{% endblock %}
+
+{% block page_content %}
+<main class="api-docs">
+  <h1>MCP Server Documentation</h1>
+  <p>
+    Schemas.Pub provides a Model Context Protocol (MCP) server that allows MCP-compatible clients to search for, create, and update schemas directly.
+  </p>
+
+  <h2>Authentication</h2>
+  <p>
+    All requests to the MCP server require an X-API-Key header with a valid API key.
+  {% if request.user %}
+  You can create or manage your API key <a href="{% url 'account_api_key' %}">here</a>.
+  {% else %}
+  <a href="{% url 'account_signup' %}">Create an account</a> to get an API key.
+  {% endif %}
+  </p>
+
+  <h2>Capabilities</h2>
+  <p>
+    The MCP server adds the following functionality to your MCP client:
+  </p>
+  <section class="method">
+    <h3><code>search_schemas</code></h3>
+    <p>
+      The <code>search_schemas</code> tool that allows the client to browse and search for schemas by keywords or by a JSON schema's <code>$id</code>.
+    </p>
+  </section>
+  <section class="method">
+    <h3>Access schemas</h3>
+    <p>
+      Individual schema manifests can be retrieved as MCP resources using the following URI template:
+    </p>
+    <code>
+      <pre>schema://[schema_id]</pre>
+    </code>
+    <p>where <code>[schema_id]</code> is the numeric ID of the schema.</p>
+  </section>
+  <section class="method">
+    <h3><code>create_schema</code></h3>
+    <p>
+      The <code>create_schema</code> tool enables the client to create new schemas from a <a href="https://id.schemas.pub/o/DTI/manifest.schema.json">Schemas.Pub manifest</a>.
+    </p>
+  </section>
+  <section class="method">
+    <h3><code>update_schema</code></h3>
+    <p>
+      The <code>update_schema</code> tool enables the client to update your schemas from a <a href="https://id.schemas.pub/o/DTI/manifest.schema.json">Schemas.Pub manifest</a>.
+    </p>
+  </section>
+  <section class="method">
+    <h3>Access manifest schema definition</h3>
+    <p>
+      The <a href="https://id.schemas.pub/o/DTI/manifest.schema.json">Schemas.Pub manifest</a> itself can be retrieved as an MCP resource at <code>schema://manifest.json</code>
+    </p>
+  </section>
+ </main>
+{% endblock %}
