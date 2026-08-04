@@ -18,6 +18,33 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "schemaindex.settings.development")
 
+"""
+To avoid various complexities with trying to run the MCP server *inside* our Django app,
+we run it *alongside* Django, inside a small Starlette app which mostly just routes requests.
+
+Our full ASGI application looks something like this:
+
+
+      incoming requests
+             |
+             |
+             v
+    [Parent Starlette app]
+       |              |
+       |              |
+    requests       everything
+    to /mcp*         else
+       |              |
+       |              |
+       v              v
+  [MCP server]---->[Django]
+               ^
+               |
+    (the MCP server uses Django models
+    to interact with the Django database)
+
+"""
+
 
 def create_application():
     django_app = get_asgi_application()
@@ -44,8 +71,9 @@ def create_application():
         async with mcp.session_manager.run():
             yield
 
-    # Wrap the FastMCP streamable app with the API key middleware
     mcp_app = mcp.streamable_http_app()
+
+    # Wrap the FastMCP streamable app with the API key middleware
     mcp_app_with_auth = Starlette(
         routes=mcp_app.routes,
         middleware=[Middleware(MCPAPIKeyAuthenticationMiddleware)],
