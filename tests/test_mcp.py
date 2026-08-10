@@ -2,7 +2,6 @@ import pytest
 import json
 import requests_mock
 from mcp.shared.memory import create_connected_server_and_client_session
-from asgiref.sync import sync_to_async
 from unittest.mock import patch, MagicMock
 from starlette.responses import JSONResponse
 from django.test import override_settings
@@ -11,6 +10,9 @@ from core.mcp.api_key_authentication import MCPAPIKeyAuthenticationMiddleware
 from factories import SchemaFactory, ProfileFactory, UserFactory, SchemaRefFactory
 from utils import assert_schema_matches_manifest
 from core.models import Schema
+from core.mcp.sync_to_async_with_db_cleanup import (
+    sync_to_async_with_db_cleanup as sync_to_async,
+)
 
 
 # Force all database tests in this file to flush tables instead of rolling back,

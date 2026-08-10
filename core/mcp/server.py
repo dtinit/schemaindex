@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from mcp.server.fastmcp import FastMCP
 from core.models import Schema
-from asgiref.sync import sync_to_async
+from core.mcp.sync_to_async_with_db_cleanup import sync_to_async_with_db_cleanup
 from core.mcp.context import current_user
 
 mcp = FastMCP(
@@ -45,7 +45,7 @@ MAX_PAGE_SIZE = 10
 
 
 @mcp.tool()
-@sync_to_async
+@sync_to_async_with_db_cleanup
 def search_schemas(
     query: str | None = None, scope: Literal["all", "user"] = "all", page: int = 1
 ):
@@ -118,7 +118,7 @@ async def get_schema(schema_id: int):
 
     user = current_user.get()
 
-    @sync_to_async
+    @sync_to_async_with_db_cleanup
     def fetch_from_db():
         try:
             schema = (
@@ -172,7 +172,7 @@ async def create_schema(manifest: str):
     """
     user = ensure_current_user()
 
-    @sync_to_async
+    @sync_to_async_with_db_cleanup
     def do_create():
         schema = Schema(created_by=user)
         return _validate_manifest_and_update_schema(manifest, schema)
@@ -188,7 +188,7 @@ async def update_schema(schema_id: int, manifest: str):
     """
     user = ensure_current_user()
 
-    @sync_to_async
+    @sync_to_async_with_db_cleanup
     def do_update():
         try:
             schema = Schema.objects.get(pk=schema_id)

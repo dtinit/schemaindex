@@ -1,6 +1,6 @@
 # core/mcp/middleware.py
 import logging
-from asgiref.sync import sync_to_async
+from core.mcp.sync_to_async_with_db_cleanup import sync_to_async_with_db_cleanup
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
@@ -30,7 +30,9 @@ class MCPAPIKeyAuthenticationMiddleware(BaseHTTPMiddleware):
             )
 
         # Safely wrap the synchronous ORM call
-        api_key_obj = await sync_to_async(APIKey.objects.get_from_key)(api_key_header)
+        api_key_obj = await sync_to_async_with_db_cleanup(APIKey.objects.get_from_key)(
+            api_key_header
+        )
 
         if not api_key_obj:
             return JSONResponse(
@@ -42,14 +44,16 @@ class MCPAPIKeyAuthenticationMiddleware(BaseHTTPMiddleware):
             )
 
         # Fetch profile and user safely in an async context
-        @sync_to_async
+        @sync_to_async_with_db_cleanup
         def get_profile_and_user(key_obj):
             return key_obj.profile, key_obj.profile.user
 
         profile, user = await get_profile_and_user(api_key_obj)
 
         # Safely wrap the synchronous rate limiting logic
-        allowed, reason = await sync_to_async(check_and_record_request)(profile)
+        allowed, reason = await sync_to_async_with_db_cleanup(check_and_record_request)(
+            profile
+        )
 
         if not allowed:
             return JSONResponse(
