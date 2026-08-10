@@ -4,13 +4,26 @@ from jsonschema import ValidationError as JSONValidationError
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
 from django.utils import timezone
+from django.conf import settings
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from core.models import Schema
 from core.mcp.sync_to_async_with_db_cleanup import sync_to_async_with_db_cleanup
 from core.mcp.context import current_user
 
 mcp = FastMCP(
-    "Schemas.Pub", stateless_http=True, json_response=True, streamable_http_path="/"
+    "Schemas.Pub",
+    stateless_http=True,
+    json_response=True,
+    streamable_http_path="/",
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        # The SDK docs recommend including both "<host>" (matches bare host)
+        # and "<host>:*" (matches any port)
+        allowed_hosts=settings.ALLOWED_HOSTS
+        + [host + ":*" for host in settings.ALLOWED_HOSTS],
+        allowed_origins=settings.CSRF_TRUSTED_ORIGINS,
+    ),
 )
 
 
