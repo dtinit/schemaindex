@@ -16,3 +16,4 @@ for key in STORAGES:
 # Buckets URLs for static and media files
 STATIC_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/site-assets/"
 MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/schemas/"
+ENABLE_MCP_SERVER = True
