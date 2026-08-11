@@ -10,9 +10,14 @@ Schemas.Pub - MCP Documentation
     Schemas.Pub provides a Model Context Protocol (MCP) server that allows MCP-compatible clients to search for, create, and update schemas directly.
   </p>
 
+  <h2>Connection</h2>
+  <p>
+    Configure your MCP client to connect at <code>{{ request.scheme }}://{{ request.get_host }}/mcp/</code>
+  </p>
+
   <h2>Authentication</h2>
   <p>
-    All requests to the MCP server require an X-API-Key header with a valid API key.
+    All requests to the MCP server require an <code>X-API-Key</code> header with a valid API key.
   {% if request.user %}
   You can create or manage your API key <a href="{% url 'account_api_key' %}">here</a>.
   {% else %}
