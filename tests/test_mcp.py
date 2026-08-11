@@ -1,5 +1,6 @@
 import pytest
 import json
+import re
 import requests_mock
 from mcp.shared.memory import create_connected_server_and_client_session
 from unittest.mock import patch, MagicMock
@@ -194,12 +195,10 @@ async def test_create_schema_success(client_session, current_user_mock):
     result = await client_session.call_tool(
         "create_schema", arguments={"manifest": manifest_str}
     )
-
-    parsed_result = json.loads(result.content[0].text)
-    assert "id" in parsed_result
-    assert "url" in parsed_result
-
-    schema = await sync_to_async(Schema.objects.get)(id=parsed_result["id"])
+    match = re.search(r"ID:\s*(\d+)", result.content[0].text)
+    assert match
+    schema_id = int(match.group(1))
+    schema = await sync_to_async(Schema.objects.get)(id=schema_id)
     await sync_to_async(assert_schema_matches_manifest)(schema, manifest)
 
 
@@ -294,14 +293,12 @@ async def test_update_schema_success(client_session, current_user_mock):
     result = await client_session.call_tool(
         "update_schema", arguments={"schema_id": schema.id, "manifest": manifest_str}
     )
-
-    parsed_result = json.loads(result.content[0].text)
-    assert "id" in parsed_result
-    assert "url" in parsed_result
-    assert parsed_result["id"] == schema.id
-
-    updated_schema = await sync_to_async(Schema.objects.get)(id=parsed_result["id"])
-    await sync_to_async(assert_schema_matches_manifest)(updated_schema, manifest)
+    match = re.search(r"ID:\s*(\d+)", result.content[0].text)
+    assert match
+    schema_id = int(match.group(1))
+    assert schema_id == schema.id
+    await sync_to_async(schema.refresh_from_db)()
+    await sync_to_async(assert_schema_matches_manifest)(schema, manifest)
 
 
 @pytest.mark.anyio
