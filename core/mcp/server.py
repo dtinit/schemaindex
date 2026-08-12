@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Literal
 from jsonschema import ValidationError as JSONValidationError
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -25,6 +26,8 @@ mcp = FastMCP(
         allowed_origins=settings.CSRF_TRUSTED_ORIGINS,
     ),
 )
+
+logger = logging.getLogger("schemaindex")
 
 
 def format_schema(schema):
@@ -72,6 +75,9 @@ def search_schemas(
       scope: 'user' to search only the user's own schemas (including private), or 'all' to search the entire registry. Defaults to 'all.'
       page: Which page of search results to return. Defaults to 1.
     """
+    logger.info(
+        "[MCP] search_schemas call: query=%s, scope=%s, page=%s", query, scope, page
+    )
 
     user = ensure_current_user()
 
@@ -91,6 +97,7 @@ def search_schemas(
 
     total_count = results.count()
     if total_count == 0:
+        logger.info("[MCP] search_schemas query returned no results")
         return "No results matched your query."
 
     total_pages = (total_count + MAX_PAGE_SIZE - 1) // MAX_PAGE_SIZE
@@ -124,6 +131,7 @@ def search_schemas(
 @mcp.resource("schema://manifest.json")
 async def get_manifest_schema():
     """Get the Schemas.Pub manifest schema"""
+    logger.info("[MCP] Fetching manifest definition")
     return json.dumps(Schema.get_manifest_schema(), indent=2)
 
 
@@ -132,6 +140,7 @@ async def get_schema(schema_id: int):
     """Get a schema's manifest"""
 
     user = current_user.get()
+    logger.info("[MCP] Fetching schema manifest: schema_id=%s", schema_id)
 
     @sync_to_async_with_db_cleanup
     def fetch_from_db():
@@ -168,10 +177,13 @@ def _validate_manifest_and_update_schema(manifest, schema):
         manifest_data = Schema.validate_manifest(manifest)
         schema.overwrite_from_manifest(manifest_data)
     except json.JSONDecodeError as e:
+        logger.warning("[MCP] Manifest JSON decode error: %s", e.msg)
         raise ValueError(f"Undecodable JSON payload: {e.msg}")
     except JSONValidationError as e:
+        logger.warning("[MCP] Manifest JSON validation error: %s", e.message)
         raise ValueError(f"Incorrect JSON payload format: {e.message}")
     except DjangoValidationError as e:
+        logger.warning("[MCP] Manifest Django validation error: %s", e.message)
         raise ValueError(f"Validation Error: {e.message}")
 
 
@@ -182,6 +194,7 @@ async def create_schema(manifest: str):
     The manifest should be a JSON string following the Schemas.Pub manifest schema available at schema://manifest.json
     """
     user = ensure_current_user()
+    logger.info("[MCP] create_schema called")
 
     @sync_to_async_with_db_cleanup
     def do_create():
@@ -201,6 +214,7 @@ async def update_schema(schema_id: int, manifest: str):
     The manifest should be a JSON string following the Schemas.Pub manifest schema available at schema://manifest.json
     """
     user = ensure_current_user()
+    logger.info("[MCP] update_schema called: schema_id=%s", schema_id)
 
     @sync_to_async_with_db_cleanup
     def do_update():
@@ -209,6 +223,9 @@ async def update_schema(schema_id: int, manifest: str):
             if schema.created_by != user:
                 raise Schema.DoesNotExist
         except Schema.DoesNotExist:
+            logger.warning(
+                "[MCP] update_schema called with unrecognized schema id %s", schema_id
+            )
             raise ValueError(f"Schema with ID '{schema_id}' not found.")
 
         _validate_manifest_and_update_schema(manifest, schema)
