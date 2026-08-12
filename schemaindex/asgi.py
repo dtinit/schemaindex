@@ -14,7 +14,6 @@ from django.conf import settings
 from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.middleware import Middleware
-from starlette.middleware.base import BaseHTTPMiddleware
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "schemaindex.settings.development")
 
@@ -82,11 +81,16 @@ def create_application():
     # We mount the MCP server at "/mcp" but it requires its own "/" at its root,
     # making the actual url "/mcp/" (trailing slash) and causing "/mcp" (no trailing slash) to 404.
     # This tiny middleware just redirects the latter to the former.
-    class MCPTrailingSlashMiddleware(BaseHTTPMiddleware):
-        async def dispatch(self, request, call_next):
-            if request.url.path == "/mcp":
-                request.scope["path"] = "/mcp/"
-            return await call_next(request)
+    class MCPTrailingSlashMiddleware:
+        def __init__(self, app):
+            self.app = app
+
+        async def __call__(self, scope, receive, send):
+            if scope["type"] == "http":
+                if scope.get("path") == "/mcp":
+                    scope["path"] = "/mcp/"
+
+            await self.app(scope, receive, send)
 
     # Use Starlette (which is bundled with mcp)
     # to route /mcp requests to the mcp server,
