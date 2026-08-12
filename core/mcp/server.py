@@ -31,12 +31,14 @@ def format_schema(schema):
     formatted_schema = f"""
 ID: {schema.id}
 Name: {schema.name}
+Resource URI: schema://{schema.id}
+URL: https://schemas.pub{reverse("schema_detail", kwargs={"schema_id": schema.id})}
 """
-    if schema.description:
-        formatted_schema += f"Description: {schema.description}\n"
-
     if schema.published_at is None or schema.published_at > timezone.now():
         formatted_schema += "Visibility: Private\n"
+
+    if schema.description:
+        formatted_schema += f"Description: {schema.description}\n"
 
     return formatted_schema
 
@@ -63,7 +65,7 @@ def search_schemas(
     query: str | None = None, scope: Literal["all", "user"] = "all", page: int = 1
 ):
     """
-    Search for schemas.
+    Browse and search for schemas.
 
     Args:
       query: A search query. Can be a list of keywords or an $id. Pass None or an empty string to list all schemas in scope.
@@ -165,10 +167,6 @@ def _validate_manifest_and_update_schema(manifest, schema):
     try:
         manifest_data = Schema.validate_manifest(manifest)
         schema.overwrite_from_manifest(manifest_data)
-        return {
-            "id": schema.id,
-            "url": reverse("schema_detail", kwargs={"schema_id": schema.id}),
-        }
     except json.JSONDecodeError as e:
         raise ValueError(f"Undecodable JSON payload: {e.msg}")
     except JSONValidationError as e:
@@ -188,7 +186,10 @@ async def create_schema(manifest: str):
     @sync_to_async_with_db_cleanup
     def do_create():
         schema = Schema(created_by=user)
-        return _validate_manifest_and_update_schema(manifest, schema)
+        _validate_manifest_and_update_schema(manifest, schema)
+        response = "Schema created successfully:\n\n"
+        response += format_schema(schema)
+        return response
 
     return await do_create()
 
@@ -210,6 +211,9 @@ async def update_schema(schema_id: int, manifest: str):
         except Schema.DoesNotExist:
             raise ValueError(f"Schema with ID '{schema_id}' not found.")
 
-        return _validate_manifest_and_update_schema(manifest, schema)
+        _validate_manifest_and_update_schema(manifest, schema)
+        response = "Schema updated successfully:\n\n"
+        response += format_schema(schema)
+        return response
 
     return await do_update()
