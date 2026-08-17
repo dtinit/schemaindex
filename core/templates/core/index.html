@@ -101,13 +101,27 @@ Schemas.Pub - A public schema registry
     {% endfor %}
   </ul>
   <div class="content-row schema-count">
+    {% comment %}
+    Construct a status like "Showing N schemas."
+    If there's a search query or filter, expand to "Showing N matching schemas."
+    If there are more results than we can show, expand to "Showing N of M schemas,"
+    or "Showing N of M matching schemas" if there's a search query/filter.
+    {% endcomment %}
     {% if schemas|length > 0 %}
-      Showing {{ schemas | length }}
-      {% if request.GET.search_query or request.GET.specification_file_type or request.GET.documentation_role %} matching
+      Showing {{ schemas|length }}
+      {% if matching_schema_count > schemas|length %}
+      of {{ matching_schema_count }} 
       {% endif %}
-      schema{{ schemas | pluralize }}
+      {% if request.GET.search_query or request.GET.specification_file_type or request.GET.documentation_role %}
+      matching 
+      {% endif %}
+      schema{{ matching_schema_count|pluralize }}
     {% else %}
-    No {% if request.GET.search_query or request.GET.specification_file_type or request.GET.documentation_role %} matching {% endif %} schemas
+    No 
+      {% if request.GET.search_query or request.GET.specification_file_type or request.GET.documentation_role %}
+      matching 
+      {% endif %}
+      schemas
     {% endif %}
   </div>
 </main>
