@@ -21,20 +21,26 @@
   {% else %}
   <h2>Unnamed definition</h2>
   {% endif %}
-  {% if not schema_ref.markdown and not schema_ref.content %}
-  {% include "core/partials/content_fetch_error.html" with message="We're having trouble fetching this definition from the source. You can try viewing it directly:" item=schema_ref only %}
-  {% elif schema_ref.markdown %}
-  <div class="markdown">
-    {{ schema_ref.markdown }}
-  </div>
+  {% if schema_ref.is_content_fetchable %}
+    {% if not schema_ref.markdown and not schema_ref.content %}
+    {% include "core/partials/content_fetch_error.html" with message="We're having trouble fetching this definition from the source. You can try viewing it directly:" item=schema_ref only %}
+    {% elif schema_ref.markdown %}
+    <div class="markdown">
+      {{ schema_ref.markdown }}
+    </div>
+    {% else %}
+    <!-- Please don't add whitespace to this line!-->
+    <pre class="schema-definition"><code>{{ schema_ref.content|escape }}</code></pre>
+    {% endif %}
+    <hr />
+    <p>
+      <a href="{{ schema_ref|try_github_repo_url }}" class="text-with-icon">View source{{ schema_ref|branded_external_link_icon_for_reference_item }}</a>
+    </p>
   {% else %}
-  <!-- Please don't add whitespace to this line!-->
-  <pre class="schema-definition"><code>{{ schema_ref.content|escape }}</code></pre>
-  {% endif %}
-  <hr />
   <p>
-    <a href="{{ schema_ref|try_github_repo_url }}" class="text-with-icon">View source{{ schema_ref|branded_external_link_icon_for_reference_item }}</a>
+    <a href="{{ schema_ref|try_github_repo_url }}" class="text-with-icon">{{schema_ref|try_github_repo_url}}</a>
   </p>
+  {% endif %}
 </div>
 {% endblock %}
 

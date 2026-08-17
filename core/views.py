@@ -173,7 +173,7 @@ def index(request):
 def schema_detail(request, schema):
     latest_readme = schema.latest_readme()
     latest_readme_content = None
-    if latest_readme:
+    if latest_readme and latest_readme.is_content_fetchable:
         try:
             response_text = latest_readme.get_content()
             if (
@@ -211,17 +211,18 @@ def schema_detail(request, schema):
 @lookup_schema
 def schema_ref_detail(request, schema, schema_ref_id):
     schema_ref = get_object_or_404(schema.schemaref_set.filter(id=schema_ref_id))
-    try:
-        text_content = schema_ref.get_content()
-        if schema_ref.language == "markdown":
-            schema_ref.markdown = render_markdown(text_content)
-        else:
-            schema_ref.content = escape(text_content)
-    except requests.exceptions.RequestException:
-        logging.error(
-            f"Failed to fetch content for schema_ref {schema_ref.id} (url={schema_ref.url})",
-            exc_info=True,
-        )
+    if schema_ref.is_content_fetchable:
+        try:
+            text_content = schema_ref.get_content()
+            if schema_ref.language == "markdown":
+                schema_ref.markdown = render_markdown(text_content)
+            else:
+                schema_ref.content = escape(text_content)
+        except requests.exceptions.RequestException:
+            logging.error(
+                f"Failed to fetch content for schema_ref {schema_ref.id} (url={schema_ref.url})",
+                exc_info=True,
+            )
 
     return render(
         request,

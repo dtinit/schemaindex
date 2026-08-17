@@ -969,6 +969,11 @@ a.badge--w3c {
   padding: 1rem;
 }
 
+.schema-layout .schema-layout__content .external-readme-link h2 {
+  color: #fff;
+  padding-bottom: 1rem;
+}
+
 .schema-layout .schema-layout__extra {
   flex-shrink: 0;
   width: 17rem;
