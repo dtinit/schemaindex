@@ -160,6 +160,7 @@ def index(request):
         "core/index.html",
         {
             "schemas": filtered_by_specification_file_type[:MAX_SCHEMA_RESULT_COUNT],
+            "matching_schema_count": len(filtered_by_specification_file_type),
             "documentation_roles": [
                 DocumentationItem.DocumentationItemRole.RFC,
                 DocumentationItem.DocumentationItemRole.W3C,
