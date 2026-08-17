@@ -199,9 +199,7 @@ ENABLE_MCP_SERVER = False
 TRUSTED_CONTENT_DOMAINS = [
     "github.com",
     "githubusercontent.com",
-    "w3.org",
-    "happenstance.ai",
-    "osirisjson.org",
     "ietf.org",
     "rfc-editor.org",
+    "w3.org",
 ]
