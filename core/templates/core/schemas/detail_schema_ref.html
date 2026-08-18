@@ -37,6 +37,7 @@
       <a href="{{ schema_ref|try_github_repo_url }}" class="text-with-icon">View source{{ schema_ref|branded_external_link_icon_for_reference_item }}</a>
     </p>
   {% else %}
+  {# The file is hosted somewhere we can't safely fetch from #}
   <p>
     <a href="{{ schema_ref|try_github_repo_url }}" class="text-with-icon">{{schema_ref|try_github_repo_url}}</a>
   </p>

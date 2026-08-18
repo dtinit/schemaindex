@@ -24,6 +24,7 @@
       {% endif %}
     {% endif %}
   {% elif latest_readme %}
+  {# The readme is hosted somewhere we can't safely fetch from #}
   <div class="external-readme-link">
     <h2>README</h2>
     <a href="{{ latest_readme|try_github_repo_url }}" class="text-with-icon">
