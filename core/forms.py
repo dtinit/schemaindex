@@ -67,7 +67,7 @@ class SchemaRefForm(ReferenceItemForm):
     )
     url = forms.URLField(
         label="URL",
-        help_text=f"Accepted formats: {human_readable_list(sorted(EXPLICITLY_SUPPORTED_FILE_EXTENSIONS))}. Schemas.Pub displays file content from the following domains: {human_readable_list(sorted(settings.TRUSTED_CONTENT_DOMAINS))}.",
+        help_text=f"Accepted formats: {human_readable_list(sorted(EXPLICITLY_SUPPORTED_FILE_EXTENSIONS))}. Schemas.Pub displays file content from the following domains: {human_readable_list(sorted(settings.ADVERTISED_TRUSTED_CONTENT_DOMAINS))}.",
     )
 
     def clean_url(self):
@@ -181,7 +181,7 @@ class SchemaForm(forms.Form):
     )
     readme_url = forms.URLField(
         label="README URL",
-        help_text=f"Schemas.Pub displays README content from the following domains: {human_readable_list(sorted(settings.TRUSTED_CONTENT_DOMAINS))}",
+        help_text=f"Schemas.Pub displays README content from the following domains: {human_readable_list(sorted(settings.ADVERTISED_TRUSTED_CONTENT_DOMAINS))}",
         widget=forms.TextInput(attrs={"placeholder": "https://example.com/README.md"}),
     )
     readme_format = forms.ChoiceField(

@@ -195,11 +195,23 @@ HOURLY_API_REQUEST_LIMIT = 500
 # Feature flags
 ENABLE_MCP_SERVER = False
 
-# An allowlist of domains we can safely fetch file content from
-TRUSTED_CONTENT_DOMAINS = [
+# To reduce SSRF attack vulnerabilities, we only fetch content from domains we trust.
+# Here we maintain two lists of trusted domains:
+# 1. ADVERTISED_TRUSTED_CONTENT_DOMAINS are domains we trust *and* which we advertise to users
+#    (eg "Host your schema at one of these domains to have its contents displayed on Schemas.Pub").
+# 2. TRUSTED_CONTENT_DOMAINS is the actual list of domains we trust. It includes everything in
+#    ADVERTISED_TRUSTED_CONTENT_DOMAINS plus additional domains we trust but don't show to users.
+
+ADVERTISED_TRUSTED_CONTENT_DOMAINS = [
+    "codeberg.org",
     "github.com",
-    "githubusercontent.com",
     "ietf.org",
     "rfc-editor.org",
     "w3.org",
+]
+
+TRUSTED_CONTENT_DOMAINS = ADVERTISED_TRUSTED_CONTENT_DOMAINS + [
+    "happenstance.ai",
+    "osirisjson.org",
+    "githubusercontent.com",
 ]
