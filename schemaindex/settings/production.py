@@ -113,3 +113,4 @@ EMAIL_HOST_USER = "noreply@dtinit.org"
 EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = "noreply@dtinit.org"
 SERVER_EMAIL = "noreply@dtinit.org"
+ENABLE_MCP_SERVER = True
