@@ -362,10 +362,11 @@ def test_api_key_shown_to_user():
 
 @pytest.mark.django_db
 def test_schema_ref_detail_shows_error_when_content_fetch_fails():
-    schema_ref = SchemaRefFactory()
     client = Client()
+    url = "https://example.com/definition.json"
     with requests_mock.Mocker() as m:
-        m.get(schema_ref.url, exc=requests.exceptions.ConnectionError)
+        m.get(url, exc=requests.exceptions.ConnectionError)
+        schema_ref = SchemaRefFactory(url=url)
         response = client.get(
             f"/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}",
             follow=True,
@@ -376,10 +377,11 @@ def test_schema_ref_detail_shows_error_when_content_fetch_fails():
 
 @pytest.mark.django_db
 def test_schema_ref_detail_renders_content_on_successful_fetch():
-    schema_ref = SchemaRefFactory(url="http://example.com/schema.json")
     client = Client()
+    url = "http://example.com/schema.json"
     with requests_mock.Mocker() as m:
-        m.get(schema_ref.url, text='{"type": "object"}')
+        m.get(url, text='{"type": "object"}')
+        schema_ref = SchemaRefFactory(url=url)
         response = client.get(
             f"/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}",
             follow=True,
@@ -391,13 +393,13 @@ def test_schema_ref_detail_renders_content_on_successful_fetch():
 @pytest.mark.django_db
 def test_schema_detail_shows_error_when_readme_content_fetch_fails():
     schema = SchemaFactory()
-    readme = DocumentationItemFactory(
-        schema=schema,
-        role=DocumentationItem.DocumentationItemRole.README,
-    )
     client = Client()
+    url = "https://example.com/README.md"
     with requests_mock.Mocker() as m:
-        m.get(readme.url, exc=requests.exceptions.ConnectionError)
+        m.get(url, exc=requests.exceptions.ConnectionError)
+        DocumentationItemFactory(
+            schema=schema, role=DocumentationItem.DocumentationItemRole.README, url=url
+        )
         response = client.get(f"/schemas/{schema.id}", follow=True)
     assert response.status_code == 200
     assert b"content-fetch-error" in response.content
@@ -406,15 +408,16 @@ def test_schema_detail_shows_error_when_readme_content_fetch_fails():
 @pytest.mark.django_db
 def test_schema_detail_renders_readme_on_successful_fetch():
     schema = SchemaFactory()
-    readme = DocumentationItemFactory(
-        schema=schema,
-        role=DocumentationItem.DocumentationItemRole.README,
-        format=DocumentationItem.DocumentationItemFormat.PlainText,
-        url="https://example.com/readme",
-    )
     client = Client()
+    url = "https://example.com/readme.txt"
     with requests_mock.Mocker() as m:
-        m.get(readme.url, text="Hello readme")
+        m.get(url, text="Hello readme")
+        DocumentationItemFactory(
+            schema=schema,
+            role=DocumentationItem.DocumentationItemRole.README,
+            format=DocumentationItem.DocumentationItemFormat.PlainText,
+            url=url,
+        )
         response = client.get(f"/schemas/{schema.id}", follow=True)
     assert response.status_code == 200
     assert b"content-fetch-error" not in response.content
