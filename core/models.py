@@ -637,7 +637,7 @@ class ReferenceItem(BaseModel):
                     raise last_exception  # Re-raise the last exception after all retries and email logic
 
     def get_content(self):
-        if not is_trusted_content_host_url(self._get_content_url()):
+        if not self.is_content_fetchable:
             return ""
 
         # Fetch remote file content, using cache when available
@@ -701,6 +701,10 @@ class ReferenceItem(BaseModel):
     @property
     def url_provider_info(self):
         return URLProviderInfo.from_url(self.url)
+
+    @property
+    def is_content_fetchable(self):
+        return is_trusted_content_host_url(self._get_content_url())
 
 
 class SchemaRef(ReferenceItem):

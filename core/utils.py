@@ -93,3 +93,14 @@ def is_trusted_content_host_url(url):
     return any(
         hostname.endswith("." + domain) for domain in settings.TRUSTED_CONTENT_DOMAINS
     )
+
+
+def human_readable_list(items):
+    """Join a list of strings into a human-readable list with an Oxford comma."""
+    if not items:
+        return ""
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return f"{', '.join(items[:-1])}, and {items[-1]}"

@@ -2,11 +2,13 @@ import json
 from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
+from django.conf import settings
 import requests
 from .models import DocumentationItem, SchemaRef, Schema, PermanentURL
 from .utils import (
     guess_specification_language_by_extension,
     is_trusted_content_host_url,
+    human_readable_list,
 )
 
 
@@ -65,7 +67,7 @@ class SchemaRefForm(ReferenceItemForm):
     )
     url = forms.URLField(
         label="URL",
-        help_text=f"Accepted formats: {', '.join(sorted(EXPLICITLY_SUPPORTED_FILE_EXTENSIONS))}",
+        help_text=f"Accepted formats: {human_readable_list(sorted(EXPLICITLY_SUPPORTED_FILE_EXTENSIONS))}. Schemas.Pub displays file content from the following domains: {human_readable_list(sorted(settings.ADVERTISED_TRUSTED_CONTENT_DOMAINS))}.",
     )
 
     def clean_url(self):
@@ -179,6 +181,7 @@ class SchemaForm(forms.Form):
     )
     readme_url = forms.URLField(
         label="README URL",
+        help_text=f"Schemas.Pub displays README content from the following domains: {human_readable_list(sorted(settings.ADVERTISED_TRUSTED_CONTENT_DOMAINS))}",
         widget=forms.TextInput(attrs={"placeholder": "https://example.com/README.md"}),
     )
     readme_format = forms.ChoiceField(
