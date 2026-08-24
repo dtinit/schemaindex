@@ -60,6 +60,7 @@ def create_application():
     # These imports must run after Django initializes
     from core.mcp.server import mcp  # noqa: E402
     from core.mcp.api_key_authentication import MCPAPIKeyAuthenticationMiddleware  # noqa: E402
+    from mcp.server.transport_security import TransportSecuritySettings  # noqa: E402
 
     # Create a lifespan context manager to run the session manager
     # At time of writing, MCP requires the lifespan protocol but Daphne doesn't support it,
@@ -70,9 +71,21 @@ def create_application():
         async with mcp.session_manager.run():
             yield
 
-    mcp_app = mcp.streamable_http_app()
+    mcp_app = mcp.streamable_http_app(
+        stateless_http=True,
+        json_response=True,
+        streamable_http_path="/",
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            # The SDK docs recommend including both "<host>" (matches bare host)
+            # and "<host>:*" (matches any port)
+            allowed_hosts=settings.ALLOWED_HOSTS
+            + [host + ":*" for host in settings.ALLOWED_HOSTS],
+            allowed_origins=settings.CSRF_TRUSTED_ORIGINS,
+        ),
+    )
 
-    # Wrap the FastMCP streamable app with the API key middleware
+    # Wrap the MCPServer streamable app with the API key middleware
     mcp_app_with_auth = Starlette(
         routes=mcp_app.routes,
         middleware=[Middleware(MCPAPIKeyAuthenticationMiddleware)],

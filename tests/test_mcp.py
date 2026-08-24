@@ -2,7 +2,7 @@ import pytest
 import json
 import re
 import requests_mock
-from mcp.shared.memory import create_connected_server_and_client_session
+from mcp.client import Client
 from unittest.mock import patch, MagicMock
 from starlette.responses import JSONResponse
 from django.test import override_settings
@@ -29,12 +29,10 @@ def anyio_backend():
 
 @pytest.fixture
 async def client_session():
-    # Creates an isolated in-memory client session connected to your FastMCP server.
+    # Creates an isolated in-memory client connected to your MCPServer instance.
     # raise_exceptions=True ensures that internal server errors fail the test immediately.
-    async with create_connected_server_and_client_session(
-        mcp, raise_exceptions=True
-    ) as session:
-        yield session
+    async with Client(mcp, raise_exceptions=True) as client:
+        yield client
 
 
 @pytest.fixture
@@ -47,13 +45,11 @@ def current_user_mock():
 
 @pytest.fixture
 async def error_client_session():
-    # Creates a client session where the server catches unhandled exceptions
+    # Creates a client where the server catches unhandled exceptions
     # and serializes them into MCP error payloads over the wire. Use this
     # specifically for testing expected error states.
-    async with create_connected_server_and_client_session(
-        mcp, raise_exceptions=False
-    ) as session:
-        yield session
+    async with Client(mcp, raise_exceptions=False) as client:
+        yield client
 
 
 def create_mock_request(headers=None, path="/mcp/sse"):
@@ -211,7 +207,7 @@ async def test_create_schema_unauthenticated(error_client_session, current_user_
     result = await error_client_session.call_tool(
         "create_schema", arguments={"manifest": "{}"}
     )
-    assert result.isError
+    assert result.is_error
     assert expected_error_message in result.content[0].text
 
 
@@ -226,7 +222,7 @@ async def test_create_schema_invalid_json(error_client_session, current_user_moc
     result = await error_client_session.call_tool(
         "create_schema", arguments={"manifest": manifest_str}
     )
-    assert result.isError
+    assert result.is_error
     assert expected_error_message in result.content[0].text
 
 
@@ -243,7 +239,7 @@ async def test_create_schema_invalid_manifest_format(
     result = await error_client_session.call_tool(
         "create_schema", arguments={"manifest": manifest_str}
     )
-    assert result.isError
+    assert result.is_error
     assert expected_error_message in result.content[0].text
 
 
@@ -267,7 +263,7 @@ async def test_create_schema_validation_error(error_client_session, current_user
     result = await error_client_session.call_tool(
         "create_schema", arguments={"manifest": manifest_str}
     )
-    assert result.isError
+    assert result.is_error
     assert expected_error_message in result.content[0].text
 
 
@@ -311,7 +307,7 @@ async def test_update_schema_unauthenticated(error_client_session, current_user_
     result = await error_client_session.call_tool(
         "update_schema", arguments={"schema_id": schema.id, "manifest": "{}"}
     )
-    assert result.isError
+    assert result.is_error
     assert expected_error_message in result.content[0].text
 
 
@@ -327,7 +323,7 @@ async def test_update_schema_forbidden(error_client_session, current_user_mock):
     result = await error_client_session.call_tool(
         "update_schema", arguments={"schema_id": schema.id, "manifest": "{}"}
     )
-    assert result.isError
+    assert result.is_error
     assert expected_error_message in result.content[0].text
 
 
@@ -341,7 +337,7 @@ async def test_update_schema_not_found(error_client_session, current_user_mock):
     result = await error_client_session.call_tool(
         "update_schema", arguments={"schema_id": non_existent_id, "manifest": "{}"}
     )
-    assert result.isError
+    assert result.is_error
     assert expected_error_message in result.content[0].text
 
 
@@ -356,7 +352,7 @@ async def test_update_schema_invalid_json(error_client_session, current_user_moc
     result = await error_client_session.call_tool(
         "update_schema", arguments={"schema_id": schema.id, "manifest": manifest_str}
     )
-    assert result.isError
+    assert result.is_error
     assert expected_error_message in result.content[0].text
 
 
@@ -373,7 +369,7 @@ async def test_update_schema_invalid_manifest_format(
     result = await error_client_session.call_tool(
         "update_schema", arguments={"schema_id": schema.id, "manifest": manifest_str}
     )
-    assert result.isError
+    assert result.is_error
     assert expected_error_message in result.content[0].text
 
 
@@ -399,7 +395,7 @@ async def test_update_schema_validation_error(error_client_session, current_user
     result = await error_client_session.call_tool(
         "update_schema", arguments={"schema_id": schema.id, "manifest": manifest_str}
     )
-    assert result.isError
+    assert result.is_error
     assert expected_error_message in result.content[0].text
 
 
@@ -411,7 +407,7 @@ async def test_search_schemas_unauthenticated(error_client_session, current_user
     expected_error_message = "Not authenticated."
     result = await error_client_session.call_tool("search_schemas", arguments={})
 
-    assert result.isError
+    assert result.is_error
     assert expected_error_message in result.content[0].text
 
 
@@ -610,7 +606,7 @@ async def test_search_schemas_invalid_page(error_client_session, current_user_mo
         "search_schemas", arguments={"page": 5}
     )
 
-    assert result.isError
+    assert result.is_error
     assert (
         "Invalid page number for query. Please request a page between 1 and 1."
         in result.content[0].text
