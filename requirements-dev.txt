@@ -11,7 +11,7 @@ annotated-types==0.8.0
 anyio==4.14.2
     # via
     #   -c requirements.txt
-    #   httpx
+    #   httpx2
     #   mcp
     #   sse-starlette
     #   starlette
@@ -40,8 +40,6 @@ cachetools==6.2.6
 certifi==2026.7.22
     # via
     #   -c requirements.txt
-    #   httpcore
-    #   httpx
     #   requests
 cffi==2.1.1
     # via
@@ -176,21 +174,17 @@ gunicorn==23.0.0
 h11==0.16.0
     # via
     #   -c requirements.txt
-    #   httpcore
+    #   httpcore2
     #   uvicorn
-httpcore==1.0.9
+httpcore2==2.12.0
     # via
     #   -c requirements.txt
-    #   httpx
+    #   httpx2
 httptools==0.8.0
     # via
     #   -c requirements.txt
     #   uvicorn
-httpx==0.28.1
-    # via
-    #   -c requirements.txt
-    #   mcp
-httpx-sse==0.4.3
+httpx2==2.12.0
     # via
     #   -c requirements.txt
     #   mcp
@@ -200,7 +194,7 @@ idna==3.19
     # via
     #   -c requirements.txt
     #   anyio
-    #   httpx
+    #   httpx2
     #   requests
 iniconfig==2.3.0
     # via pytest
@@ -213,16 +207,21 @@ jsonschema-specifications==2025.9.1
     # via
     #   -c requirements.txt
     #   jsonschema
-mcp==1.27.2
+mcp==2.0.0
     # via
     #   -c requirements.txt
     #   -r requirements.in
+mcp-types==2.0.0
+    # via
+    #   -c requirements.txt
+    #   mcp
 nodeenv==1.10.0
     # via pre-commit
 opentelemetry-api==1.44.0
     # via
     #   -c requirements.txt
     #   google-cloud-logging
+    #   mcp
 packaging==26.3
     # via
     #   -c requirements.txt
@@ -280,15 +279,11 @@ pydantic==2.13.4
     # via
     #   -c requirements.txt
     #   mcp
-    #   pydantic-settings
+    #   mcp-types
 pydantic-core==2.46.4
     # via
     #   -c requirements.txt
     #   pydantic
-pydantic-settings==2.15.0
-    # via
-    #   -c requirements.txt
-    #   mcp
 pygments==2.19.2
     # via
     #   -c requirements.txt
@@ -313,7 +308,6 @@ python-discovery==1.5.3
 python-dotenv==1.2.3
     # via
     #   -c requirements.txt
-    #   pydantic-settings
     #   uvicorn
 python-multipart==0.0.32
     # via
@@ -367,12 +361,19 @@ starlette==1.6.0
     #   -c requirements.txt
     #   mcp
     #   sse-starlette
+truststore==0.10.4
+    # via
+    #   -c requirements.txt
+    #   httpcore2
+    #   httpx2
 typing-extensions==4.16.0
     # via
     #   -c requirements.txt
     #   anyio
     #   grpcio
+    #   httpx2
     #   mcp
+    #   mcp-types
     #   opentelemetry-api
     #   pydantic
     #   pydantic-core
@@ -384,7 +385,6 @@ typing-inspection==0.4.4
     #   -c requirements.txt
     #   mcp
     #   pydantic
-    #   pydantic-settings
 urllib3==2.7.0
     # via
     #   -c requirements.txt
