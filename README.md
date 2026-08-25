@@ -4,9 +4,9 @@ A public schema registry.
 
 ## Local setup
 
-To run locally, you'll first need to install Python and pip.
+To run locally, you'll first need to install Python (3.11) and pip.
 
-To install project dependencies with pip, run `pip install -r requirements.txt`.
+To install pip dependencies, run `pip install -r requirements-dev.txt`.
 
 This project uses PostgreSQL in every environment, including local development.
 
@@ -65,7 +65,7 @@ We use the CSS reset/normalizer from Tailwind named [preflight.css](core/static/
 
 ## Python dev tooling
 
-Install dev requirements with `pip install -r dev-requirements.txt`.
+Install dev requirements with `pip install -r requirements-dev.txt`.
 
 ### Linting with Ruff
 
@@ -115,3 +115,16 @@ When commiting relevant files with git, the following steps are performed:
 ### Bypass
 
 To skip precommit hooks, use the `--no-verify` option (eg `git commit -m "Yee haw" --no-verify`).
+
+## pip dependency management
+
+Direct project dependencies are listed in [requirements.in](requirements.in). Development dependencies (like linting and testing tools) can be added to [requirements-dev.in](requirements-dev.in).
+
+We use [`pip-tools`](https://pypi.org/project/pip-tools/) to automatically generate our [requirements.txt](requirements.txt) and [requirements-dev.txt](requirements-dev.txt) files. After changing dependencies, you can regenerate these files with the following commands:
+
+```bash
+pip-compile requirements.in -o requirements.txt
+pip-compile requirements-dev.in -o requirements-dev.txt
+```
+
+This strategy makes it easier for us to manage our top-level dependencies in the \*.in files while still locking down the full dependency graph in the \*.txt files.
