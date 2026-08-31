@@ -2,18 +2,29 @@ import json
 import logging
 from typing import Literal
 from jsonschema import ValidationError as JSONValidationError
+from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
 from django.utils import timezone
 from mcp.server import MCPServer
+from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver.exceptions import ResourceNotFoundError
 from core.models import Schema
 from core.mcp.sync_to_async_with_db_cleanup import sync_to_async_with_db_cleanup
 from core.mcp.context import current_user
+from core.mcp.token_verifier import DjangoOAuthToolkitTokenVerifier
 
-
-mcp = MCPServer("Schemas.Pub")
 logger = logging.getLogger("schemaindex")
+
+mcp = MCPServer(
+    "Schemas.Pub",
+    token_verifier=DjangoOAuthToolkitTokenVerifier(),
+    auth=AuthSettings(
+        issuer_url=settings.SITE_URL,
+        resource_server_url=settings.SITE_URL + "/mcp",
+        required_scopes=["mcp"],
+    ),
+)
 
 
 def format_schema(schema):
