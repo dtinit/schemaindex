@@ -20,8 +20,15 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
 
+from oauth2_provider.urls import metadata_urlpatterns
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("account/", include("allauth.urls")),
+    path(
+        "",
+        include((metadata_urlpatterns, "oauth2_provider"), namespace="oauth2_metadata"),
+    ),
+    path("o/", include("oauth2_provider.urls")),
     path("", include("core.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
