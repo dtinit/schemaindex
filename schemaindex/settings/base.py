@@ -226,7 +226,7 @@ OAUTH2_PROVIDER = {
     # TODO: Enable CIMD?
     "DCR_ENABLED": True,
     "DCR_REGISTRATION_PERMISSION_CLASSES": [
-        "oauth2_provider.authorization_server.dcr.AllowAllDCRPermission"
+        "oauth2_provider.dcr.AllowAllDCRPermission"
     ],
     # Native clients registering http://localhost/<port>/callback redirect URIs.
     "ALLOW_LOCALHOST_LOOPBACK": True,

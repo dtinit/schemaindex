@@ -10,7 +10,7 @@ def _lookup_access_token(token):
     django-oauth-toolkit always stores a SHA-256 checksum of the raw token in
     token_checksum (and may redact the plaintext token column at rest under
     RFC 9700 storage), so we match on the checksum exactly as django-oauth-toolkit's
-    own resource server does. See oauth2_provider.resource_server.validators.
+    own resource server does. See oauth2_provider.oauth2_validators.
     """
     token_checksum = hashlib.sha256(token.encode("utf-8")).hexdigest()
     return (
