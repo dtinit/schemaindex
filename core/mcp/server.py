@@ -13,6 +13,7 @@ from core.models import Schema
 from core.mcp.sync_to_async_with_db_cleanup import sync_to_async_with_db_cleanup
 from core.mcp.context import current_user
 from core.mcp.token_verifier import DjangoOAuthToolkitTokenVerifier
+from core.mcp.authentication import authenticate_and_rate_limit
 
 logger = logging.getLogger("schemaindex")
 
@@ -25,6 +26,8 @@ mcp = MCPServer(
         required_scopes=["mcp"],
     ),
 )
+
+mcp.middleware.append(authenticate_and_rate_limit)
 
 
 def format_schema(schema):
@@ -43,8 +46,6 @@ URL: https://schemas.pub{reverse("schema_detail", kwargs={"schema_id": schema.id
     return formatted_schema
 
 
-# This is just a fallback since our middleware
-# rejects any request without an API key tied to a user.
 def ensure_current_user():
     user = current_user.get()
     if not user:
