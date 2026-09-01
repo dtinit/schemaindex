@@ -16,11 +16,6 @@ User = get_user_model()
 # JSON-RPC "server error" range (-32000..-32099); signals an over-quota caller.
 RATE_LIMITED = -32000
 
-# Methods that count against the per-user hourly quota — the ones that touch the DB.
-# Widen to "any request" (ctx.request_id is not None) to match the old middleware's
-# count-every-request behavior.
-RATE_LIMITED_METHODS = frozenset({"tools/call", "resources/read"})
-
 
 @sync_to_async_with_db_cleanup
 def _load_user_and_profile(user_id):
@@ -38,26 +33,25 @@ async def authenticate_and_rate_limit(
     # subject is the Django user id, stamped by DjangoOAuthToolkitTokenVerifier
     user, profile = await _load_user_and_profile(int(access_token.subject))
 
-    if ctx.method in RATE_LIMITED_METHODS:
-        allowed, reason = await sync_to_async_with_db_cleanup(check_and_record_request)(
-            profile
+    allowed, reason = await sync_to_async_with_db_cleanup(check_and_record_request)(
+        profile
+    )
+    if not allowed:
+        logger.info(
+            "[MCP] rate limit exceeded profile_id=%s method=%s",
+            profile.id,
+            ctx.method,
         )
-        if not allowed:
-            logger.info(
-                "[MCP] rate limit exceeded profile_id=%s method=%s",
-                profile.id,
-                ctx.method,
-            )
-            raise MCPError(
-                RATE_LIMITED,
-                "Hourly request limit exceeded. Please try again later.",
-            )
-        if reason == "valkey_unavailable":
-            logger.warning(
-                "api_rate_limit_failed_open profile_id=%s method=%s",
-                profile.id,
-                ctx.method,
-            )
+        raise MCPError(
+            RATE_LIMITED,
+            "Hourly request limit exceeded. Please try again later.",
+        )
+    if reason == "valkey_unavailable":
+        logger.warning(
+            "api_rate_limit_failed_open profile_id=%s method=%s",
+            profile.id,
+            ctx.method,
+        )
 
     reset = current_user.set(user)
     try:
