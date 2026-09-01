@@ -29,6 +29,8 @@ urlpatterns = [
         "",
         include((metadata_urlpatterns, "oauth2_provider"), namespace="oauth2_metadata"),
     ),
-    path("o/", include("oauth2_provider.urls")),
+    # Note: django-oauth-toolkit uses the prefix "o/" in their examples,
+    # but we already use that for permanent org URLs.
+    path("oauth/", include("oauth2_provider.urls")),
     path("", include("core.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

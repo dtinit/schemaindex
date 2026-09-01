@@ -223,7 +223,7 @@ OAUTH2_PROVIDER = {
     "DEFAULT_SCOPES": ["mcp"],
     "PKCE_REQUIRED": True,
     "OAUTH2_PROTECTED_RESOURCE_NAME": "Schemas.Pub MCP",
-    # TODO: rate-limit /o/register/ (per-IP cap or edge limit) if we see abuse
+    # TODO: rate-limit /oauth/register/ (per-IP cap or edge limit) if we see abuse
     # TODO: Enable CIMD?
     "DCR_ENABLED": True,
     "DCR_REGISTRATION_PERMISSION_CLASSES": [
