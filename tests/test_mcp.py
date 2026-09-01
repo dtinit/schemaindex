@@ -1,17 +1,36 @@
-import pytest
+import base64
+import hashlib
 import json
 import re
-import requests_mock
-from mcp.client import Client
+import secrets
+from datetime import timedelta
 from unittest.mock import patch, MagicMock
+from urllib.parse import parse_qs, urlparse
+import httpx2
+import pytest
+import requests_mock
+from django.conf import settings
+from django.test import Client as DjangoTestClient, override_settings
+from django.utils import timezone
+from django.utils.crypto import get_random_string
+from mcp.client import Client
+from oauth2_provider.models import get_access_token_model, get_application_model
+from core.mcp.authentication import RATE_LIMITED
 from core.mcp.server import mcp, MAX_PAGE_SIZE
-from factories import SchemaFactory, UserFactory, SchemaRefFactory
-from utils import assert_schema_matches_manifest
-from core.models import Schema
 from core.mcp.sync_to_async_with_db_cleanup import (
     sync_to_async_with_db_cleanup as sync_to_async,
 )
+from core.models import Schema
+from factories import SchemaFactory, UserFactory, SchemaRefFactory
+from schemaindex.asgi import create_application as create_asgi_application
+from utils import assert_schema_matches_manifest
 
+AccessToken = get_access_token_model()
+Application = get_application_model()
+
+REDIRECT_URI = "http://localhost:6274/oauth/callback"
+
+RESOURCE_METADATA_URL = f"{settings.SITE_URL}/.well-known/oauth-protected-resource/mcp"
 
 # Force all database tests in this file to flush tables instead of rolling back,
 # preventing background threads (sync_to_async) from leaking state.
@@ -47,6 +66,128 @@ async def error_client_session():
     # specifically for testing expected error states.
     async with Client(mcp, raise_exceptions=False) as client:
         yield client
+
+
+@pytest.fixture
+async def mcp_http_client():
+    """An HTTP client wired straight into the project's real ASGI application."""
+    with override_settings(ENABLE_MCP_SERVER=True):
+        application = create_asgi_application()
+
+    # Building the app created a fresh session manager. Run it here the way the
+    # app's own lifespan would; httpx's ASGI transport doesn't run lifespans.
+    async with mcp.session_manager.run():
+        async with httpx2.AsyncClient(
+            transport=httpx2.ASGITransport(app=application),
+            base_url=settings.SITE_URL,
+        ) as http:
+            yield http
+
+
+def issue_access_token(user, *, scope="mcp", expires_in=3600):
+    """Mint a django-oauth-toolkit access token and return its raw value.
+
+    The stored row keeps a SHA-256 checksum of the raw token (derived on save),
+    which is what DjangoOAuthToolkitTokenVerifier looks the token up by.
+    """
+    application = Application.objects.create(
+        name="Test MCP client",
+        user=user,
+        client_type=Application.CLIENT_PUBLIC,
+        authorization_grant_type=Application.GRANT_AUTHORIZATION_CODE,
+        redirect_uris=REDIRECT_URI,
+        registration_source=Application.RegistrationSource.DCR,
+    )
+    raw_token = secrets.token_urlsafe(32)
+    AccessToken.objects.create(
+        user=user,
+        application=application,
+        token=raw_token,
+        scope=scope,
+        expires=timezone.now() + timedelta(seconds=expires_in),
+    )
+    return raw_token
+
+
+def complete_oauth_flow(user):
+    """Run the whole authorization-server flow with the Django test client and
+    return the token endpoint's response body.
+
+    Stands in for the manual end-to-end run: `force_login` replaces allauth's
+    emailed login code, everything else is the real thing.
+    """
+    client = DjangoTestClient()
+
+    registration = client.post(
+        "/oauth/register/",
+        data=json.dumps({
+            "client_name": "MCP Inspector",
+            "redirect_uris": [REDIRECT_URI],
+            "grant_types": ["authorization_code", "refresh_token"],
+            "token_endpoint_auth_method": "none",
+        }),
+        content_type="application/json",
+    )
+    assert registration.status_code == 201, registration.content
+    client_id = registration.json()["client_id"]
+
+    code_verifier = get_random_string(64)
+    verifier_digest = hashlib.sha256(code_verifier.encode()).digest()
+    code_challenge = base64.urlsafe_b64encode(verifier_digest).decode().rstrip("=")
+
+    client.force_login(user)
+    consent = client.post(
+        "/oauth/authorize/",
+        data={
+            "client_id": client_id,
+            "redirect_uri": REDIRECT_URI,
+            "response_type": "code",
+            "scope": "mcp",
+            "state": "test-state",
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
+            "allow": True,
+        },
+    )
+    assert consent.status_code == 302, consent.content
+    redirect_query = parse_qs(urlparse(consent["Location"]).query)
+    assert redirect_query["state"] == ["test-state"], redirect_query
+
+    token_response = client.post(
+        "/oauth/token/",
+        data={
+            "grant_type": "authorization_code",
+            "code": redirect_query["code"][0],
+            "redirect_uri": REDIRECT_URI,
+            "client_id": client_id,
+            "code_verifier": code_verifier,
+        },
+    )
+    assert token_response.status_code == 200, token_response.content
+    return token_response.json()
+
+
+async def post_mcp(http, method, params=None, *, token=None):
+    """POST one JSON-RPC message to /mcp.
+
+    The path has no trailing slash on purpose: the MCP server's own route lives at
+    /mcp/, so this also exercises MCPTrailingSlashMiddleware.
+    """
+    headers = {"Accept": "application/json"}
+    if token is not None:
+        headers["Authorization"] = f"Bearer {token}"
+
+    message = {"jsonrpc": "2.0", "id": 1, "method": method}
+    if params is not None:
+        message["params"] = params
+
+    return await http.post("/mcp", json=message, headers=headers)
+
+
+async def call_tool(http, name, arguments=None, *, token=None):
+    return await post_mcp(
+        http, "tools/call", {"name": name, "arguments": arguments or {}}, token=token
+    )
 
 
 @pytest.mark.anyio
@@ -365,8 +506,6 @@ async def test_search_schemas_scope(client_session, current_user_mock):
     await sync_to_async(SchemaFactory.create)(created_by=user1, name="User One Schema")
 
     # Create an accessible (published) schema for user2
-    from django.utils import timezone
-
     await sync_to_async(SchemaFactory.create)(
         created_by=user2, name="User Two Public Schema", published_at=timezone.now()
     )
@@ -543,3 +682,135 @@ async def test_search_schemas_invalid_page(error_client_session, current_user_mo
         "Invalid page number for query. Please request a page between 1 and 1."
         in result.content[0].text
     )
+
+
+# The tests below go over real HTTP into the project's ASGI application, so they
+# exercise the bearer gate and the `current_user` bridge that the in-memory
+# client above bypasses with a mocked `current_user`.
+
+
+@pytest.mark.anyio
+async def test_associated_user_for_bearer_token_provided_to_tools(mcp_http_client):
+    user = await sync_to_async(UserFactory.create)()
+    # A private schema is visible only to its creator, so finding it is proof that
+    # the token's user reached `current_user`.
+    await sync_to_async(SchemaFactory.create)(
+        created_by=user, name="Bridged Schema", published_at=None
+    )
+    token = await sync_to_async(issue_access_token)(user)
+    response = await call_tool(
+        mcp_http_client, "search_schemas", {"scope": "user"}, token=token
+    )
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert not result.get("isError")
+    assert "Bridged Schema" in result["content"][0]["text"]
+
+
+@pytest.mark.anyio
+async def test_request_without_a_bearer_token_is_challenged(mcp_http_client):
+    response = await post_mcp(mcp_http_client, "tools/list")
+    assert response.status_code == 401
+    challenge = response.headers["www-authenticate"]
+    assert challenge.startswith("Bearer ")
+    assert 'error="invalid_token"' in challenge
+    # The challenge points clients at the RFC 9728 document django-oauth-toolkit serves.
+    assert f'resource_metadata="{RESOURCE_METADATA_URL}"' in challenge
+
+
+@pytest.mark.anyio
+async def test_unknown_bearer_token_is_rejected(mcp_http_client):
+    response = await post_mcp(mcp_http_client, "tools/list", token="not-a-real-token")
+    assert response.status_code == 401
+    assert 'error="invalid_token"' in response.headers["www-authenticate"]
+
+
+@pytest.mark.anyio
+async def test_expired_bearer_token_is_rejected(mcp_http_client):
+    user = await sync_to_async(UserFactory.create)()
+    token = await sync_to_async(issue_access_token)(user, expires_in=-60)
+    response = await post_mcp(mcp_http_client, "tools/list", token=token)
+    assert response.status_code == 401
+    assert 'error="invalid_token"' in response.headers["www-authenticate"]
+
+
+@pytest.mark.anyio
+async def test_token_without_the_mcp_scope_is_forbidden(mcp_http_client):
+    user = await sync_to_async(UserFactory.create)()
+    token = await sync_to_async(issue_access_token)(user, scope="profile")
+    response = await post_mcp(mcp_http_client, "tools/list", token=token)
+    # 403, not 401: the token is valid, it just isn't authorized for this resource.
+    assert response.status_code == 403
+    assert 'error="insufficient_scope"' in response.headers["www-authenticate"]
+
+
+@pytest.mark.anyio
+async def test_token_of_an_unusable_application_is_rejected(mcp_http_client):
+    user = await sync_to_async(UserFactory.create)()
+    token = await sync_to_async(issue_access_token)(user)
+
+    # The default is_usable() always returns True; a deployment that disables an
+    # application should see its live tokens stop working.
+    with patch.object(Application, "is_usable", return_value=False):
+        response = await post_mcp(mcp_http_client, "tools/list", token=token)
+
+    assert response.status_code == 401
+    assert 'error="invalid_token"' in response.headers["www-authenticate"]
+
+
+@pytest.mark.anyio
+async def test_work_methods_are_refused_over_the_hourly_limit(mcp_http_client):
+    user = await sync_to_async(UserFactory.create)()
+    token = await sync_to_async(issue_access_token)(user)
+
+    with override_settings(HOURLY_API_REQUEST_LIMIT=1):
+        allowed = await call_tool(mcp_http_client, "search_schemas", token=token)
+        blocked = await call_tool(mcp_http_client, "search_schemas", token=token)
+
+    assert "error" not in allowed.json()
+    assert blocked.status_code == 200
+    error = blocked.json()["error"]
+    assert error["code"] == RATE_LIMITED
+    assert "Hourly request limit exceeded" in error["message"]
+
+
+@pytest.mark.anyio
+async def test_the_hourly_limit_is_per_user(mcp_http_client):
+    exhausted_user = await sync_to_async(UserFactory.create)()
+    other_user = await sync_to_async(UserFactory.create)()
+    exhausted_token = await sync_to_async(issue_access_token)(exhausted_user)
+    other_token = await sync_to_async(issue_access_token)(other_user)
+
+    with override_settings(HOURLY_API_REQUEST_LIMIT=1):
+        await call_tool(mcp_http_client, "search_schemas", token=exhausted_token)
+        blocked = await call_tool(
+            mcp_http_client, "search_schemas", token=exhausted_token
+        )
+        unaffected = await call_tool(
+            mcp_http_client, "search_schemas", token=other_token
+        )
+
+    assert blocked.json()["error"]["code"] == RATE_LIMITED
+    assert "error" not in unaffected.json()
+
+
+@pytest.mark.anyio
+async def test_a_dcr_client_reaches_the_tools_after_the_full_oauth_flow(
+    mcp_http_client,
+):
+    user = await sync_to_async(UserFactory.create)()
+    await sync_to_async(SchemaFactory.create)(
+        created_by=user, name="End To End Schema", published_at=None
+    )
+    tokens = await sync_to_async(complete_oauth_flow)(user)
+    assert tokens["token_type"] == "Bearer"
+    assert tokens["scope"] == "mcp"
+
+    response = await call_tool(
+        mcp_http_client,
+        "search_schemas",
+        {"scope": "user"},
+        token=tokens["access_token"],
+    )
+    assert response.status_code == 200
+    assert "End To End Schema" in response.json()["result"]["content"][0]["text"]
