@@ -19,8 +19,26 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
-
+from oauth2_provider import views as oauth2_views
 from oauth2_provider.urls import metadata_urlpatterns
+
+# Rather than mounting all of oauth2_provider.urls,
+# here we extract the subset we actually use.
+oauth2_mcp_urlpatterns = [
+    path("authorize/", oauth2_views.AuthorizationView.as_view(), name="authorize"),
+    path("token/", oauth2_views.TokenView.as_view(), name="token"),
+    path("revoke_token/", oauth2_views.RevokeTokenView.as_view(), name="revoke-token"),
+    path(
+        "register/",
+        oauth2_views.DynamicClientRegistrationView.as_view(),
+        name="dcr-register",
+    ),
+    path(
+        "register/<str:client_id>/",
+        oauth2_views.DynamicClientRegistrationManagementView.as_view(),
+        name="dcr-register-management",
+    ),
+]
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -31,6 +49,6 @@ urlpatterns = [
     ),
     # Note: django-oauth-toolkit uses the prefix "o/" in their examples,
     # but we already use that for permanent org URLs.
-    path("oauth/", include("oauth2_provider.urls")),
+    path("oauth/", include((oauth2_mcp_urlpatterns, "oauth2_provider"))),
     path("", include("core.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
