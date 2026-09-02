@@ -59,7 +59,6 @@ def create_application():
 
     # These imports must run after Django initializes
     from core.mcp.server import mcp  # noqa: E402
-    from core.mcp.api_key_authentication import MCPAPIKeyAuthenticationMiddleware  # noqa: E402
     from mcp.server.transport_security import TransportSecuritySettings  # noqa: E402
 
     # Create a lifespan context manager to run the session manager
@@ -85,12 +84,6 @@ def create_application():
         ),
     )
 
-    # Wrap the MCPServer streamable app with the API key middleware
-    mcp_app_with_auth = Starlette(
-        routes=mcp_app.routes,
-        middleware=[Middleware(MCPAPIKeyAuthenticationMiddleware)],
-    )
-
     # We mount the MCP server at "/mcp" but it requires its own "/" at its root,
     # making the actual url "/mcp/" (trailing slash) and causing "/mcp" (no trailing slash) to 404.
     # This tiny middleware just redirects the latter to the former.
@@ -110,7 +103,7 @@ def create_application():
     # and anything else to Django
     application = Starlette(
         routes=[
-            Mount("/mcp", app=mcp_app_with_auth),
+            Mount("/mcp", app=mcp_app),
             Mount("/", app=django_app),
         ],
         middleware=[

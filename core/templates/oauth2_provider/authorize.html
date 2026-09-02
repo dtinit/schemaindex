@@ -1,0 +1,41 @@
+{# adapted from https://github.com/jazzband/django-oauth-toolkit/blob/master/oauth2_provider/templates/oauth2_provider/authorize.html #}
+
+{% extends "oauth2_provider/base.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% trans "Authorize" %}
+{% endblock title %}
+
+{% block content %}
+    {% if not error %}
+        <h1>{% blocktranslate with name=application.name %}Authorize {{ name }}?{% endblocktranslate %}</h1>
+        <form id="authorizationForm" method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                {% if field.is_hidden %}{{ field }}{% endif %}
+            {% endfor %}
+
+            <p class="scope-request">This application is requesting the following permission{{ scopes_descriptions|pluralize }}:</p>
+            <ul class="scope-list">
+                {% for scope in scopes_descriptions %}
+                    <li>{{ scope }}</li>
+                {% endfor %}
+            </ul>
+
+            {{ form.errors }}
+            {{ form.non_field_errors }}
+
+            <div class="button-group">
+                <button type="submit" class="button">{% trans "Cancel" %}</button>
+                <button type="submit" name="allow" value="Authorize" class="button button--prominent">
+                    {% trans "Authorize" %}
+                </button>
+            </div>
+        </form>
+    {% else %}
+        <h1>{% trans "Error" %}</h1>
+        <p>{{ error.error }}</p>
+        <p>{{ error.description }}</p>
+    {% endif %}
+{% endblock content %}

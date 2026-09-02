@@ -36,11 +36,11 @@ class APIKeyAuthenticationMiddleware:
         # For convenience, attach the user to the request
         request.user = profile.user
 
-        # The helper enforces the per-profile sliding-hourly window
+        # The helper enforces the per-user sliding-hourly window
         # against shared Valkey state in staging/production. If Valkey
         # is unavailable at runtime, the helper fails open and returns
         # reason="valkey_unavailable"
-        allowed, reason = check_and_record_request(profile)
+        allowed, reason = check_and_record_request(request.user.id)
         if not allowed:
             return ApiErrorResponse(
                 status_code=429,
@@ -49,8 +49,8 @@ class APIKeyAuthenticationMiddleware:
             )
         if reason == "valkey_unavailable":
             logger.warning(
-                "api_rate_limit_failed_open profile_id=%s path=%s",
-                profile.id,
+                "api_rate_limit_failed_open user_id=%s path=%s",
+                request.user.id,
                 request.path,
             )
 

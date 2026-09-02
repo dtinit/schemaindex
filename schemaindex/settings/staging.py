@@ -16,4 +16,9 @@ for key in STORAGES:
 # Buckets URLs for static and media files
 STATIC_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/site-assets/"
 MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/schemas/"
+
 ENABLE_MCP_SERVER = True
+
+OAUTH2_PROVIDER["OIDC_ISS_ENDPOINT"] = SITE_URL
+OAUTH2_PROVIDER["OAUTH2_PROTECTED_RESOURCE_IDENTIFIER"] = SITE_URL + "/mcp"
+OAUTH2_PROVIDER["OAUTH2_PROTECTED_RESOURCE_AUTHORIZATION_SERVERS"] = [SITE_URL]

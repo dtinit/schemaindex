@@ -218,7 +218,7 @@ def test_rate_limit_fails_open_when_valkey_configured_but_client_unavailable(cap
         ),
         caplog.at_level(logging.WARNING, logger="schemaindex"),
     ):
-        allowed, reason = check_and_record_request(profile)
+        allowed, reason = check_and_record_request(profile.user_id)
 
     assert allowed is True
     assert reason == "valkey_unavailable"

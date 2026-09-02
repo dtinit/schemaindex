@@ -16,6 +16,7 @@ from tests.factories import (
 from core.models import Schema, DocumentationItem, Profile
 from core.forms import PermanentURLForm
 from django.test import Client, override_settings
+from django.conf import settings
 from pytest_django.asserts import assertRedirects
 from unittest.mock import patch
 from utils import assert_schema_matches_manifest
@@ -486,3 +487,9 @@ def test_mcp_docs_not_linked_from_api_key_page_when_feature_flag_disabled():
     assert response.status_code == 200
     assert "Manage API Key" in str(response.content)
     assert "MCP" not in str(response.content)
+
+
+def test_oauth_authorize_sends_anonymous_users_to_the_allauth_login():
+    response = Client().get("/oauth/authorize/")
+    assert response.status_code == 302
+    assert response["Location"].startswith(settings.LOGIN_URL)

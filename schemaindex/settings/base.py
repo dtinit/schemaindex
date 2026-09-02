@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "allauth",
     "allauth.account",
+    "oauth2_provider",
 ]
 
 MIDDLEWARE = [
@@ -133,6 +134,7 @@ ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*"]
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+LOGIN_URL = "/account/login/"
 LOGIN_REDIRECT_URL = "/account/profile/"
 
 # This is deprecated, but leaving it undefined causes more warnings
@@ -215,3 +217,19 @@ TRUSTED_CONTENT_DOMAINS = ADVERTISED_TRUSTED_CONTENT_DOMAINS + [
     "osirisjson.org",
     "githubusercontent.com",
 ]
+
+OAUTH2_PROVIDER = {
+    "SCOPES": {"mcp": "Access the Schemas.Pub MCP server"},
+    "DEFAULT_SCOPES": ["mcp"],
+    "PKCE_REQUIRED": True,
+    "OAUTH2_PROTECTED_RESOURCE_NAME": "Schemas.Pub MCP",
+    # TODO: rate-limit /oauth/register/ (per-IP cap or edge limit) if we see abuse
+    # TODO: Enable CIMD?
+    "DCR_ENABLED": True,
+    "DCR_REGISTRATION_PERMISSION_CLASSES": [
+        "oauth2_provider.dcr.AllowAllDCRPermission"
+    ],
+    # Native clients registering http://localhost/<port>/callback redirect URIs.
+    "ALLOW_LOCALHOST_LOOPBACK": True,
+    "REFRESH_TOKEN_EXPIRE_SECONDS": 60 * 60 * 24 * 90,
+}
