@@ -231,4 +231,5 @@ OAUTH2_PROVIDER = {
     ],
     # Native clients registering http://localhost/<port>/callback redirect URIs.
     "ALLOW_LOCALHOST_LOOPBACK": True,
+    "REFRESH_TOKEN_EXPIRE_SECONDS": 60 * 60 * 24 * 90,
 }
