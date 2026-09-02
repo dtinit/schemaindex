@@ -10,7 +10,7 @@ from .models import (
     PermanentURL,
     APIKey,
 )
-from .middleware.rate_limit import get_profile_rate_limit_key
+from .middleware.rate_limit import get_user_rate_limit_key
 
 
 def format_date_only(obj, date_field):
@@ -66,8 +66,7 @@ class OrganizationAdmin(admin.ModelAdmin):
 @admin.action(description="Reset API Rate Limits")
 def reset_rate_limit(modeladmin, request, queryset):
     for profile in queryset:
-        # Match the key format used in your middleware
-        cache_key = get_profile_rate_limit_key(profile)
+        cache_key = get_user_rate_limit_key(profile.user_id)
         cache.delete(cache_key)
 
     messages.success(request, f"Rate limits reset for {queryset.count()} profiles.")

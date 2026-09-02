@@ -4,7 +4,7 @@ import json
 import re
 import secrets
 from datetime import timedelta
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 import httpx2
 import pytest
@@ -14,8 +14,9 @@ from django.test import Client as DjangoTestClient, override_settings
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from mcp.client import Client
+from mcp.server.auth.provider import AccessToken as VerifiedAccessToken
 from oauth2_provider.models import get_access_token_model, get_application_model
-from core.mcp.authentication import RATE_LIMITED
+from core.mcp.rate_limit import RATE_LIMITED
 from core.mcp.server import mcp, MAX_PAGE_SIZE
 from core.mcp.sync_to_async_with_db_cleanup import (
     sync_to_async_with_db_cleanup as sync_to_async,
@@ -45,18 +46,24 @@ def anyio_backend():
 
 @pytest.fixture
 async def client_session():
-    # Creates an isolated in-memory client connected to your MCPServer instance.
-    # raise_exceptions=True ensures that internal server errors fail the test immediately.
     async with Client(mcp, raise_exceptions=True) as client:
         yield client
 
 
 @pytest.fixture
-def current_user_mock():
-    # Patches current_user for the duration of the test.
-    mock = MagicMock()
-    with patch("core.mcp.server.current_user", mock):
-        yield mock
+def authenticate_as():
+    with patch("core.mcp.server.get_access_token") as get_token:
+        get_token.return_value = None
+
+        def _authenticate_as(user):
+            get_token.return_value = VerifiedAccessToken(
+                token="in-memory-test-token",
+                client_id="in-memory-test-client",
+                scopes=["mcp"],
+                subject=str(user.id),
+            )
+
+        yield _authenticate_as
 
 
 @pytest.fixture
@@ -70,12 +77,9 @@ async def error_client_session():
 
 @pytest.fixture
 async def mcp_http_client():
-    """An HTTP client wired straight into the project's real ASGI application."""
     with override_settings(ENABLE_MCP_SERVER=True):
         application = create_asgi_application()
 
-    # Building the app created a fresh session manager. Run it here the way the
-    # app's own lifespan would; httpx's ASGI transport doesn't run lifespans.
     async with mcp.session_manager.run():
         async with httpx2.AsyncClient(
             transport=httpx2.ASGITransport(app=application),
@@ -85,11 +89,6 @@ async def mcp_http_client():
 
 
 def issue_access_token(user, *, scope="mcp", expires_in=3600):
-    """Mint a django-oauth-toolkit access token and return its raw value.
-
-    The stored row keeps a SHA-256 checksum of the raw token (derived on save),
-    which is what DjangoOAuthToolkitTokenVerifier looks the token up by.
-    """
     application = Application.objects.create(
         name="Test MCP client",
         user=user,
@@ -110,12 +109,6 @@ def issue_access_token(user, *, scope="mcp", expires_in=3600):
 
 
 def complete_oauth_flow(user):
-    """Run the whole authorization-server flow with the Django test client and
-    return the token endpoint's response body.
-
-    Stands in for the manual end-to-end run: `force_login` replaces allauth's
-    emailed login code, everything else is the real thing.
-    """
     client = DjangoTestClient()
 
     registration = client.post(
@@ -168,11 +161,6 @@ def complete_oauth_flow(user):
 
 
 async def post_mcp(http, method, params=None, *, token=None):
-    """POST one JSON-RPC message to /mcp.
-
-    The path has no trailing slash on purpose: the MCP server's own route lives at
-    /mcp/, so this also exercises MCPTrailingSlashMiddleware.
-    """
     headers = {"Accept": "application/json"}
     if token is not None:
         headers["Authorization"] = f"Bearer {token}"
@@ -198,9 +186,11 @@ async def test_manifest_resource(client_session):
 
 
 @pytest.mark.anyio
-async def test_schema_by_id_resource(client_session):
+async def test_schema_by_id_resource(client_session, authenticate_as):
     schema = await sync_to_async(SchemaFactory.create)()
     manifest = await sync_to_async(schema.to_manifest)()
+    # A published schema is readable by any authenticated caller, creator or not.
+    authenticate_as(await sync_to_async(UserFactory.create)())
     result = await client_session.read_resource(f"schema://{schema.id}")
     # We parse the string result as JSON so we can stringify it with sorted keys
     parsed_contents = json.loads(result.contents[0].text)
@@ -212,12 +202,11 @@ async def test_schema_by_id_resource(client_session):
 
 @pytest.mark.anyio
 async def test_schema_by_id_resource_supports_own_private_schemas(
-    client_session, current_user_mock
+    client_session, authenticate_as
 ):
     schema = await sync_to_async(SchemaFactory.create)(published_at=None)
     manifest = await sync_to_async(schema.to_manifest)()
-    # Mock the current_user (normally provided by middleware)
-    current_user_mock.get.return_value = schema.created_by
+    authenticate_as(schema.created_by)
     result = await client_session.read_resource(f"schema://{schema.id}")
     # We parse the string result as JSON so we can stringify it with sorted keys
     parsed_contents = json.loads(result.contents[0].text)
@@ -230,13 +219,13 @@ async def test_schema_by_id_resource_supports_own_private_schemas(
 @pytest.mark.anyio
 async def test_schema_by_id_resource_errors_for_inaccessible_schemas(
     error_client_session,
-    current_user_mock,
+    authenticate_as,
 ):
     # Create a private schema
     schema = await sync_to_async(SchemaFactory.create)(published_at=None)
 
-    # Mock the current_user to be a completely different user from the creator
-    current_user_mock.get.return_value = await sync_to_async(UserFactory.create)()
+    # Authenticate as a completely different user from the creator
+    authenticate_as(await sync_to_async(UserFactory.create)())
 
     expected_error_message = f"Resource not found: Schema with ID '{schema.id}' does not exist or you lack permission to view it."
 
@@ -245,9 +234,9 @@ async def test_schema_by_id_resource_errors_for_inaccessible_schemas(
 
 
 @pytest.mark.anyio
-async def test_create_schema_success(client_session, current_user_mock):
+async def test_create_schema_success(client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
 
     manifest = {
         "name": "Test Schema",
@@ -272,22 +261,9 @@ async def test_create_schema_success(client_session, current_user_mock):
 
 
 @pytest.mark.anyio
-async def test_create_schema_unauthenticated(error_client_session, current_user_mock):
-    # Mock the current_user to be None or unauthenticated
-    current_user_mock.get.return_value = None
-
-    expected_error_message = "Not authenticated."
-    result = await error_client_session.call_tool(
-        "create_schema", arguments={"manifest": "{}"}
-    )
-    assert result.is_error
-    assert expected_error_message in result.content[0].text
-
-
-@pytest.mark.anyio
-async def test_create_schema_invalid_json(error_client_session, current_user_mock):
+async def test_create_schema_invalid_json(error_client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
 
     # Intentionally invalid JSON
     manifest_str = '{"name": "Invalid JSON", '
@@ -301,10 +277,10 @@ async def test_create_schema_invalid_json(error_client_session, current_user_moc
 
 @pytest.mark.anyio
 async def test_create_schema_invalid_manifest_format(
-    error_client_session, current_user_mock
+    error_client_session, authenticate_as
 ):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
 
     # Valid JSON, but not a valid manifest
     manifest_str = json.dumps({"wrong_key": "wrong_value"})
@@ -317,9 +293,9 @@ async def test_create_schema_invalid_manifest_format(
 
 
 @pytest.mark.anyio
-async def test_create_schema_validation_error(error_client_session, current_user_mock):
+async def test_create_schema_validation_error(error_client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
     other_user = await sync_to_async(UserFactory.create)()
     published_schema = await sync_to_async(SchemaFactory.create)(created_by=other_user)
     url = "https://example.com/conflict.json"
@@ -341,9 +317,9 @@ async def test_create_schema_validation_error(error_client_session, current_user
 
 
 @pytest.mark.anyio
-async def test_update_schema_success(client_session, current_user_mock):
+async def test_update_schema_success(client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
     schema = await sync_to_async(SchemaFactory.create)(created_by=user)
 
     manifest = {
@@ -371,23 +347,9 @@ async def test_update_schema_success(client_session, current_user_mock):
 
 
 @pytest.mark.anyio
-async def test_update_schema_unauthenticated(error_client_session, current_user_mock):
-    # Mock the current_user to be None or unauthenticated
-    current_user_mock.get.return_value = None
-    schema = await sync_to_async(SchemaFactory.create)()
-
-    expected_error_message = "Not authenticated."
-    result = await error_client_session.call_tool(
-        "update_schema", arguments={"schema_id": schema.id, "manifest": "{}"}
-    )
-    assert result.is_error
-    assert expected_error_message in result.content[0].text
-
-
-@pytest.mark.anyio
-async def test_update_schema_forbidden(error_client_session, current_user_mock):
+async def test_update_schema_forbidden(error_client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
     # Schema created by another user
     other_user = await sync_to_async(UserFactory.create)()
     schema = await sync_to_async(SchemaFactory.create)(created_by=other_user)
@@ -401,9 +363,9 @@ async def test_update_schema_forbidden(error_client_session, current_user_mock):
 
 
 @pytest.mark.anyio
-async def test_update_schema_not_found(error_client_session, current_user_mock):
+async def test_update_schema_not_found(error_client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
     # Schema does not exist
     non_existent_id = 99999
     expected_error_message = f"Schema with ID '{non_existent_id}' not found."
@@ -415,9 +377,9 @@ async def test_update_schema_not_found(error_client_session, current_user_mock):
 
 
 @pytest.mark.anyio
-async def test_update_schema_invalid_json(error_client_session, current_user_mock):
+async def test_update_schema_invalid_json(error_client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
     schema = await sync_to_async(SchemaFactory.create)(created_by=user)
     # Intentionally invalid JSON
     manifest_str = '{"name": "Invalid JSON", '
@@ -431,10 +393,10 @@ async def test_update_schema_invalid_json(error_client_session, current_user_moc
 
 @pytest.mark.anyio
 async def test_update_schema_invalid_manifest_format(
-    error_client_session, current_user_mock
+    error_client_session, authenticate_as
 ):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
     schema = await sync_to_async(SchemaFactory.create)(created_by=user)
     # Valid JSON, but not a valid manifest
     manifest_str = json.dumps({"wrong_key": "wrong_value"})
@@ -447,9 +409,9 @@ async def test_update_schema_invalid_manifest_format(
 
 
 @pytest.mark.anyio
-async def test_update_schema_validation_error(error_client_session, current_user_mock):
+async def test_update_schema_validation_error(error_client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
     schema = await sync_to_async(SchemaFactory.create)(created_by=user)
 
     other_user = await sync_to_async(UserFactory.create)()
@@ -473,21 +435,9 @@ async def test_update_schema_validation_error(error_client_session, current_user
 
 
 @pytest.mark.anyio
-async def test_search_schemas_unauthenticated(error_client_session, current_user_mock):
-    # Mock the current_user to be None
-    current_user_mock.get.return_value = None
-
-    expected_error_message = "Not authenticated."
-    result = await error_client_session.call_tool("search_schemas", arguments={})
-
-    assert result.is_error
-    assert expected_error_message in result.content[0].text
-
-
-@pytest.mark.anyio
-async def test_search_schemas_no_results(client_session, current_user_mock):
+async def test_search_schemas_no_results(client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
 
     result = await client_session.call_tool(
         "search_schemas", arguments={"query": "nonexistent"}
@@ -497,10 +447,10 @@ async def test_search_schemas_no_results(client_session, current_user_mock):
 
 
 @pytest.mark.anyio
-async def test_search_schemas_scope(client_session, current_user_mock):
+async def test_search_schemas_scope(client_session, authenticate_as):
     user1 = await sync_to_async(UserFactory.create)()
     user2 = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user1
+    authenticate_as(user1)
 
     # Create a schema for user1
     await sync_to_async(SchemaFactory.create)(created_by=user1, name="User One Schema")
@@ -527,10 +477,10 @@ async def test_search_schemas_scope(client_session, current_user_mock):
 
 @pytest.mark.anyio
 async def test_search_schemas_description_query_filtering(
-    client_session, current_user_mock
+    client_session, authenticate_as
 ):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
 
     await sync_to_async(SchemaFactory.create)(
         created_by=user, name="Alpha", description="A special testing schema"
@@ -549,9 +499,9 @@ async def test_search_schemas_description_query_filtering(
 
 
 @pytest.mark.anyio
-async def test_search_schemas_name_query_filtering(client_session, current_user_mock):
+async def test_search_schemas_name_query_filtering(client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
 
     await sync_to_async(SchemaFactory.create)(
         created_by=user, name="Alpha", description="A special testing schema"
@@ -570,11 +520,9 @@ async def test_search_schemas_name_query_filtering(client_session, current_user_
 
 
 @pytest.mark.anyio
-async def test_search_schemas_id_value_query_filtering(
-    client_session, current_user_mock
-):
+async def test_search_schemas_id_value_query_filtering(client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
 
     schema = await sync_to_async(SchemaFactory.create)(
         created_by=user, name="Alpha", description="A special testing schema"
@@ -600,9 +548,9 @@ async def test_search_schemas_id_value_query_filtering(
 
 
 @pytest.mark.anyio
-async def test_search_schemas_pagination(client_session, current_user_mock):
+async def test_search_schemas_pagination(client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
 
     # Trigger pagination
     for i in range(MAX_PAGE_SIZE + 1):
@@ -633,9 +581,9 @@ async def test_search_schemas_pagination(client_session, current_user_mock):
 
 
 @pytest.mark.anyio
-async def test_search_schemas_pagination_with_query(client_session, current_user_mock):
+async def test_search_schemas_pagination_with_query(client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
 
     # Trigger pagination with a specific query
     for i in range(MAX_PAGE_SIZE + 1):
@@ -666,9 +614,9 @@ async def test_search_schemas_pagination_with_query(client_session, current_user
 
 
 @pytest.mark.anyio
-async def test_search_schemas_invalid_page(error_client_session, current_user_mock):
+async def test_search_schemas_invalid_page(error_client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
-    current_user_mock.get.return_value = user
+    authenticate_as(user)
 
     # Create 1 schema so there is only 1 page
     await sync_to_async(SchemaFactory.create)(created_by=user)
@@ -684,18 +632,17 @@ async def test_search_schemas_invalid_page(error_client_session, current_user_mo
     )
 
 
-# The tests below go over real HTTP into the project's ASGI application, so they
-# exercise the bearer gate and the `current_user` bridge that the in-memory
-# client above bypasses with a mocked `current_user`.
+# These tests use the mcp_http_client which actually go over HTTP
+# so we can test authentication.
 
 
 @pytest.mark.anyio
 async def test_associated_user_for_bearer_token_provided_to_tools(mcp_http_client):
     user = await sync_to_async(UserFactory.create)()
     # A private schema is visible only to its creator, so finding it is proof that
-    # the token's user reached `current_user`.
+    # the token's user reached the tool.
     await sync_to_async(SchemaFactory.create)(
-        created_by=user, name="Bridged Schema", published_at=None
+        created_by=user, name="Token Bearer Schema", published_at=None
     )
     token = await sync_to_async(issue_access_token)(user)
     response = await call_tool(
@@ -704,7 +651,7 @@ async def test_associated_user_for_bearer_token_provided_to_tools(mcp_http_clien
     assert response.status_code == 200
     result = response.json()["result"]
     assert not result.get("isError")
-    assert "Bridged Schema" in result["content"][0]["text"]
+    assert "Token Bearer Schema" in result["content"][0]["text"]
 
 
 @pytest.mark.anyio

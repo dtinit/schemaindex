@@ -26,7 +26,7 @@ class DjangoOAuthToolkitTokenVerifier(TokenVerifier):
 
     The MCP SDK calls verify_token for the bearer token on every /mcp
     request. We look the token up in django-oauth-toolkit's AccessToken table
-    over the shared database and translate a valid one into the SDK's AccessToken,
+    and translate a valid one into the SDK's AccessToken,
     which the SDK then exposes to handlers via get_access_token().
     """
 

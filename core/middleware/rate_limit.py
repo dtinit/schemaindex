@@ -11,8 +11,8 @@ WINDOW_SECONDS = 3600
 WINDOW_MS = WINDOW_SECONDS * 1000
 
 
-def get_profile_rate_limit_key(profile):
-    return f"api_usage:sliding_log:{profile.id}"
+def get_user_rate_limit_key(user_id):
+    return f"api_usage:sliding_log:{user_id}"
 
 
 def _get_redis_client():
@@ -82,9 +82,9 @@ def _check_and_record_locmem(key, now, limit):
     return True, None
 
 
-def check_and_record_request(profile):
+def check_and_record_request(user_id):
     limit = settings.HOURLY_API_REQUEST_LIMIT
-    key = get_profile_rate_limit_key(profile)
+    key = get_user_rate_limit_key(user_id)
 
     client = _get_redis_client()
     if client is not None:

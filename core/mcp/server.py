@@ -3,19 +3,23 @@ import logging
 from typing import Literal
 from jsonschema import ValidationError as JSONValidationError
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
 from django.utils import timezone
 from mcp.server import MCPServer
+from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver.exceptions import ResourceNotFoundError
 from core.models import Schema
 from core.mcp.sync_to_async_with_db_cleanup import sync_to_async_with_db_cleanup
-from core.mcp.context import current_user
 from core.mcp.token_verifier import DjangoOAuthToolkitTokenVerifier
-from core.mcp.authentication import authenticate_and_rate_limit
+from core.mcp.rate_limit import enforce_rate_limit
+
+MAX_PAGE_SIZE = 10
 
 logger = logging.getLogger("schemaindex")
+User = get_user_model()
 
 mcp = MCPServer(
     "Schemas.Pub",
@@ -27,7 +31,7 @@ mcp = MCPServer(
     ),
 )
 
-mcp.middleware.append(authenticate_and_rate_limit)
+mcp.middleware.append(enforce_rate_limit)
 
 
 def format_schema(schema):
@@ -46,18 +50,15 @@ URL: https://schemas.pub{reverse("schema_detail", kwargs={"schema_id": schema.id
     return formatted_schema
 
 
-def ensure_current_user():
-    user = current_user.get()
-    if not user:
-        raise ValueError("Not authenticated.")
-    return user
+def get_authenticated_user():
+    access_token = get_access_token()
+    # subject is the Django user id, stamped by DjangoOAuthToolkitTokenVerifier
+    return User.objects.get(pk=int(access_token.subject))
 
 
 # Note: We don't use type hints elsewhere in the codebase,
 # but they can influence MCPServer's behavior for tools and resources.
 # Function descriptions are the actual descriptions surfaced to models.
-
-MAX_PAGE_SIZE = 10
 
 
 @mcp.tool()
@@ -77,7 +78,7 @@ def search_schemas(
         "[MCP] search_schemas call: query=%s, scope=%s, page=%s", query, scope, page
     )
 
-    user = ensure_current_user()
+    user = get_authenticated_user()
 
     scope_results = (
         Schema.objects.accessible_to(user)
@@ -137,11 +138,12 @@ async def get_manifest_schema():
 async def get_schema(schema_id: int):
     """Get a schema's manifest"""
 
-    user = current_user.get()
     logger.info("[MCP] Fetching schema manifest: schema_id=%s", schema_id)
 
     @sync_to_async_with_db_cleanup
     def fetch_from_db():
+        user = get_authenticated_user()
+
         try:
             schema = (
                 Schema.objects
@@ -190,11 +192,11 @@ async def create_schema(manifest: str):
     Create a new schema from a manifest.
     The manifest should be a JSON string following the Schemas.Pub manifest schema available at schema://manifest.json
     """
-    user = ensure_current_user()
     logger.info("[MCP] create_schema called")
 
     @sync_to_async_with_db_cleanup
     def do_create():
+        user = get_authenticated_user()
         schema = Schema(created_by=user)
         _validate_manifest_and_update_schema(manifest, schema)
         response = "Schema created successfully:\n\n"
@@ -210,11 +212,12 @@ async def update_schema(schema_id: int, manifest: str):
     Update an existing schema from a manifest.
     The manifest should be a JSON string following the Schemas.Pub manifest schema available at schema://manifest.json
     """
-    user = ensure_current_user()
     logger.info("[MCP] update_schema called: schema_id=%s", schema_id)
 
     @sync_to_async_with_db_cleanup
     def do_update():
+        user = get_authenticated_user()
+
         try:
             schema = Schema.objects.get(pk=schema_id)
             if schema.created_by != user:
