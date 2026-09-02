@@ -16,7 +16,7 @@
                 {% if field.is_hidden %}{{ field }}{% endif %}
             {% endfor %}
 
-            <p class="scope-request">This application is requesting the following permission{{ scope_descriptions|pluralize }}:</p>
+            <p class="scope-request">This application is requesting the following permission{{ scopes_descriptions|pluralize }}:</p>
             <ul class="scope-list">
                 {% for scope in scopes_descriptions %}
                     <li>{{ scope }}</li>
