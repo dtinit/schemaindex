@@ -12,17 +12,7 @@ Schemas.Pub - MCP Documentation
 
   <h2>Connection</h2>
   <p>
-    Configure your MCP client to connect at <code>{{ request.scheme }}://{{ request.get_host }}/mcp/</code>
-  </p>
-
-  <h2>Authentication</h2>
-  <p>
-    All requests to the MCP server require an <code>X-API-Key</code> header with a valid API key.
-  {% if request.user %}
-  You can create or manage your API key <a href="{% url 'account_api_key' %}">here</a>.
-  {% else %}
-  <a href="{% url 'account_signup' %}">Create an account</a> to get an API key.
-  {% endif %}
+    Configure your MCP client to connect to <code>{{ request.scheme }}://{{ request.get_host }}/mcp/</code> using a Streamable HTTP transport.
   </p>
 
   <h2>Capabilities</h2>

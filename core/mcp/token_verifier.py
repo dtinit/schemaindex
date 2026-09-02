@@ -30,7 +30,7 @@ class DjangoOAuthToolkitTokenVerifier(TokenVerifier):
     which the SDK then exposes to handlers via get_access_token().
     """
 
-    async def verify_token(self, token: str) -> AccessToken | None:
+    async def verify_token(self, token):
         stored_token = await sync_to_async_with_db_cleanup(_lookup_access_token)(token)
 
         # Unknown or expired token. `is_valid()` with no scopes checks expiry only.
