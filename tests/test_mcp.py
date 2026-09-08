@@ -550,7 +550,7 @@ async def test_search_schemas_id_value_query_filtering(client_session, authentic
 
 
 @pytest.mark.anyio
-@pytest.mark.skip("plaintext search is not matching for some reason")
+@pytest.mark.skip("plaintext search is not matching for some reason; see #341")
 async def test_search_schemas_url_query_without_id_value_match_falls_back_to_search(
     client_session, authenticate_as, caplog
 ):
