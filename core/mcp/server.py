@@ -12,6 +12,7 @@ from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver.exceptions import ResourceNotFoundError
 from core.models import Schema
+from core.utils import is_url
 from core.mcp.sync_to_async_with_db_cleanup import sync_to_async_with_db_cleanup
 from core.mcp.token_verifier import DjangoOAuthToolkitTokenVerifier
 from core.mcp.rate_limit import enforce_rate_limit
@@ -36,11 +37,12 @@ mcp.middleware.append(enforce_rate_limit)
 
 def format_schema(schema):
     formatted_schema = f"""
-ID: {schema.id}
 Name: {schema.name}
-Resource URI: schema://{schema.id}
-URL: https://schemas.pub{reverse("schema_detail", kwargs={"schema_id": schema.id})}
+Schemas.Pub ID: {schema.id}
+MCP Resource URI: schema://{schema.id}
+Schemas.Pub URL: https://schemas.pub{reverse("schema_detail", kwargs={"schema_id": schema.id})}
 """
+
     if schema.published_at is None or schema.published_at > timezone.now():
         formatted_schema += "Visibility: Private\n"
 
@@ -56,9 +58,12 @@ def get_authenticated_user():
     return User.objects.get(pk=int(access_token.subject))
 
 
-# Note: We don't use type hints elsewhere in the codebase,
+# We don't use type hints elsewhere in the codebase,
 # but they can influence MCPServer's behavior for tools and resources.
 # Function descriptions are the actual descriptions surfaced to models.
+# Since MCP runs on JSON-RPC, types should be referenced in JSON terms
+# instead of Python. For example, null instead of None,
+# true/false instead of True/False, etc.
 
 
 @mcp.tool()
@@ -70,9 +75,9 @@ def search_schemas(
     Browse and search for schemas.
 
     Args:
-      query: A search query. Can be a list of keywords or an $id. Pass None or an empty string to list all schemas in scope.
-      scope: 'user' to search only the user's own schemas (including private), or 'all' to search the entire registry. Defaults to 'all.'
-      page: Which page of search results to return. Defaults to 1.
+      query: A search query. Can be a list of keywords or a JSON Schema $id. Pass null to list all schemas in scope. Optional; defaults to null.
+      scope: 'user' to search only the user's own schemas (including private), or 'all' to search the entire registry. Optional; defaults to 'all'.
+      page: Which page of search results to return. Optional; defaults to 1.
     """
     logger.info(
         "[MCP] search_schemas call: query=%s, scope=%s, page=%s", query, scope, page
@@ -80,19 +85,29 @@ def search_schemas(
 
     user = get_authenticated_user()
 
-    scope_results = (
+    scoped_results = (
         Schema.objects.accessible_to(user)
         if scope == "all"
         else Schema.objects.filter(created_by=user)
     )
 
-    matched_by_id_value = scope_results.filter(schemaref__id_value__iexact=query)
+    # If query looks like a URL, assume it's an $id
+    is_id_value_query = is_url(query)
+    id_value_results = (
+        scoped_results.filter(schemaref__id_value__iexact=query.strip()).distinct()
+        if is_id_value_query
+        else scoped_results.none()
+    )
 
-    # If there is a query and it matches an exact ID, skip the full-text search.
-    if query and matched_by_id_value.exists():
-        results = matched_by_id_value
-    else:
-        results = scope_results.search(query)
+    has_exact_id_value_match = is_id_value_query and id_value_results.exists()
+
+    # Log when someone searched for a specific schema by $id and we didn't have it
+    if is_id_value_query and not has_exact_id_value_match and scope == "all":
+        logger.info('[MCP] search_schemas $id miss: no schema found for "%s".', query)
+
+    results = (
+        id_value_results if has_exact_id_value_match else scoped_results.search(query)
+    )
 
     total_count = results.count()
     if total_count == 0:
@@ -112,7 +127,12 @@ def search_schemas(
     formatted_results = [format_schema(schema) for schema in paginated_results]
     formatted_page = "\n---\n".join(formatted_results)
 
-    response = f"Found {total_count} schema{'s' if total_count > 1 else ''} matching your query{':' if total_pages == 1 else '.'}"
+    match_description = (
+        "with an $id exactly matching your query"
+        if has_exact_id_value_match
+        else "matching your query"
+    )
+    response = f"Found {total_count} schema{'s' if total_count > 1 else ''} {match_description}{':' if total_pages == 1 else '.'}"
 
     if total_pages == 1:
         response += f"\n\n{formatted_page}"
@@ -122,7 +142,8 @@ def search_schemas(
     response += f"\n\n{formatted_page}"
 
     if page < total_pages:
-        response += f'\n\nTo get the next page, use `search_schemas(query: {query!r}, scope: "{scope}", page: {page + 1})`'
+        formatted_query = f"{query!r}" if query else "null"
+        response += f'\n\nTo get the next page, use `search_schemas(query: {formatted_query}, scope: "{scope}", page: {page + 1})`'
 
     return response
 

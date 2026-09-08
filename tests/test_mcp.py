@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import json
+import logging
 import re
 import secrets
 from datetime import timedelta
@@ -543,7 +544,40 @@ async def test_search_schemas_id_value_query_filtering(client_session, authentic
     )
     text = result.content[0].text
 
+    assert "with an $id exactly matching your query" in text
     assert "Alpha" in text
+    assert "Beta" not in text
+
+
+@pytest.mark.anyio
+@pytest.mark.skip("plaintext search is not matching for some reason")
+async def test_search_schemas_url_query_without_id_value_match_falls_back_to_search(
+    client_session, authenticate_as, caplog
+):
+    user = await sync_to_async(UserFactory.create)()
+    authenticate_as(user)
+
+    unmatched_url = "https://example.com/unmatched"
+    # No schema has this URL as an $id, but one is named after it,
+    # so only the full-text search fallback can find it.
+    await sync_to_async(SchemaFactory.create)(
+        created_by=user, description=f"A special testing schema for {unmatched_url}"
+    )
+    await sync_to_async(SchemaFactory.create)(
+        created_by=user, name="Beta", description="Another item entirely"
+    )
+
+    with caplog.at_level(logging.INFO, logger="schemaindex"):
+        result = await client_session.call_tool(
+            "search_schemas", arguments={"query": unmatched_url}
+        )
+    text = result.content[0].text
+
+    assert any(
+        "search_schemas $id miss" in record.getMessage() for record in caplog.records
+    )
+    assert "with an $id exactly matching your query" not in text
+    assert unmatched_url in text
     assert "Beta" not in text
 
 
@@ -567,7 +601,7 @@ async def test_search_schemas_pagination(client_session, authenticate_as):
     assert f"Found {MAX_PAGE_SIZE + 1} schemas matching your query." in text_1
     assert "The results are truncated. Showing page 1 of 2:" in text_1
     assert (
-        'To get the next page, use `search_schemas(query: None, scope: "all", page: 2)`'
+        'To get the next page, use `search_schemas(query: null, scope: "all", page: 2)`'
         in text_1
     )
 
@@ -629,6 +663,40 @@ async def test_search_schemas_invalid_page(error_client_session, authenticate_as
     assert (
         "Invalid page number for query. Please request a page between 1 and 1."
         in result.content[0].text
+    )
+
+
+@pytest.mark.anyio
+async def test_search_schemas_invalid_page_with_multiple_pages(
+    error_client_session, authenticate_as
+):
+    user = await sync_to_async(UserFactory.create)()
+    authenticate_as(user)
+
+    # Create enough schemas for 2 pages
+    for i in range(MAX_PAGE_SIZE + 1):
+        await sync_to_async(SchemaFactory.create)(
+            created_by=user, name=f"Pagination Schema {i}"
+        )
+
+    too_high = await error_client_session.call_tool(
+        "search_schemas", arguments={"page": 5}
+    )
+
+    assert too_high.is_error
+    assert (
+        "Invalid page number for query. Please request a page between 1 and 2."
+        in too_high.content[0].text
+    )
+
+    too_low = await error_client_session.call_tool(
+        "search_schemas", arguments={"page": 0}
+    )
+
+    assert too_low.is_error
+    assert (
+        "Invalid page number for query. Please request a page between 1 and 2."
+        in too_low.content[0].text
     )
 
 
