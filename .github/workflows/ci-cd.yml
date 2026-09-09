@@ -80,7 +80,8 @@ jobs:
           # Install pip dependencies and pip-check-reqs
           # pip dependecies must be installed for pip-extra-reqs to work
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pip-check-reqs
+          # pinned to 3.0.0 as 3.1.0 was causing issues
+          pip install -r requirements.txt pip-check-reqs==3.0.0
 
           # Run pip-extra-reqs and save to a temp file
           # so a failure code doesn't stop the workflow early

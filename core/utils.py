@@ -80,6 +80,15 @@ def guess_specification_language_by_extension(url):
     return guess_language_by_extension(url, SPECIFICATION_LANGUAGE_ALLOWLIST)
 
 
+def is_url(value):
+    """
+    Returns True if the value looks like an absolute URL,
+    e.g. "https://example.com/schema.json".
+    """
+    parsed_url = urlparse((value or "").strip())
+    return bool(parsed_url.scheme and parsed_url.netloc)
+
+
 def is_trusted_content_host_url(url):
     parsed_url = urlparse(url)
     hostname = parsed_url.hostname
