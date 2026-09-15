@@ -255,3 +255,32 @@ async def update_schema(schema_id: int, manifest: str):
         return response
 
     return await do_update()
+
+
+@mcp.tool()
+async def delete_schema(schema_id: int):
+    """
+    Delete a private schema.
+    """
+    logger.info("[MCP] delete_schema called: schema_id=%s", schema_id)
+
+    @sync_to_async_with_db_cleanup
+    def do_delete():
+        user = get_authenticated_user()
+
+        try:
+            schema = Schema.objects.get(pk=schema_id, created_by=user)
+        except Schema.DoesNotExist:
+            logger.warning(
+                "[MCP] delete_schema called with unrecognized schema id %s", schema_id
+            )
+            raise ValueError(f"User has no schema with ID '{schema_id}'.")
+
+        if schema.published_at:
+            raise ValueError("Published schemas cannot be deleted except by an admin.")
+
+        schema_name = schema.name
+        schema.delete()
+        return f"Schema '{schema_name}' (ID: {schema_id}) deleted successfully."
+
+    return await do_delete()

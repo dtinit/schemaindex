@@ -436,6 +436,73 @@ async def test_update_schema_validation_error(error_client_session, authenticate
 
 
 @pytest.mark.anyio
+async def test_delete_schema_success(client_session, authenticate_as):
+    user = await sync_to_async(UserFactory.create)()
+    authenticate_as(user)
+    schema = await sync_to_async(SchemaFactory.create)(
+        created_by=user, published_at=None
+    )
+
+    result = await client_session.call_tool(
+        "delete_schema", arguments={"schema_id": schema.id}
+    )
+
+    assert "deleted successfully" in result.content[0].text
+    assert not await sync_to_async(Schema.objects.filter(pk=schema.id).exists)()
+
+
+@pytest.mark.anyio
+async def test_delete_schema_published(error_client_session, authenticate_as):
+    user = await sync_to_async(UserFactory.create)()
+    authenticate_as(user)
+    schema = await sync_to_async(SchemaFactory.create)(created_by=user)
+
+    expected_error_message = "Published schemas cannot be deleted except by an admin."
+    result = await error_client_session.call_tool(
+        "delete_schema", arguments={"schema_id": schema.id}
+    )
+
+    assert result.is_error
+    assert expected_error_message in result.content[0].text
+    assert await sync_to_async(Schema.objects.filter(pk=schema.id).exists)()
+
+
+@pytest.mark.anyio
+async def test_delete_schema_forbidden(error_client_session, authenticate_as):
+    user = await sync_to_async(UserFactory.create)()
+    authenticate_as(user)
+    # Schema created by another user
+    other_user = await sync_to_async(UserFactory.create)()
+    schema = await sync_to_async(SchemaFactory.create)(
+        created_by=other_user, published_at=None
+    )
+
+    expected_error_message = f"User has no schema with ID '{schema.id}'."
+    result = await error_client_session.call_tool(
+        "delete_schema", arguments={"schema_id": schema.id}
+    )
+
+    assert result.is_error
+    assert expected_error_message in result.content[0].text
+    assert await sync_to_async(Schema.objects.filter(pk=schema.id).exists)()
+
+
+@pytest.mark.anyio
+async def test_delete_schema_not_found(error_client_session, authenticate_as):
+    user = await sync_to_async(UserFactory.create)()
+    authenticate_as(user)
+    # Schema does not exist
+    non_existent_id = 99999
+    expected_error_message = f"User has no schema with ID '{non_existent_id}'."
+    result = await error_client_session.call_tool(
+        "delete_schema", arguments={"schema_id": non_existent_id}
+    )
+
+    assert result.is_error
+    assert expected_error_message in result.content[0].text
+
+
+@pytest.mark.anyio
 async def test_search_schemas_no_results(client_session, authenticate_as):
     user = await sync_to_async(UserFactory.create)()
     authenticate_as(user)
