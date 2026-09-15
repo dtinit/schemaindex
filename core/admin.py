@@ -40,6 +40,11 @@ class SchemaAdmin(admin.ModelAdmin):
         # override custom validation
         obj.save(is_admin_change=True)
 
+    def delete_model(self, request, obj):
+        # Passing this flag allows us to
+        # override custom validation
+        obj.delete(is_admin_change=True)
+
 
 @register(SchemaRef)
 class SchemaRefAdmin(admin.ModelAdmin):

@@ -450,6 +450,37 @@ def test_schema_published_at_can_be_changed_by_admins():
 
 
 @pytest.mark.django_db
+def test_published_schema_cannot_be_deleted():
+    schema = SchemaFactory.create()
+    with pytest.raises(ValidationError):
+        schema.delete()
+    assert Schema.objects.filter(id=schema.id).exists()
+
+
+@pytest.mark.django_db
+def test_published_schema_cannot_be_deleted_by_unsetting_published_at():
+    schema = SchemaFactory.create()
+    schema.published_at = None
+    with pytest.raises(ValidationError):
+        schema.delete()
+    assert Schema.objects.filter(id=schema.id).exists()
+
+
+@pytest.mark.django_db
+def test_unpublished_schema_can_be_deleted():
+    schema = SchemaFactory.create(published_at=None)
+    schema.delete()
+    assert not Schema.objects.filter(id=schema.id).exists()
+
+
+@pytest.mark.django_db
+def test_published_schema_can_be_deleted_by_admins():
+    schema = SchemaFactory.create()
+    schema.delete(is_admin_change=True)
+    assert not Schema.objects.filter(id=schema.id).exists()
+
+
+@pytest.mark.django_db
 @override_settings(TRUSTED_CONTENT_DOMAINS=["example.com"])
 def test_schema_ref_get_content_fetches_from_trusted_domain():
     mock_url = "https://example.com/definition"

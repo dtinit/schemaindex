@@ -187,6 +187,20 @@ class Schema(BaseModel):
 
         super().save(*args, **kwargs)
 
+    def delete(self, *args, is_admin_change=False, **kwargs):
+        # Ensure published schemas can't be deleted
+        # except by an admin. Check the *stored* published_at
+        # so unsetting it can't be used as a workaround.
+        if self.id and not is_admin_change:
+            original = Schema.objects.get(id=self.id)
+
+            if original.published_at:
+                raise ValidationError(
+                    "A public schema cannot be deleted except by an administrator."
+                )
+
+        return super().delete(*args, **kwargs)
+
     @classmethod
     def get_manifest_schema(cls):
         schema_path = settings.BASE_DIR / "core" / "schemas" / "manifest.schema.json"
