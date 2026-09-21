@@ -14,6 +14,7 @@ from functools import wraps
 import requests
 import cmarkgfm
 import bleach
+from core.utils import is_url
 from .models import (
     Schema,
     SchemaRef,
@@ -138,9 +139,30 @@ def index(request):
         else defined_schemas
     )
 
-    # Full-text ranked search. When the box is empty, .search() returns the
-    # queryset unchanged, preserving the alphabetical browse ordering above.
-    searched_schemas = filtered_by_documentation_type.search(search_query)
+    # If search_query looks like a URL, treat it as an $id lookup
+    is_id_value_search = search_query and is_url(search_query)
+    id_value_matches = (
+        filtered_by_documentation_type.filter(
+            schemaref__id_value__iexact=search_query.strip()
+        ).distinct()
+        if is_id_value_search
+        else filtered_by_documentation_type.none()
+    )
+    has_exact_id_value_match = id_value_matches.exists()
+    if id_value_matches and not has_exact_id_value_match:
+        logging.info(
+            'homepage search $id miss: no schemas found for "%s.', search_query
+        )
+
+    # If it was an $id lookup with matching results, use them.
+    # Otherwise, run a search.
+    searched_schemas = (
+        id_value_matches
+        if is_id_value_search and has_exact_id_value_match
+        # Full-text ranked search. When the box is empty, .search() returns the
+        # queryset unchanged, preserving the alphabetical browse ordering above.
+        else filtered_by_documentation_type.search(search_query)
+    )
 
     filtered_by_specification_file_type = (
         [
