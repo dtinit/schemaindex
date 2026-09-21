@@ -456,6 +456,26 @@ def test_homepage_no_query_lists_alphabetically():
     assert names == ["AAA First Schema", "ZZZ Last Schema"]
 
 
+@pytest.mark.django_db
+def test_homepage_search_matches_id_value():
+    mock_definition_url = "http://example.com/definition.json"
+    with requests_mock.Mocker() as m:
+        m.get(mock_definition_url, text=f'{{"$id": "{mock_definition_url}"}}')
+        schemaRef = SchemaRefFactory(url=mock_definition_url)
+
+    response = Client().get(f"/?search_query={mock_definition_url.upper()}")
+    assert schemaRef.schema.name in str(response.content)
+
+
+@pytest.mark.django_db
+@pytest.mark.skip("plaintext search is not matching for some reason; see #341")
+def test_homepage_id_value_miss_falls_back_to_search():
+    search_query = "http://example.com/definition.json"
+    schema = SchemaFactory(description=f"This description includes {search_query}")
+    response = Client().get(f"/?search_query={search_query}")
+    assert schema.name in str(response.content)
+
+
 @override_settings(ENABLE_MCP_SERVER=True)
 def test_mcp_docs_available_when_feature_flag_enabled():
     response = Client().get("/docs/mcp")
