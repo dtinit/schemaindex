@@ -78,8 +78,7 @@ async def error_client_session():
 
 @pytest.fixture
 async def mcp_http_client():
-    with override_settings(ENABLE_MCP_SERVER=True):
-        application = create_asgi_application()
+    application = create_asgi_application()
 
     async with mcp.session_manager.run():
         async with httpx2.AsyncClient(

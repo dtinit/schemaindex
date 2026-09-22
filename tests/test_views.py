@@ -15,7 +15,7 @@ from tests.factories import (
 )
 from core.models import Schema, DocumentationItem, Profile
 from core.forms import PermanentURLForm
-from django.test import Client, override_settings
+from django.test import Client
 from django.conf import settings
 from pytest_django.asserts import assertRedirects
 from unittest.mock import patch
@@ -474,39 +474,6 @@ def test_homepage_id_value_miss_falls_back_to_search():
     SchemaRefFactory(schema=schema)
     response = Client().get(f"/?search_query={search_query}")
     assert schema.name in str(response.content)
-
-
-@override_settings(ENABLE_MCP_SERVER=True)
-def test_mcp_docs_available_when_feature_flag_enabled():
-    response = Client().get("/docs/mcp")
-    assert response.status_code == 200
-
-
-@override_settings(ENABLE_MCP_SERVER=False)
-def test_mcp_docs_404_when_feature_flag_disabled():
-    response = Client().get("/docs/mcp")
-    assert response.status_code == 404
-
-
-@pytest.mark.django_db
-@override_settings(ENABLE_MCP_SERVER=False)
-def test_mcp_docs_not_linked_in_footer_when_feature_flag_disabled():
-    response = Client().get("/")
-    assert response.status_code == 200
-    assert "Schemas.Pub" in str(response.content)
-    assert "MCP" not in str(response.content)
-
-
-@pytest.mark.django_db
-@override_settings(ENABLE_MCP_SERVER=False)
-def test_mcp_docs_not_linked_from_api_key_page_when_feature_flag_disabled():
-    user = UserFactory.create()
-    client = Client()
-    client.force_login(user)
-    response = client.get("/account/api-key/")
-    assert response.status_code == 200
-    assert "Manage API Key" in str(response.content)
-    assert "MCP" not in str(response.content)
 
 
 def test_oauth_authorize_sends_anonymous_users_to_the_allauth_login():
