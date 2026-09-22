@@ -104,10 +104,9 @@ class SchemaQuerySet(models.QuerySet):
     def search(self, query_text):
         """
         Rank schemas by full-text relevance against `query_text`.
-        `name` weighted above description.
-
-        When `query_text` is blank the queryset is returned unchanged,
-        so the existing ordering (alphabetical on index) is preserved for plain browsing.
+        `name` weighted above `description`.
+        `name` and `description` icontains results are included
+        but weighted below full-text search results.
         """
         query_text = (query_text or "").strip()
         if not query_text:
@@ -117,7 +116,11 @@ class SchemaQuerySet(models.QuerySet):
         )
         return (
             self
-            .filter(search_vector=search_query)
+            .filter(
+                Q(search_vector=search_query)
+                | Q(name__icontains=query_text)
+                | Q(description__icontains=query_text)
+            )
             .annotate(rank=SearchRank(models.F("search_vector"), search_query))
             .order_by("-rank", "name")
         )

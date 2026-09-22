@@ -468,10 +468,10 @@ def test_homepage_search_matches_id_value():
 
 
 @pytest.mark.django_db
-@pytest.mark.skip("plaintext search is not matching for some reason; see #341")
 def test_homepage_id_value_miss_falls_back_to_search():
     search_query = "http://example.com/definition.json"
     schema = SchemaFactory(description=f"This description includes {search_query}")
+    SchemaRefFactory(schema=schema)
     response = Client().get(f"/?search_query={search_query}")
     assert schema.name in str(response.content)
 
