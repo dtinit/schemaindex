@@ -54,9 +54,6 @@ def create_application():
 
         django_app = ASGIStaticFilesHandler(django_app)
 
-    if not settings.ENABLE_MCP_SERVER:
-        return django_app
-
     # These imports must run after Django initializes
     from core.mcp.server import mcp  # noqa: E402
     from mcp.server.transport_security import TransportSecuritySettings  # noqa: E402

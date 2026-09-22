@@ -76,7 +76,6 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "core.context_processors.export_feature_flags",
             ],
         },
     },
@@ -193,9 +192,6 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 HOURLY_API_REQUEST_LIMIT = 500
-
-# Feature flags
-ENABLE_MCP_SERVER = False
 
 # To reduce SSRF attack vulnerabilities, we only fetch content from domains we trust.
 # Here we maintain two lists of trusted domains:
