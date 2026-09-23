@@ -1,57 +1,46 @@
+{% comment %}
+Pages should probably not extend this template directly.
+Instead, extend auth.html (for auth pages) or noauth.html.
+{% endcomment %}
+
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
+        <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>
-            {% block head_title %}
-            {% endblock head_title %}
-        </title>
+        <title>{% block head_title %}Schemas.Pub | Public schema directory{% endblock head_title %}</title>
+
+        <!-- Primary Meta Tags -->
+        <meta name="description" content="A public directory of schemas for any type of data." />
+
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website" />
+        <meta property="og:description" content="A public directory of schemas for any type of data." />
+        <meta property="og:image" content="{% static 'img/social-image.png' %}" />
+
+        <!-- X (Twitter) -->
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:description" content="A public directory of schemas for any type of data." />
+        <meta property="twitter:image" content="{% static 'img/social-image.png' %}" />
+
         <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
         <link rel="stylesheet" href="{% static 'css/preflight.css' %}" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/agate.min.css">
         <link rel="stylesheet" href="{% static 'css/site.css' %}" />
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-        <script src="https://unpkg.com/lucide@latest"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js" async id="hljs-src"></script>
         <script src="{% static 'js/site.js' %}"></script>
+        {% comment %}
+        Do not include third-party scripts or other code we don't control
+        in this template! Add them to noauth.html instead.
+        {% endcomment %}
         {% block extra_head %}
         {% endblock extra_head %}
     </head>
     <body>
-        <header
-            class="nav-header
-                {% if request.path != '/' %}
-                nav-header--with-home-link
-                {% endif %}"
-            >
-            {% if request.path != '/' %}
-            <a class="home-link" href="{% url 'index' %}">
-                <span>
-                    <span class="text--secondary">{</span>Schemas<span class="text--logo">.</span>Pub<span class="text--secondary">}</span>
-                </span>
-            </a>
-            {% endif %}
-            {% if request.user.is_authenticated %}
-            <a href="{% url 'account_profile' %}">
-                <i data-lucide="circle-user" class="icon--md"></i>
-            </a>
-            {% else %}
-            <div class="nav-header__auth-actions">
-                <a href="{% url 'account_signup' %}" class="button">Sign up to register your schema</a>
-                <a href="{% url 'account_login' %}" class="button button--primary">Sign in</a>
-            </div>
-            {% endif %}
-        </header>
         {% block body %}
-            {% if messages %}
-                {% include "core/partials/messages.html" with messages=messages %}
-            {% endif %}
-        {% block page_content %}
-        {% endblock page_content %}
         {% endblock body %}
         {% block extra_body %}
         {% endblock extra_body %}
