@@ -1,13 +1,30 @@
+{% comment %}
+Pages should probably not extend this template directly.
+Instead, extend auth.html (for auth pages) or noauth.html.
+{% endcomment %}
+
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
+        <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>
-            {% block head_title %}
-            {% endblock head_title %}
-        </title>
+        <title>{% block head_title %}Schemas.Pub | Public schema directory{% endblock head_title %}</title>
+
+        <!-- Primary Meta Tags -->
+        <meta name="description" content="A public directory of schemas for any type of data." />
+
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website" />
+        <meta property="og:description" content="A public directory of schemas for any type of data." />
+        <meta property="og:image" content="{% static 'img/social-image.png' %}" />
+
+        <!-- X (Twitter) -->
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:description" content="A public directory of schemas for any type of data." />
+        <meta property="twitter:image" content="{% static 'img/social-image.png' %}" />
+
         <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
         <link rel="stylesheet" href="{% static 'css/preflight.css' %}" />
         <link rel="stylesheet" href="{% static 'css/site.css' %}" />
@@ -16,7 +33,7 @@
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
         <script src="{% static 'js/site.js' %}"></script>
         {% comment %}
-        Do not include third-party scripts ore other code we don't control
+        Do not include third-party scripts or other code we don't control
         in this template! Add them to noauth.html instead.
         {% endcomment %}
         {% block extra_head %}
