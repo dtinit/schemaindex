@@ -5,6 +5,7 @@ PERMANENT_URL_HOST = ALLOWED_HOSTS[0]
 SITE_URL = "https://schemaindex-stg-run-799626592344.us-central1.run.app"
 CSRF_TRUSTED_ORIGINS = ["https://" + url for url in ALLOWED_HOSTS]
 GS_BUCKET_NAME = "schemaindex-stg-storage"
+PLAUSIBLE_DOMAIN = None
 
 # Reset to the base default
 CONTENT_CACHE_TTL = 60 * 60

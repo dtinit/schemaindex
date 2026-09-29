@@ -142,3 +142,19 @@ Basic log aggregation for Cloud Run.
 Set environment variable in Cloud Run: `USE_GCLOUD_LOGGING=1`
 
 For local development: Logs go to console (no Cloud Logging). The `USE_GCLOUD_LOGGING` variable should remain unset or set to `0`.
+
+## Schemas.Pub development
+
+[Schemas.Pub](https://schemas.pub) is an official [Data Transfer Initiative](https://github.com/dtinit)-hosted service.
+
+For Schemas.Pub development, it's recommended to use the following `schemaindex/settings/personal.py` configuration:
+
+```python
+# schemaindex/settings/personal.py
+
+from .development import *
+
+ENABLE_DTI_PAGES = True
+```
+
+See [Personal Django settings override](#personal-django-settings-override) for details.

@@ -7,6 +7,7 @@ from .base import *
 logger = logging.getLogger("schemaindex")
 
 DEBUG = False
+ENABLE_DTI_PAGES = True
 PERMANENT_URL_HOST = "id.schemas.pub"
 ALLOWED_HOSTS = [
     "schemas.pub",
