@@ -125,6 +125,9 @@ Schemas.Pub - A public schema registry
     {% endif %}
   </div>
 </main>
-<script defer data-domain="schemas.pub" src="https://plausible.io/js/script.js"></script>
+
+{% if settings.PLAUSIBLE_DOMAIN %}
+<script defer data-domain="{{ settings.PLAUSIBLE_DOMAIN }}" src="https://plausible.io/js/script.js"></script>
+{% endif %}
 
 {% endblock %}
