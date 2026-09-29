@@ -23,13 +23,19 @@ To start the project, run `python3 manage.py runserver`.
 
 During local development, emails will output to the console instead of actually sending.
 
-## Cloud Logging
+## Personal Django settings override
 
-Basic log aggregation for Cloud Run.
+Developers can set their own personal or per-workspace settings by creating `schemaindex/settings/personal.py` and configuring their desired values.
 
-Set environment variable in Cloud Run: `USE_GCLOUD_LOGGING=1`
+```bash
+# schemaindex/settings/personal.py
 
-For local development: Logs go to console (no Cloud Logging). The `USE_GCLOUD_LOGGING` variable should remain unset or set to `0`.
+from .development import *
+
+CUSTOM_SETTING = 'personal'
+```
+
+This can be handy to modify settings temporarily or when developers have different preferences for their development experiences. As such, these personal settings are intentionally excluded from source control.
 
 ## Utilites
 
@@ -128,3 +134,11 @@ pip-compile requirements-dev.in -o requirements-dev.txt
 ```
 
 This strategy makes it easier for us to manage our top-level dependencies in the \*.in files while still locking down the full dependency graph in the \*.txt files.
+
+## Cloud Logging
+
+Basic log aggregation for Cloud Run.
+
+Set environment variable in Cloud Run: `USE_GCLOUD_LOGGING=1`
+
+For local development: Logs go to console (no Cloud Logging). The `USE_GCLOUD_LOGGING` variable should remain unset or set to `0`.
