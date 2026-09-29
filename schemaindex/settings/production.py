@@ -21,6 +21,8 @@ GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
 )
 GS_BUCKET_NAME = "schemaindex-prod-storage"
 
+PLAUSIBLE_DOMAIN = "schemas.pub"
+
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", SECRET_KEY)
 
 VALKEY_URL = env.str("VALKEY_URL")

@@ -21,6 +21,7 @@ from pathlib import Path
 PROJECT_NAME = "SchemaIndex"
 SITE_URL = "[localhost]"
 SUPPORT_EMAIL = "support@dtinit.org"
+PLAUSIBLE_DOMAIN = None
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -76,6 +77,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "core.context_processors.export_settings",
             ],
         },
     },
