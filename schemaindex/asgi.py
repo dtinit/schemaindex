@@ -15,7 +15,7 @@ from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.middleware import Middleware
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "schemaindex.settings.development")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "schemaindex.settings")
 
 """
 To avoid various complexities with trying to run the MCP server *inside* our Django app,

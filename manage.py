@@ -7,7 +7,7 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "schemaindex.settings.development")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "schemaindex.settings")
 
     # Intercept runserver so we can use an ASGI server.
     #

@@ -222,3 +222,5 @@ runtime-certs/
 
 # npm dependencies
 node_modules/
+
+schemaindex/settings/personal.py
