@@ -22,6 +22,7 @@ PROJECT_NAME = "SchemaIndex"
 SITE_URL = "[localhost]"
 SUPPORT_EMAIL = "support@dtinit.org"
 PLAUSIBLE_DOMAIN = None
+ENABLE_DTI_PAGES = False
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
