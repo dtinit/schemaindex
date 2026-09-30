@@ -9,7 +9,8 @@ from django.core import mail
 from django.contrib.auth.hashers import make_password
 from django.core.exceptions import ValidationError
 from django.test import override_settings
-from core.models import Schema, SchemaRef, APIKey
+from django.contrib.auth.models import User
+from core.models import Schema, SchemaRef, APIKey, Profile
 from factories import (
     UserFactory,
     SchemaRefFactory,
@@ -306,6 +307,14 @@ def test_reference_item_get_content_logs_backend_fallback_when_cache_set_raises(
         "content_cache_backend_fallback" in record.getMessage()
         for record in caplog.records
     )
+
+
+@pytest.mark.django_db
+def test_new_user_gets_profile():
+    # Deliberately not using UserFactory, which mutes post_save and
+    # creates the Profile itself.
+    user = User.objects.create_user(username="newuser", email="new@example.com")
+    assert Profile.objects.filter(user=user).exists()
 
 
 @pytest.mark.django_db
