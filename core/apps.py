@@ -6,4 +6,6 @@ class CoreConfig(AppConfig):
     name = "core"
 
     def ready(self):
-        pass
+        # Imported for its side effect of registering signal receivers,
+        # e.g. creating a Profile for every new User.
+        import core.signals  # noqa: F401
