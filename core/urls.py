@@ -67,7 +67,7 @@ urlpatterns = [
 
 if settings.ENABLE_DTI_PAGES:
     urlpatterns.extend([
-        path("about", views.about),
+        path("about", views.about, name="about"),
         path("terms-of-use", views.terms_of_use, name="terms_of_use"),
         path("privacy", views.privacy_policy, name="privacy_policy"),
     ])
