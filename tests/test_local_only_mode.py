@@ -1,7 +1,8 @@
+import json
 import pytest
 import requests_mock
 from django.contrib.auth import get_user_model
-from django.test import Client
+from django.test import Client, override_settings
 from core.local_user import LOCAL_USERNAME, get_local_user
 from core.models import Profile, Schema
 from tests.factories import SchemaFactory, SchemaRefFactory, UserFactory
@@ -162,3 +163,47 @@ def test_local_only_mode_cannot_manage_other_users_schemas(local_only_mode):
 def test_local_only_mode_account_and_oauth_urls_are_removed(local_only_mode, path):
     response = Client().get(path)
     assert response.status_code == 404
+
+
+API_MANIFEST = {
+    "name": "Local API schema",
+    "documents": {
+        "https://example.com/definition.json": {"type": "definition"},
+    },
+}
+
+
+@pytest.mark.django_db
+def test_local_only_mode_api_create_works_without_api_key(local_only_mode):
+    # Enforce CSRF checks, like the api_client fixture, to make sure the
+    # request isn't relying on the test client's default CSRF exemption.
+    client = Client(enforce_csrf_checks=True)
+    response = client.post(
+        "/api/schemas", data=json.dumps(API_MANIFEST), content_type="application/json"
+    )
+    assert response.status_code == 200
+    schema = Schema.objects.get(id=response.json()["data"]["id"])
+    assert schema.created_by == get_local_user()
+
+
+@pytest.mark.django_db
+def test_local_only_mode_api_update_works_without_api_key(local_only_mode):
+    schema = SchemaFactory(created_by=get_local_user(), published_at=None)
+    client = Client(enforce_csrf_checks=True)
+    response = client.put(
+        f"/api/schemas/{schema.id}",
+        data=json.dumps(API_MANIFEST),
+        content_type="application/json",
+    )
+    assert response.status_code == 200
+    schema.refresh_from_db()
+    assert schema.name == API_MANIFEST["name"]
+
+
+@pytest.mark.django_db
+@override_settings(HOURLY_API_REQUEST_LIMIT=1)
+def test_local_only_mode_api_has_no_rate_limit(local_only_mode):
+    client = Client()
+    for _ in range(3):
+        response = client.get("/api/find?id=https://example.com/missing")
+        assert response.status_code == 404

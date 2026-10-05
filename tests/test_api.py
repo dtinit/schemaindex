@@ -273,6 +273,42 @@ def test_create_rejects_non_manifest_payloads(api_client):
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    "content_type",
+    [
+        "text/plain",
+        "application/x-www-form-urlencoded",
+        "multipart/form-data; boundary=BoUnDaRy",
+        "",
+    ],
+)
+def test_create_rejects_non_json_content_types(api_client, content_type):
+    manifest = {
+        "name": "Mock schema",
+        "documents": {"https://example.com/definition.json": {"type": "definition"}},
+    }
+    response = api_client.generic(
+        "POST", "/api/schemas", data=json.dumps(manifest), content_type=content_type
+    )
+    assert response.status_code == 415
+    assert not Schema.objects.exists()
+
+
+@pytest.mark.django_db
+def test_create_accepts_json_content_type_with_parameters(api_client):
+    manifest = {
+        "name": "Mock schema",
+        "documents": {"https://example.com/definition.json": {"type": "definition"}},
+    }
+    response = api_client.post(
+        "/api/schemas",
+        data=json.dumps(manifest),
+        content_type="application/json; charset=utf-8",
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
 def test_create_prevents_publishing_schemas_with_existing_definition_urls(api_client):
     other_user = UserFactory.create()
     published_schema = SchemaFactory.create(created_by=other_user)
@@ -372,6 +408,7 @@ def test_update_404s_invalid_ids(api_client):
                 "https://example.com/definition.json": {"type": "definition"}
             },
         }),
+        content_type="application/json",
     )
     assert response.status_code == 404
 
@@ -394,6 +431,24 @@ def test_update_rejects_non_manifest_payloads(api_client):
         content_type="application/json",
     )
     assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_update_rejects_non_json_content_types(api_client):
+    schema = SchemaFactory.create(created_by=api_client.user, published_at=None)
+    response = api_client.put(
+        f"/api/schemas/{schema.id}",
+        data=json.dumps({
+            "name": "Mock schema",
+            "documents": {
+                "https://example.com/definition.json": {"type": "definition"}
+            },
+        }),
+        content_type="text/plain",
+    )
+    assert response.status_code == 415
+    schema.refresh_from_db()
+    assert schema.name != "Mock schema"
 
 
 @pytest.mark.django_db
