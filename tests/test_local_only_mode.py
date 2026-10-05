@@ -3,7 +3,12 @@ import pytest
 import requests_mock
 from django.contrib.auth import get_user_model
 from django.test import Client, override_settings
+from mcp.client import Client as MCPClient
 from core.local_user import LOCAL_USERNAME, get_local_user
+from core.mcp.server import mcp
+from core.mcp.sync_to_async_with_db_cleanup import (
+    sync_to_async_with_db_cleanup as sync_to_async,
+)
 from core.models import Profile, Schema
 from tests.factories import SchemaFactory, SchemaRefFactory, UserFactory
 
@@ -207,3 +212,45 @@ def test_local_only_mode_api_has_no_rate_limit(local_only_mode):
     for _ in range(3):
         response = client.get("/api/find?id=https://example.com/missing")
         assert response.status_code == 404
+
+
+# Use transaction=True as in tests/test_mcp.py
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_local_only_mode_mcp_create_schema_works_without_auth(local_only_mode):
+    async with MCPClient(mcp) as client:
+        result = await client.call_tool(
+            "create_schema", arguments={"manifest": json.dumps(API_MANIFEST)}
+        )
+    assert not result.is_error
+    schema = await sync_to_async(Schema.objects.select_related("created_by").get)(
+        name=API_MANIFEST["name"]
+    )
+    assert schema.created_by == await sync_to_async(get_local_user)()
+
+
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_local_only_mode_mcp_update_schema_works_without_auth(local_only_mode):
+    local_user = await sync_to_async(get_local_user)()
+    schema = await sync_to_async(SchemaFactory.create)(
+        created_by=local_user, published_at=None
+    )
+    async with MCPClient(mcp) as client:
+        result = await client.call_tool(
+            "update_schema",
+            arguments={"schema_id": schema.id, "manifest": json.dumps(API_MANIFEST)},
+        )
+    assert not result.is_error
+    await sync_to_async(schema.refresh_from_db)()
+    assert schema.name == API_MANIFEST["name"]
+
+
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_local_only_mode_mcp_has_no_rate_limit(local_only_mode):
+    async with MCPClient(mcp) as client:
+        with override_settings(HOURLY_API_REQUEST_LIMIT=1):
+            for _ in range(3):
+                result = await client.call_tool("search_schemas")
+                assert not result.is_error
