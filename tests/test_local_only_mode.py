@@ -1,15 +1,14 @@
 import pytest
 import requests_mock
 from django.contrib.auth import get_user_model
-from django.test import Client, override_settings
+from django.test import Client
 from core.local_user import LOCAL_USERNAME, get_local_user
 from core.models import Profile, Schema
 from tests.factories import SchemaFactory, SchemaRefFactory, UserFactory
 
 
 @pytest.mark.django_db
-@override_settings(ENABLE_ACCOUNTS=False)
-def test_get_local_user_returns_the_same_superuser():
+def test_get_local_user_returns_the_same_superuser(local_only_mode):
     user = get_local_user()
     assert get_local_user().pk == user.pk
     assert get_user_model().objects.filter(username=LOCAL_USERNAME).count() == 1
@@ -20,8 +19,7 @@ def test_get_local_user_returns_the_same_superuser():
 
 
 @pytest.mark.django_db
-@override_settings(ENABLE_ACCOUNTS=False)
-def test_get_local_user_has_a_profile():
+def test_get_local_user_has_a_profile(local_only_mode):
     user = get_local_user()
     assert Profile.objects.filter(user=user).count() == 1
 
@@ -34,34 +32,30 @@ def test_get_local_user_refuses_when_accounts_are_on():
 
 
 @pytest.mark.django_db
-@override_settings(ENABLE_ACCOUNTS=False)
-def test_local_only_mode_requests_run_as_local_user():
+def test_local_only_mode_requests_run_as_local_user(local_only_mode):
     client = Client()
-    response = client.get("/account/profile/")
+    response = client.get("/manage/schema/new")
     assert response.status_code == 200
     assert response.wsgi_request.user == get_local_user()
 
 
 @pytest.mark.django_db
-@override_settings(ENABLE_ACCOUNTS=False)
-def test_local_only_mode_overrides_logged_in_user():
+def test_local_only_mode_overrides_logged_in_user(local_only_mode):
     client = Client()
     client.force_login(UserFactory())
-    response = client.get("/account/profile/")
+    response = client.get("/manage/schema/new")
     assert response.wsgi_request.user == get_local_user()
 
 
 @pytest.mark.django_db
-@override_settings(ENABLE_ACCOUNTS=False)
-def test_local_only_mode_admin_loads_without_login():
+def test_local_only_mode_admin_loads_without_login(local_only_mode):
     client = Client()
     response = client.get("/admin/")
     assert response.status_code == 200
 
 
 @pytest.mark.django_db
-@override_settings(ENABLE_ACCOUNTS=False)
-def test_local_only_mode_schema_can_be_created_without_login():
+def test_local_only_mode_schema_can_be_created_without_login(local_only_mode):
     schema_ref_url = "https://example.com/definition.json"
     readme_url = "https://example.com/readme.md"
     client = Client()
@@ -89,8 +83,7 @@ def test_local_only_mode_schema_can_be_created_without_login():
 
 
 @pytest.mark.django_db
-@override_settings(ENABLE_ACCOUNTS=False)
-def test_local_only_mode_schema_can_be_edited_without_login():
+def test_local_only_mode_schema_can_be_edited_without_login(local_only_mode):
     schema = SchemaFactory(created_by=get_local_user(), published_at=None)
     schema_ref = SchemaRefFactory(
         schema=schema,
@@ -123,8 +116,7 @@ def test_local_only_mode_schema_can_be_edited_without_login():
 
 
 @pytest.mark.django_db
-@override_settings(ENABLE_ACCOUNTS=False)
-def test_local_only_mode_schema_can_be_published_without_login():
+def test_local_only_mode_schema_can_be_published_without_login(local_only_mode):
     schema = SchemaFactory(created_by=get_local_user(), published_at=None)
     schema_ref = SchemaRefFactory(schema=schema, created_by=schema.created_by)
     client = Client()
@@ -137,8 +129,7 @@ def test_local_only_mode_schema_can_be_published_without_login():
 
 
 @pytest.mark.django_db
-@override_settings(ENABLE_ACCOUNTS=False)
-def test_local_only_mode_schema_can_be_deleted_without_login():
+def test_local_only_mode_schema_can_be_deleted_without_login(local_only_mode):
     schema = SchemaFactory(created_by=get_local_user(), published_at=None)
     client = Client()
     response = client.post(f"/manage/schema/{schema.id}/delete")
@@ -147,8 +138,7 @@ def test_local_only_mode_schema_can_be_deleted_without_login():
 
 
 @pytest.mark.django_db
-@override_settings(ENABLE_ACCOUNTS=False)
-def test_local_only_mode_cannot_manage_other_users_schemas():
+def test_local_only_mode_cannot_manage_other_users_schemas(local_only_mode):
     schema = SchemaFactory(published_at=None)
     client = Client()
     response = client.post(f"/manage/schema/{schema.id}/delete")
@@ -157,19 +147,18 @@ def test_local_only_mode_cannot_manage_other_users_schemas():
 
 
 @pytest.mark.django_db
-def test_accounts_mode_leaves_anonymous_users_logged_out():
-    client = Client()
-    response = client.get("/account/profile/")
-    assert response.status_code == 302
-    assert not response.wsgi_request.user.is_authenticated
-    assert not get_user_model().objects.filter(username=LOCAL_USERNAME).exists()
-
-
-@pytest.mark.django_db
-def test_accounts_mode_keeps_logged_in_user():
-    user = UserFactory()
-    client = Client()
-    client.force_login(user)
-    response = client.get("/account/profile/")
-    assert response.status_code == 200
-    assert response.wsgi_request.user == user
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/account/login/",
+        "/account/signup/",
+        "/account/api-key/",
+        "/oauth/authorize/",
+        "/oauth/token/",
+        "/oauth/register/",
+        "/.well-known/oauth-authorization-server",
+    ],
+)
+def test_local_only_mode_account_and_oauth_urls_are_removed(local_only_mode, path):
+    response = Client().get(path)
+    assert response.status_code == 404
