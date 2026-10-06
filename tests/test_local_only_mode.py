@@ -2,10 +2,12 @@ import json
 import pytest
 import requests_mock
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ImproperlyConfigured
 from django.test import Client, override_settings
 from mcp.client import Client as MCPClient
+from core.checks import check_local_only_hosts
 from core.local_user import LOCAL_USERNAME, get_local_user
-from core.mcp.server import mcp
+from core.mcp.server import build_mcp_server, mcp
 from core.mcp.sync_to_async_with_db_cleanup import (
     sync_to_async_with_db_cleanup as sync_to_async,
 )
@@ -37,6 +39,14 @@ def test_get_local_user_refuses_when_accounts_are_on():
     assert not get_user_model().objects.filter(username=LOCAL_USERNAME).exists()
 
 
+def test_check_local_only_hosts_refuses_nonlocal_hosts(settings):
+    settings.ENABLE_ACCOUNTS = False
+    settings.ALLOW_NONLOCAL_HOSTS_WITHOUT_ACCOUNTS = False
+    settings.ALLOWED_HOSTS = ["localhost", "schemas.example.com"]
+    with pytest.raises(ImproperlyConfigured, match=r"\(schemas\.example\.com\)"):
+        check_local_only_hosts()
+
+
 @pytest.mark.django_db
 def test_local_only_mode_requests_run_as_local_user(local_only_mode):
     client = Client()
@@ -58,6 +68,15 @@ def test_local_only_mode_admin_loads_without_login(local_only_mode):
     client = Client()
     response = client.get("/admin/")
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_local_only_mode_profile_renders_and_has_no_account_links(local_only_mode):
+    response = Client().get("/account/profile/")
+    assert response.status_code == 200
+    assert b"Change password" not in response.content
+    assert b"Sign out" not in response.content
+    assert b"API Key" not in response.content
 
 
 @pytest.mark.django_db
@@ -248,9 +267,19 @@ async def test_local_only_mode_mcp_update_schema_works_without_auth(local_only_m
 
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
-async def test_local_only_mode_mcp_has_no_rate_limit(local_only_mode):
+async def test_local_only_mode_mcp_search_schemas_works_without_auth(
+    local_only_mode,
+):
+    local_user = await sync_to_async(get_local_user)()
+    await sync_to_async(SchemaFactory.create)(
+        name="Local private schema", created_by=local_user, published_at=None
+    )
     async with MCPClient(mcp) as client:
-        with override_settings(HOURLY_API_REQUEST_LIMIT=1):
-            for _ in range(3):
-                result = await client.call_tool("search_schemas")
-                assert not result.is_error
+        result = await client.call_tool("search_schemas", arguments={"scope": "user"})
+    assert not result.is_error
+    assert "Local private schema" in result.content[0].text
+
+
+def test_local_only_mode_mcp_server_requires_no_token(local_only_mode):
+    mcp_server = build_mcp_server()
+    assert mcp_server.settings.auth is None

@@ -23,8 +23,13 @@ MAX_PAGE_SIZE = 10
 logger = logging.getLogger("schemaindex")
 User = get_user_model()
 
-mcp = (
-    MCPServer(
+
+def build_mcp_server():
+    # This is wrapped in a function
+    # for testing convenience.
+    if not settings.ENABLE_ACCOUNTS:
+        return MCPServer("Schemas.Pub")
+    return MCPServer(
         "Schemas.Pub",
         token_verifier=DjangoOAuthToolkitTokenVerifier(),
         auth=AuthSettings(
@@ -32,12 +37,11 @@ mcp = (
             resource_server_url=settings.SITE_URL + "/mcp",
             required_scopes=["mcp"],
         ),
+        middleware=[enforce_rate_limit],
     )
-    if settings.ENABLE_ACCOUNTS
-    else MCPServer("Schemas.Pub")
-)
 
-mcp.middleware.append(enforce_rate_limit)
+
+mcp = build_mcp_server()
 
 
 def _format_schema(schema):
