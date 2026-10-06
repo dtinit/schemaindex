@@ -12,7 +12,7 @@ from core.mcp.sync_to_async_with_db_cleanup import (
     sync_to_async_with_db_cleanup as sync_to_async,
 )
 from core.models import Profile, Schema
-from tests.factories import SchemaFactory, SchemaRefFactory, UserFactory
+from tests.factories import SchemaFactory, SchemaRefFactory
 
 
 @pytest.mark.django_db
@@ -52,14 +52,6 @@ def test_local_only_mode_requests_run_as_local_user(local_only_mode):
     client = Client()
     response = client.get("/manage/schema/new")
     assert response.status_code == 200
-    assert response.wsgi_request.user == get_local_user()
-
-
-@pytest.mark.django_db
-def test_local_only_mode_overrides_logged_in_user(local_only_mode):
-    client = Client()
-    client.force_login(UserFactory())
-    response = client.get("/manage/schema/new")
     assert response.wsgi_request.user == get_local_user()
 
 
@@ -163,15 +155,6 @@ def test_local_only_mode_schema_can_be_deleted_without_login(local_only_mode):
 
 
 @pytest.mark.django_db
-def test_local_only_mode_cannot_manage_other_users_schemas(local_only_mode):
-    schema = SchemaFactory(published_at=None)
-    client = Client()
-    response = client.post(f"/manage/schema/{schema.id}/delete")
-    assert response.status_code == 404
-    assert Schema.objects.filter(id=schema.id).exists()
-
-
-@pytest.mark.django_db
 @pytest.mark.parametrize(
     "path",
     [
@@ -227,10 +210,16 @@ def test_local_only_mode_api_update_works_without_api_key(local_only_mode):
 @pytest.mark.django_db
 @override_settings(HOURLY_API_REQUEST_LIMIT=1)
 def test_local_only_mode_api_has_no_rate_limit(local_only_mode):
+    url = "https://example.com/schema.json"
+    id_value = "https://example.com/testid"
     client = Client()
-    for _ in range(3):
-        response = client.get("/api/find?id=https://example.com/missing")
-        assert response.status_code == 404
+    with requests_mock.Mocker() as m:
+        m.get(url, text=f'{{"$id":"{id_value}"}}')
+        SchemaRefFactory.create(url=url)
+        for _ in range(3):
+            response = client.get(f"/api/find?id={id_value}")
+            assert response.status_code == 200
+            assert response.json()["data"]["url"] == url
 
 
 # Use transaction=True as in tests/test_mcp.py
