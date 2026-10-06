@@ -11,6 +11,7 @@ from mcp.server import MCPServer
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver.exceptions import ResourceNotFoundError
+from core.local_user import get_local_user
 from core.models import Schema
 from core.utils import is_url
 from core.mcp.sync_to_async_with_db_cleanup import sync_to_async_with_db_cleanup
@@ -22,20 +23,28 @@ MAX_PAGE_SIZE = 10
 logger = logging.getLogger("schemaindex")
 User = get_user_model()
 
-mcp = MCPServer(
-    "Schemas.Pub",
-    token_verifier=DjangoOAuthToolkitTokenVerifier(),
-    auth=AuthSettings(
-        issuer_url=settings.SITE_URL,
-        resource_server_url=settings.SITE_URL + "/mcp",
-        required_scopes=["mcp"],
-    ),
-)
 
-mcp.middleware.append(enforce_rate_limit)
+def build_mcp_server():
+    # This is wrapped in a function
+    # for testing convenience.
+    if not settings.ENABLE_ACCOUNTS:
+        return MCPServer("Schemas.Pub")
+    return MCPServer(
+        "Schemas.Pub",
+        token_verifier=DjangoOAuthToolkitTokenVerifier(),
+        auth=AuthSettings(
+            issuer_url=settings.SITE_URL,
+            resource_server_url=settings.SITE_URL + "/mcp",
+            required_scopes=["mcp"],
+        ),
+        middleware=[enforce_rate_limit],
+    )
 
 
-def format_schema(schema):
+mcp = build_mcp_server()
+
+
+def _format_schema(schema):
     formatted_schema = f"""
 Name: {schema.name}
 Schemas.Pub ID: {schema.id}
@@ -52,7 +61,10 @@ Schemas.Pub URL: https://schemas.pub{reverse("schema_detail", kwargs={"schema_id
     return formatted_schema
 
 
-def get_authenticated_user():
+def _get_authenticated_user():
+    if not settings.ENABLE_ACCOUNTS:
+        return get_local_user()
+
     access_token = get_access_token()
     # subject is the Django user id, stamped by DjangoOAuthToolkitTokenVerifier
     return User.objects.get(pk=int(access_token.subject))
@@ -83,7 +95,7 @@ def search_schemas(
         "[MCP] search_schemas call: query=%s, scope=%s, page=%s", query, scope, page
     )
 
-    user = get_authenticated_user()
+    user = _get_authenticated_user()
 
     scoped_results = (
         Schema.objects.accessible_to(user)
@@ -124,7 +136,7 @@ def search_schemas(
     end = start + MAX_PAGE_SIZE
     paginated_results = results[start:end]
 
-    formatted_results = [format_schema(schema) for schema in paginated_results]
+    formatted_results = [_format_schema(schema) for schema in paginated_results]
     formatted_page = "\n---\n".join(formatted_results)
 
     match_description = (
@@ -163,7 +175,7 @@ async def get_schema(schema_id: int):
 
     @sync_to_async_with_db_cleanup
     def fetch_from_db():
-        user = get_authenticated_user()
+        user = _get_authenticated_user()
 
         try:
             schema = (
@@ -217,11 +229,11 @@ async def create_schema(manifest: str):
 
     @sync_to_async_with_db_cleanup
     def do_create():
-        user = get_authenticated_user()
+        user = _get_authenticated_user()
         schema = Schema(created_by=user)
         _validate_manifest_and_update_schema(manifest, schema)
         response = "Schema created successfully:\n\n"
-        response += format_schema(schema)
+        response += _format_schema(schema)
         return response
 
     return await do_create()
@@ -237,7 +249,7 @@ async def update_schema(schema_id: int, manifest: str):
 
     @sync_to_async_with_db_cleanup
     def do_update():
-        user = get_authenticated_user()
+        user = _get_authenticated_user()
 
         try:
             schema = Schema.objects.get(pk=schema_id)
@@ -251,7 +263,7 @@ async def update_schema(schema_id: int, manifest: str):
 
         _validate_manifest_and_update_schema(manifest, schema)
         response = "Schema updated successfully:\n\n"
-        response += format_schema(schema)
+        response += _format_schema(schema)
         return response
 
     return await do_update()
@@ -266,7 +278,7 @@ async def delete_schema(schema_id: int):
 
     @sync_to_async_with_db_cleanup
     def do_delete():
-        user = get_authenticated_user()
+        user = _get_authenticated_user()
 
         try:
             schema = Schema.objects.get(pk=schema_id, created_by=user)

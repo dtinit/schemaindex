@@ -1,8 +1,12 @@
+import importlib
 import pytest
 from django.core.cache import cache
 from django.test import Client
+from django.urls import clear_url_caches
 import requests_mock as requests_mock_lib
 from factories import ProfileFactory
+import core.urls
+import schemaindex.urls
 
 
 @pytest.fixture(autouse=True)
@@ -47,3 +51,27 @@ def api_client(db):
     client.defaults["HTTP_X_API_KEY"] = api_key
     client.user = profile.user
     return client
+
+
+def _reload_urlconfs():
+    # core.urls first, since schemaindex.urls includes it.
+    importlib.reload(core.urls)
+    importlib.reload(schemaindex.urls)
+    clear_url_caches()
+
+
+@pytest.fixture
+def local_only_mode(settings):
+    """
+    Run a test in local-only mode (ENABLE_ACCOUNTS = False).
+
+    The URLconfs check ENABLE_ACCOUNTS when they're imported, so
+    overriding the setting alone isn't enough. They're reloaded
+    here, and again on teardown once the setting is restored.
+    """
+    original = settings.ENABLE_ACCOUNTS
+    settings.ENABLE_ACCOUNTS = False
+    _reload_urlconfs()
+    yield
+    settings.ENABLE_ACCOUNTS = original
+    _reload_urlconfs()

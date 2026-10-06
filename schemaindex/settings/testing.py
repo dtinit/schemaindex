@@ -1,5 +1,6 @@
 from .base import *
 
+ENABLE_ACCOUNTS = True
 PERMANENT_URL_HOST = "testserver"
 ALLOWED_HOSTS = [PERMANENT_URL_HOST]
 SITE_URL = f"http://{PERMANENT_URL_HOST}"

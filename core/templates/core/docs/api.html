@@ -6,14 +6,20 @@ Schemas.Pub - API Documentation
 {% block page_content %}
 <main class="api-docs">
   <h1>API Documentation</h1>
+  {% if settings.ENABLE_ACCOUNTS %}
   <h2>Authentication</h2>
   <p>
     All API methods require an X-API-Key header with an API key.
-  {% if request.user %}
-  You can create an API key <a href="{% url 'account_api_key' %}">here</a>.
-  {% else %}
-  <a href="{% url 'account_signup' %}">Create an account</a> to get an API key.
+    {% if request.user.is_authenticated %}
+    You can create an API key <a href="{% url 'account_api_key' %}">here</a>.
+    {% else %}
+    <a href="{% url 'account_signup' %}">Create an account</a> to get an API key.
+    {% endif %}
+  </p>
   {% endif %}
+  <h2>Headers</h2>
+  <p>
+    Write methods must include a <code>Content-Type: application/json</code> header.
   </p>
   <h2>Methods</h2>
   <section class="method">

@@ -88,6 +88,7 @@ Account
     </a>
   </section>
   {% endif %}
+  {% if settings.ENABLE_ACCOUNTS %}
   <section class="text--secondary">
     <h1>Account</h1>
     Email: {{ request.user.email }}
@@ -95,5 +96,6 @@ Account
     <a href="{% url 'account_logout' %}">Sign out</a>
     <a href="{% url 'account_api_key' %}">API Key</a>
   </section>
+  {% endif %}
   </main>
 {% endblock %}
