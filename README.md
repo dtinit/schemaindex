@@ -37,6 +37,11 @@ CUSTOM_SETTING = 'personal'
 
 This can be handy to modify settings temporarily or when developers have different preferences for their development experiences. As such, these personal settings are intentionally excluded from source control.
 
+## User Accounts
+
+By default, the project runs without user accounts and allows all requests without authentication.
+Set `ENABLE_ACCOUNTS` to `True` to support individual user accounts with required authorization for managing schemas, using the API, and using MCP.
+
 ## Utilites
 
 ### Formsets
@@ -155,6 +160,7 @@ For Schemas.Pub development, it's recommended to use the following `schemaindex/
 from .development import *
 
 ENABLE_DTI_PAGES = True
+ENABLE_ACCOUNTS = True
 ```
 
 See [Personal Django settings override](#personal-django-settings-override) for details.
