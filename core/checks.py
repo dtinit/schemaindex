@@ -5,7 +5,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 logger = logging.getLogger("schemaindex")
 
-LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]", "testserver"}
+LOCAL_HOSTS = {"localhost", ".localhost", "127.0.0.1", "[::1]", "testserver"}
 
 
 def check_local_only_hosts():
