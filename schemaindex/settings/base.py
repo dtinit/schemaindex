@@ -209,6 +209,7 @@ ADVERTISED_TRUSTED_CONTENT_DOMAINS = [
     "ietf.org",
     "rfc-editor.org",
     "w3.org",
+    "tangled.org"
 ]
 
 TRUSTED_CONTENT_DOMAINS = ADVERTISED_TRUSTED_CONTENT_DOMAINS + [
