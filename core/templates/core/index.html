@@ -1,15 +1,19 @@
 {% extends "core/layouts/noauth_base.html" %}
 {% block head_title %}
-Schemas.Pub - A public schema registry 
+{{ settings.SITE_NAME }} - A public schema registry
 {% endblock %}
 
 {% block page_content %}
 <main class="homepage">
   <div class="content-row">
     <h1 class="logo">
+      {% if settings.SITE_NAME == "Schemas.Pub" %}
       <span class="text--secondary">{</span>
       Schemas<span class="text--logo">.</span>Pub
       <span class="text--secondary">}</span>
+      {% else %}
+      {{ settings.SITE_NAME }}
+      {% endif %}
     </h1>
     <a
       class="button button--prominent"

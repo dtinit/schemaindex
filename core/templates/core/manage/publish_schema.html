@@ -9,11 +9,11 @@ Publish Schema
     <h1>Unable to make public</h1>
       <h2>Schema {{ conflict_reason }} already in use</h2>
       <p>
-        The {{ conflict_reason }} for <a href="{% url 'schema_detail' schema_id=schema.id %}">"{{ schema.name }}"</a> (<a href="{{ schema.latest_reference.url }}">{{ schema.latest_reference.url }}</a>) is already being used by <a href="{% url 'schema_detail' schema_id=conflicting_schema.id %}">"{{ conflicting_schema.name }}"</a>. Schema definitions can only be used by one public schema each. For help, contact a Schemas.Pub administrator. To change this schema's URL, <a href="{% url 'manage_schema' schema_id=schema.id %}">click here</a>.
+        The {{ conflict_reason }} for <a href="{% url 'schema_detail' schema_id=schema.id %}">"{{ schema.name }}"</a> (<a href="{{ schema.latest_reference.url }}">{{ schema.latest_reference.url }}</a>) is already being used by <a href="{% url 'schema_detail' schema_id=conflicting_schema.id %}">"{{ conflicting_schema.name }}"</a>. Schema definitions can only be used by one public schema each. For help, contact a {{ settings.SITE_NAME }} administrator. To change this schema's URL, <a href="{% url 'manage_schema' schema_id=schema.id %}">click here</a>.
       </p>
     {% else %}
     <h1>Make "{{ schema.name }}" public?</h1>
-    <p>Are you sure you want to make the "{{ schema.name }}" schema public? Public schemas are visible to everyone, and cannot be changed back to private or deleted except by a Schemas.Pub administrator.</p>
+    <p>Are you sure you want to make the "{{ schema.name }}" schema public? Public schemas are visible to everyone, and cannot be changed back to private or deleted except by a {{ settings.SITE_NAME }} administrator.</p>
     <form action="{% url 'manage_schema_publish' schema_id=schema.pk %}" method="POST">
       {% csrf_token %}
       <div class="button-group">

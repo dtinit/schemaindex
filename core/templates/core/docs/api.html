@@ -1,6 +1,6 @@
 {% extends "core/layouts/noauth_base.html" %}
 {% block head_title %}
-Schemas.Pub - API Documentation
+{{ settings.SITE_NAME }} - API Documentation
 {% endblock %}
 
 {% block page_content %}
@@ -54,14 +54,14 @@ Schemas.Pub - API Documentation
     <p>A JSON object containing a "data" object with the following proprties:</p>
     <ul>
       <li><b>id</b>: The schema's ID</li>
-      <li><b>url</b>: A URL for the schema on Schemas.Pub</li>
+      <li><b>url</b>: A URL for the schema on {{ settings.SITE_NAME }}</li>
     </ul>
     <code>
       <pre>
 {
   "data": {
     "id": 30,
-    "url": "https://schemas.pub/schemas/30"
+    "url": "{{ settings.SITE_URL }}/schemas/30"
   }
 }</pre>
     </code>
@@ -77,14 +77,14 @@ Schemas.Pub - API Documentation
     <p>A JSON object containing a "data" object with the following proprties:</p>
     <ul>
       <li><b>id</b>: The schema's ID</li>
-      <li><b>url</b>: A URL for the schema on Schemas.Pub</li>
+      <li><b>url</b>: A URL for the schema on {{ settings.SITE_NAME }}</li>
     </ul>
     <code>
       <pre>
 {
   "data": {
     "id": 30,
-    "url": "https://schemas.pub/schemas/30"
+    "url": "{{ settings.SITE_URL }}/schemas/30"
   }
 }</pre>
     </code>

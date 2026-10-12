@@ -1,13 +1,13 @@
 {% extends "core/layouts/noauth_base.html" %}
 {% block head_title %}
-Schemas.Pub - MCP Documentation
+{{ settings.SITE_NAME }} - MCP Documentation
 {% endblock %}
 
 {% block page_content %}
 <main class="api-docs">
   <h1>MCP Server Documentation</h1>
   <p>
-    Schemas.Pub provides a Model Context Protocol (MCP) server that allows MCP-compatible clients to search for and manage schemas.
+    {{ settings.SITE_NAME }} provides a Model Context Protocol (MCP) server that allows MCP-compatible clients to search for and manage schemas.
   </p>
 
   <h2>Connection</h2>

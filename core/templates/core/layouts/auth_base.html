@@ -11,7 +11,11 @@ flows and django-oauth-toolkit's OAuth consent screen.
   class="nav-header nav-header--with-home-link">
   <a class="home-link" href="{% url 'index' %}">
     <span>
+      {% if settings.SITE_NAME == "Schemas.Pub" %}
       <span class="color-logo">{</span>Schemas<span class="color-logo">.</span>Pub<span class="color-logo">}</span>
+      {% else %}
+      {{ settings.SITE_NAME }}
+      {% endif %}
       </span>
   </a>
 </header>
