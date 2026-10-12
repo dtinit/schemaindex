@@ -407,10 +407,12 @@ class PermanentURLForm(forms.Form):
                 self.LinkType.ORGANIZATION,
                 f"schemas.pub/o/{schema.created_by.profile.organization.slug}/",
             ))
-        link_type_choices += [
-            (self.LinkType.UUID, "schemas.pub/u/"),
-            (self.LinkType.EMAIL, f"schemas.pub/e/{schema.created_by.email}/"),
-        ]
+        link_type_choices.append((self.LinkType.UUID, "schemas.pub/u/"))
+        if schema.created_by.email:
+            link_type_choices.append((
+                self.LinkType.EMAIL,
+                f"schemas.pub/e/{schema.created_by.email}/",
+            ))
         self.fields["link_type"].choices = link_type_choices
 
         link_type = self.data.get("link_type") or self.initial.get("link_type")

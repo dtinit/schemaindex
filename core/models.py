@@ -694,6 +694,8 @@ class ReferenceItem(BaseModel):
 
     def _send_failure_notification_email(self):
         recipient_email = self.created_by.email
+        if not recipient_email:
+            return
         subject = "Schemas.Pub Content Failure"
         resource = f"{self.name}: {self.url}" if self.name else self.url
         message = (

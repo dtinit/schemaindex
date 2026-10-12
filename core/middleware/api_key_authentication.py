@@ -1,5 +1,7 @@
 import logging
 
+from django.conf import settings
+
 from core.api.responses import ApiErrorResponse
 from core.models import APIKey
 from .rate_limit import check_and_record_request
@@ -15,6 +17,11 @@ class APIKeyAuthenticationMiddleware:
 
     def __call__(self, request):
         if not request.path.startswith("/api/"):
+            return self.get_response(request)
+
+        if not settings.ENABLE_ACCOUNTS:
+            # LocalUserMiddleware should have already set
+            # request.user to the local user.
             return self.get_response(request)
 
         api_key_header = request.headers.get(API_KEY_HEADER)

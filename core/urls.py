@@ -24,7 +24,6 @@ urlpatterns = [
     ),
     path("schemas/<int:schema_id>/export", views.schema_export, name="schema_export"),
     path("account/profile/", views.account_profile, name="account_profile"),
-    path("account/api-key/", views.account_api_key, name="account_api_key"),
     path("manage/schema/<int:schema_id>", views.manage_schema, name="manage_schema"),
     path("manage/schema/new", views.manage_schema, name="manage_schema_new"),
     path(
@@ -64,6 +63,11 @@ urlpatterns = [
     ),
     path("api/", include(api_endpoints)),
 ]
+
+if settings.ENABLE_ACCOUNTS:
+    urlpatterns.append(
+        path("account/api-key/", views.account_api_key, name="account_api_key"),
+    )
 
 if settings.ENABLE_DTI_PAGES:
     urlpatterns.extend([

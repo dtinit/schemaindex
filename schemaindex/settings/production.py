@@ -8,6 +8,7 @@ logger = logging.getLogger("schemaindex")
 
 DEBUG = False
 ENABLE_DTI_PAGES = True
+ENABLE_ACCOUNTS = True
 PERMANENT_URL_HOST = "id.schemas.pub"
 ALLOWED_HOSTS = [
     "schemas.pub",

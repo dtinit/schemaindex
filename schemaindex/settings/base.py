@@ -23,6 +23,11 @@ SITE_URL = "[localhost]"
 SUPPORT_EMAIL = "support@dtinit.org"
 PLAUSIBLE_DOMAIN = None
 ENABLE_DTI_PAGES = False
+ENABLE_ACCOUNTS = False
+# Local-only mode refuses to start if ALLOWED_HOSTS contains a
+# non-local host. Set this to True to allow it anyway
+# (not recommended unless you know what you're doing).
+ALLOW_NONLOCAL_HOSTS_WITHOUT_ACCOUNTS = False
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -60,9 +65,11 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.middleware.local_user.LocalUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "core.middleware.api_content_type.APIContentTypeMiddleware",
     "core.middleware.api_key_authentication.APIKeyAuthenticationMiddleware",
 ]
 
