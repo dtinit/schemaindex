@@ -16,6 +16,7 @@ ALLOWED_HOSTS = [
     "schemaindex-prod-run-768243509223.us-central1.run.app",
     PERMANENT_URL_HOST,
 ]
+SITE_NAME = "Schemas.Pub"
 SITE_URL = "https://schemas.pub"
 CSRF_TRUSTED_ORIGINS = ["https://" + url for url in ALLOWED_HOSTS]
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
@@ -118,6 +119,8 @@ EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = "noreply@dtinit.org"
 SERVER_EMAIL = "noreply@dtinit.org"
 
+OAUTH2_PROVIDER["SCOPES"] = {"mcp": f"Access the {SITE_NAME} MCP server"}
+OAUTH2_PROVIDER["OAUTH2_PROTECTED_RESOURCE_NAME"] = f"{SITE_NAME} MCP"
 OAUTH2_PROVIDER["OIDC_ISS_ENDPOINT"] = SITE_URL
 OAUTH2_PROVIDER["OAUTH2_PROTECTED_RESOURCE_IDENTIFIER"] = SITE_URL + "/mcp"
 OAUTH2_PROVIDER["OAUTH2_PROTECTED_RESOURCE_AUTHORIZATION_SERVERS"] = [SITE_URL]

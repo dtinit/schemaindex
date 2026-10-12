@@ -18,7 +18,7 @@ import os
 
 from pathlib import Path
 
-PROJECT_NAME = "SchemaIndex"
+SITE_NAME = "schemaindex"
 SITE_URL = "[localhost]"
 SUPPORT_EMAIL = "support@dtinit.org"
 PLAUSIBLE_DOMAIN = None
@@ -206,7 +206,7 @@ HOURLY_API_REQUEST_LIMIT = 500
 # To reduce SSRF attack vulnerabilities, we only fetch content from domains we trust.
 # Here we maintain two lists of trusted domains:
 # 1. ADVERTISED_TRUSTED_CONTENT_DOMAINS are domains we trust *and* which we advertise to users
-#    (eg "Host your schema at one of these domains to have its contents displayed on Schemas.Pub").
+#    (eg "Host your schema at one of these domains to have its contents displayed on the site").
 # 2. TRUSTED_CONTENT_DOMAINS is the actual list of domains we trust. It includes everything in
 #    ADVERTISED_TRUSTED_CONTENT_DOMAINS plus additional domains we trust but don't show to users.
 
@@ -224,11 +224,11 @@ TRUSTED_CONTENT_DOMAINS = ADVERTISED_TRUSTED_CONTENT_DOMAINS + [
     "githubusercontent.com",
 ]
 
+# SITE_NAME/SITE_URL-derived OAuth settings
+# are added in development.py and production.py
 OAUTH2_PROVIDER = {
-    "SCOPES": {"mcp": "Access the Schemas.Pub MCP server"},
     "DEFAULT_SCOPES": ["mcp"],
     "PKCE_REQUIRED": True,
-    "OAUTH2_PROTECTED_RESOURCE_NAME": "Schemas.Pub MCP",
     # TODO: rate-limit /oauth/register/ (per-IP cap or edge limit) if we see abuse
     # TODO: Enable CIMD?
     "DCR_ENABLED": True,

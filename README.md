@@ -159,6 +159,7 @@ For Schemas.Pub development, it's recommended to use the following `schemaindex/
 
 from .development import *
 
+SITE_NAME = "Schemas.Pub"
 ENABLE_DTI_PAGES = True
 ENABLE_ACCOUNTS = True
 ```
