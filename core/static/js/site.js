@@ -58,7 +58,7 @@
    * @param {{ formsetListId: string, index: number }} options
    */
   const updateFormsetIndexAttributes = (element, { formsetListId, index }) => {
-    const attributeValuePattern = new RegExp(`${formsetListId}-[\\d+]`);
+    const attributeValuePattern = new RegExp(`${formsetListId}-\\d+`);
     Array.from(element.attributes).forEach(({ name, value }) => {
       const match = attributeValuePattern.exec(value);
       if (!match) {
