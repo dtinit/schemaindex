@@ -480,3 +480,9 @@ def test_oauth_authorize_sends_anonymous_users_to_the_allauth_login():
     response = Client().get("/oauth/authorize/")
     assert response.status_code == 302
     assert response["Location"].startswith(settings.LOGIN_URL)
+
+
+@pytest.mark.django_db
+def test_signup_page_renders():
+    response = Client().get("/account/signup/")
+    assert response.status_code == 200
