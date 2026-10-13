@@ -67,7 +67,7 @@ class SchemaRefForm(ReferenceItemForm):
     )
     url = forms.URLField(
         label="URL",
-        help_text=f"Accepted formats: {human_readable_list(sorted(EXPLICITLY_SUPPORTED_FILE_EXTENSIONS))}. Schemas.Pub displays file content from the following domains: {human_readable_list(sorted(settings.ADVERTISED_TRUSTED_CONTENT_DOMAINS))}.",
+        help_text=f"Accepted formats: {human_readable_list(sorted(EXPLICITLY_SUPPORTED_FILE_EXTENSIONS))}. {settings.SITE_NAME} displays file content from the following domains: {human_readable_list(sorted(settings.ADVERTISED_TRUSTED_CONTENT_DOMAINS))}.",
     )
 
     def clean_url(self):
@@ -181,7 +181,7 @@ class SchemaForm(forms.Form):
     )
     readme_url = forms.URLField(
         label="README URL",
-        help_text=f"Schemas.Pub displays README content from the following domains: {human_readable_list(sorted(settings.ADVERTISED_TRUSTED_CONTENT_DOMAINS))}",
+        help_text=f"{settings.SITE_NAME} displays README content from the following domains: {human_readable_list(sorted(settings.ADVERTISED_TRUSTED_CONTENT_DOMAINS))}",
         widget=forms.TextInput(attrs={"placeholder": "https://example.com/README.md"}),
     )
     readme_format = forms.ChoiceField(
@@ -189,7 +189,7 @@ class SchemaForm(forms.Form):
         + list(DocumentationItem.DocumentationItemFormat.choices),
         required=False,
         label="README format",
-        help_text="Markdown and Plaintext READMEs are displayed on Schemas.Pub",
+        help_text=f"Markdown and Plaintext READMEs are displayed on {settings.SITE_NAME}",
         widget=forms.Select(attrs={"data-url-format-selector-for": "id_readme_url"}),
     )
     license_url = forms.URLField(
@@ -405,13 +405,16 @@ class PermanentURLForm(forms.Form):
         if schema.created_by.profile.organization:
             link_type_choices.append((
                 self.LinkType.ORGANIZATION,
-                f"schemas.pub/o/{schema.created_by.profile.organization.slug}/",
+                f"{settings.PERMANENT_URL_HOST}/o/{schema.created_by.profile.organization.slug}/",
             ))
-        link_type_choices.append((self.LinkType.UUID, "schemas.pub/u/"))
+        link_type_choices.append((
+            self.LinkType.UUID,
+            f"{settings.PERMANENT_URL_HOST}/u/",
+        ))
         if schema.created_by.email:
             link_type_choices.append((
                 self.LinkType.EMAIL,
-                f"schemas.pub/e/{schema.created_by.email}/",
+                f"{settings.PERMANENT_URL_HOST}/e/{schema.created_by.email}/",
             ))
         self.fields["link_type"].choices = link_type_choices
 

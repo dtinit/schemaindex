@@ -1,6 +1,6 @@
-# Schemas.Pub
+# schemaindex
 
-A public schema registry.
+A schema registry. [Schemas.Pub](https://schemas.pub) is the official instance hosted by the [Data Transfer Initiative](https://github.com/dtinit).
 
 ## Local setup
 
@@ -41,6 +41,10 @@ This can be handy to modify settings temporarily or when developers have differe
 
 By default, the project runs without user accounts and allows all requests without authentication.
 Set `ENABLE_ACCOUNTS` to `True` to support individual user accounts with required authorization for managing schemas, using the API, and using MCP.
+
+## Site name
+
+Set `SITE_NAME` to change the name shown throughout the site, in emails, and by the MCP server.
 
 ## Utilites
 
@@ -159,6 +163,7 @@ For Schemas.Pub development, it's recommended to use the following `schemaindex/
 
 from .development import *
 
+SITE_NAME = "Schemas.Pub"
 ENABLE_DTI_PAGES = True
 ENABLE_ACCOUNTS = True
 ```

@@ -19,7 +19,11 @@
     {% if request.path != '/' %}
     <a class="home-link" href="{% url 'index' %}">
         <span>
+            {% if settings.SITE_NAME == "Schemas.Pub" %}
             <span class="text--secondary">{</span>Schemas<span class="text--logo">.</span>Pub<span class="text--secondary">}</span>
+            {% else %}
+            {{ settings.SITE_NAME }}
+            {% endif %}
         </span>
     </a>
     {% endif %}

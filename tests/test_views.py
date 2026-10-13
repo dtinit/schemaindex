@@ -486,3 +486,24 @@ def test_oauth_authorize_sends_anonymous_users_to_the_allauth_login():
 def test_signup_page_renders():
     response = Client().get("/account/signup/")
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_site_name_defaults_to_plain_text():
+    schema = SchemaFactory()
+    client = Client()
+    response = client.get(f"/schemas/{schema.id}")
+    content = response.content.decode()
+    assert f"{schema.name} - schemaindex" in content
+    assert 'Schemas<span class="text--logo">.</span>Pub' not in content
+
+
+@pytest.mark.django_db
+def test_schemas_pub_site_name_renders_logo(settings):
+    settings.SITE_NAME = "Schemas.Pub"
+    schema = SchemaFactory()
+    client = Client()
+    response = client.get(f"/schemas/{schema.id}")
+    content = response.content.decode()
+    assert f"{schema.name} - Schemas.Pub" in content
+    assert 'Schemas<span class="text--logo">.</span>Pub' in content

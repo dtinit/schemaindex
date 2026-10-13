@@ -10,7 +10,7 @@ Instead, extend auth.html (for auth pages) or noauth.html.
         <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{% block head_title %}Schemas.Pub | Public schema directory{% endblock head_title %}</title>
+        <title>{% block head_title %}{{ settings.SITE_NAME }} | Public schema directory{% endblock head_title %}</title>
 
         <!-- Primary Meta Tags -->
         <meta name="description" content="A public directory of schemas for any type of data." />

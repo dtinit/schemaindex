@@ -3,9 +3,9 @@
 {% load static %}
 {% block head_title %}
 {% if schema_ref.name %}
-{{ schema_ref.name }} - {{ schema.name }} - Schemas.Pub
+{{ schema_ref.name }} - {{ schema.name }} - {{ settings.SITE_NAME }}
 {% else %}
-{{ schema.name }} - Schemas.Pub
+{{ schema.name }} - {{ settings.SITE_NAME }}
 {% endif %}
 {% endblock %}
 

@@ -382,7 +382,7 @@ class Schema(BaseModel):
                 raise ValidationError(
                     f"`public: true` was set, but a public schema ({conflict_url})"
                     + f"is already using one of the {e.reason} values "
-                    + "used in this schema. Please contact a Schemas.Pub administrator."
+                    + f"used in this schema. Please contact a {settings.SITE_NAME} administrator."
                 )
 
         # We only update published_at when we initially publish
@@ -696,7 +696,7 @@ class ReferenceItem(BaseModel):
         recipient_email = self.created_by.email
         if not recipient_email:
             return
-        subject = "Schemas.Pub Content Failure"
+        subject = f"{settings.SITE_NAME} Content Failure"
         resource = f"{self.name}: {self.url}" if self.name else self.url
         message = (
             f"Hello,\n\n"
@@ -704,7 +704,7 @@ class ReferenceItem(BaseModel):
             f"{resource}\n"
             f"Please check the URL is correct or replace it if necessary.\n\n"
             f"Thank you!\n\n"
-            f"The Schemas.Pub Admin Team"
+            f"The {settings.SITE_NAME} Admin Team"
         )
         send_mail(
             subject,

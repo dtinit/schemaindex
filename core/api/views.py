@@ -53,10 +53,13 @@ def schemas_create(request, manifest):
             status_code=400, message="Validation Error", details=e.message
         )
 
+    path = reverse("schema_detail", kwargs={"schema_id": schema.id})
+    url = request.build_absolute_uri(path)
+
     return ApiResponse(
         data={
             "id": schema.id,
-            "url": reverse("schema_detail", kwargs={"schema_id": schema.id}),
+            "url": url,
         }
     )
 
@@ -80,9 +83,12 @@ def schemas_update(request, manifest, schema):
             status_code=400, message="Validation Error", details=e.message
         )
 
+    path = reverse("schema_detail", kwargs={"schema_id": schema.id})
+    url = request.build_absolute_uri(path)
+
     return ApiResponse(
         data={
             "id": schema.id,
-            "url": reverse("schema_detail", kwargs={"schema_id": schema.id}),
+            "url": url,
         }
     )

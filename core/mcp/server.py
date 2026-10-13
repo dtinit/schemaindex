@@ -6,7 +6,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
-from django.utils import timezone
 from mcp.server import MCPServer
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.settings import AuthSettings
@@ -28,9 +27,9 @@ def build_mcp_server():
     # This is wrapped in a function
     # for testing convenience.
     if not settings.ENABLE_ACCOUNTS:
-        return MCPServer("Schemas.Pub")
+        return MCPServer(settings.SITE_NAME)
     return MCPServer(
-        "Schemas.Pub",
+        settings.SITE_NAME,
         token_verifier=DjangoOAuthToolkitTokenVerifier(),
         auth=AuthSettings(
             issuer_url=settings.SITE_URL,
@@ -47,16 +46,12 @@ mcp = build_mcp_server()
 def _format_schema(schema):
     formatted_schema = f"""
 Name: {schema.name}
-Schemas.Pub ID: {schema.id}
+{settings.SITE_NAME} ID: {schema.id}
 MCP Resource URI: schema://{schema.id}
-Schemas.Pub URL: https://schemas.pub{reverse("schema_detail", kwargs={"schema_id": schema.id})}
+{settings.SITE_NAME} URL: {settings.SITE_URL}{reverse("schema_detail", kwargs={"schema_id": schema.id})}
+Visibility: {"Public" if schema.is_published else "Private"}
+Description: {schema.description if schema.description else "(none)"}
 """
-
-    if schema.published_at is None or schema.published_at > timezone.now():
-        formatted_schema += "Visibility: Private\n"
-
-    if schema.description:
-        formatted_schema += f"Description: {schema.description}\n"
 
     return formatted_schema
 
