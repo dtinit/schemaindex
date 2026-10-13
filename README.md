@@ -1,6 +1,15 @@
 # schemaindex
 
-A schema registry. [Schemas.Pub](https://schemas.pub) is the official instance hosted by the [Data Transfer Initiative](https://github.com/dtinit).
+A schema registry. [Schemas.Pub](https://schemas.pub)
+is the official instance hosted by the [Data Transfer Initiative](https://github.com/dtinit).
+
+How to use:
+
+1. Publish and discover schemas with an account at https://schemas.pub, assign
+   permanent URLs as schema ids.
+2. Get AI agent access at https://schemas.pub/mcp (using your account and OAuth)
+   to allow it to discover and work with public schemas
+3. Run a private instance for local MCP access if you have personal/private schemas
 
 ## Local setup
 
@@ -17,155 +26,50 @@ The settings default to `postgres://postgres:postgres@localhost:5432/schemaindex
 DJ_DATABASE_CONN_STRING=postgres://<user>:<password>@localhost:5432/<database>
 ```
 
-To access the database management portal, create a superuser for yourself with `python3 manage.py createsuperuser`.
+To create the database, run `createdb -U postgres schemaindex` (or use the user and database name from your `.env`).
 
-To start the project, run `python3 manage.py runserver`.
+To create the database tables, run `python3 manage.py migrate`. Run it again whenever you pull changes that include new migrations.
+
+To start the project, run:
+
+```sh
+uvicorn schemaindex.asgi:application --reload
+```
+
+The site will be at http://localhost:8000, and the MCP server at http://localhost:8000/mcp.
+
+You can also run `python3 manage.py runserver`, but it only serves the website: the MCP server runs alongside Django in the ASGI app, so it's only available through uvicorn.
 
 During local development, emails will output to the console instead of actually sending.
 
-## Personal Django settings override
+## Configuration
 
-Developers can set their own personal or per-workspace settings by creating `schemaindex/settings/personal.py` and configuring their desired values.
-
-```bash
-# schemaindex/settings/personal.py
-
-from .development import *
-
-CUSTOM_SETTING = 'personal'
-```
-
-This can be handy to modify settings temporarily or when developers have different preferences for their development experiences. As such, these personal settings are intentionally excluded from source control.
-
-## User Accounts
-
-By default, the project runs without user accounts and allows all requests without authentication.
-Set `ENABLE_ACCOUNTS` to `True` to support individual user accounts with required authorization for managing schemas, using the API, and using MCP.
-
-## Site name
-
-Set `SITE_NAME` to change the name shown throughout the site, in emails, and by the MCP server.
-
-## Utilites
-
-### Formsets
-
-We have JavaScript support for dynamic formsets as part of a form. For an example, see the "additional documentation" section of the [schema management form](core/templates/core/manage/schema.html).
-
-1. Pass a custom `prefix` to the formset, e.g: `formset = FormsetFactory(prefix="<Some custom formset id>")`.
-2. Create a `ul` element for the formset elements with the attribute `data-formset-list-id="<The formset prefix>"`.
-3. Render the formset's `empty_form` somewhere on the page inside an element with the attribute `data-formset-template-for-id="<The formset prefix>"`.
-4. Formset item templates should be fully contained within an element with the ".formset" class.
-5. To use buttons to add and remove formset items to and from the formset, use the attribute `data-formset-append-to-list-id="<The formset prefix>"` on the append button and `data-formset-remove-from-list-id="<The formset prefix>"` on the remove button.
-6. Inside a formset item, elements with the `data-formset-count` attribute will have their contents replaced with the current count of the formset item (e.g. "1" for the first formset item, "2" for the second, etc).
-7. To make formset items collapsible, add the `data-formset-expand-collapse-toggle` to some clickable element. This will toggle the ".formset--collapsible" class on the formset. Items within the formset which should be hidden when collapsed should have the ".formset-content--collapsible" class.
-
-### URL Format Select Field
-
-You can use `data-url-format-selector-for` for `<select>` inputs meant to control the format of files specified in another input.
-
-```html
-<input type="url" id="my-url-input" />
-<select data-url-format-selector-for="my-url-input">
-  <option value="markdown">Markdown</option>
-  <option value="plaintext">Plaintext</option>
-</select>
-```
-
-This will change the select value when the URL in `#my-url-input` changes to something with a matching file extension.
-
-### Stylesheets
-
-We use the CSS reset/normalizer from Tailwind named [preflight.css](core/static/css/preflight.css) which is fairly aggressive. Otherwise, all site styles are defined in [site.css](core/static/css/site.css) with global styles at the top and page styles at the bottom. We try to use BEM syntax where appropriate; for example, we have a `.button` class with modifiers like `.button--prominent` and `.button--danger`.
-
-## Python dev tooling
-
-Install dev requirements with `pip install -r requirements-dev.txt`.
-
-### Linting with Ruff
-
-You can run the linter by executing `ruff check`.
-
-To get type checking feedback in your code editor, [check here](https://docs.astral.sh/ruff/editors/setup/) for instructions. The configuration is in [ruff.toml](ruff.toml), but your editor/plugin should find it for you.
-
-### Formatting with Ruff
-
-You can format Python by executing `ruff format`.
-
-## Frontend dev tooling
-
-Frontend dev tools like ESLint are delivered via [npm](https://www.npmjs.com/), which is included with Node.js. To use the tools locally, you'll need to:
-
-1. Install [Node.js](https://nodejs.org).
-2. Run `npm install` wherever you cloned this repository to.
-
-### Linting with ESLint
-
-You can run the linter by executing `npm run lint`. If there are no issues, there won't be any output.
-
-To get linting feedback in your code editor, [check here](https://eslint.org/docs/latest/use/integrations) for instructions. The configuration file is named [eslint.config.js](eslint.config.js), but your editor/plugin should find it for you.
-
-### Formatting with Prettier
-
-You can format JavaScript and CSS files with `npm run format`.
-
-To enable formatting from your code editor, [check here](https://prettier.io/docs/en/editors) for instructions. The configuration is in [package.json](package.json), but your editor/plugin should find it for you.
-
-### Typechecking with TypeScript
-
-You can check JavaScript types with `npm run typecheck`.
-
-To get type checking feedback in your code editor, [check here](https://github.com/microsoft/TypeScript/wiki/TypeScript-Editor-Support) for instructions. The configuration file is named [tsconfig.json](tsconfig.json), but your editor/plugin should find it for you.
-
-Note that we only use TypeScript to _type check_ our JavaScript files; we do not _transpile_ from TypeScript to JavaScript. Don't try to write any TypeScript in this repository (except for declaration files like [globals.d.ts](globals.d.ts)). Check out the [TypeScript JSDoc Reference](https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html) to learn how to leverage types in JavaScript files.
-
-## Precommit checks/fixes
-
-When commiting relevant files with git, the following steps are performed:
-
-- Python files are linted and formatted. If issues are found, your commit will fail; please correct your issues and try again.
-- JavaScript files are linted, typechecked, and formatted. If issues are found, your commit will fail; please correct your issues and try again.
-- README.md and CSS files are formatted.
-
-### Bypass
-
-To skip precommit hooks, use the `--no-verify` option (eg `git commit -m "Yee haw" --no-verify`).
-
-## pip dependency management
-
-Direct project dependencies are listed in [requirements.in](requirements.in). Development dependencies (like linting and testing tools) can be added to [requirements-dev.in](requirements-dev.in).
-
-We use [`pip-tools`](https://pypi.org/project/pip-tools/) to automatically generate our [requirements.txt](requirements.txt) and [requirements-dev.txt](requirements-dev.txt) files. After changing dependencies, you can regenerate these files with the following commands:
-
-```bash
-pip-compile requirements.in -o requirements.txt
-pip-compile requirements-dev.in -o requirements-dev.txt
-```
-
-This strategy makes it easier for us to manage our top-level dependencies in the \*.in files while still locking down the full dependency graph in the \*.txt files.
-
-## Cloud Logging
-
-Basic log aggregation for Cloud Run.
-
-Set environment variable in Cloud Run: `USE_GCLOUD_LOGGING=1`
-
-For local development: Logs go to console (no Cloud Logging). The `USE_GCLOUD_LOGGING` variable should remain unset or set to `0`.
-
-## Schemas.Pub development
-
-[Schemas.Pub](https://schemas.pub) is an official [Data Transfer Initiative](https://github.com/dtinit)-hosted service.
-
-For Schemas.Pub development, it's recommended to use the following `schemaindex/settings/personal.py` configuration:
+To change settings for your instance, create `schemaindex/settings/personal.py`, import the development settings, and override the values you want:
 
 ```python
 # schemaindex/settings/personal.py
 
 from .development import *
 
-SITE_NAME = "Schemas.Pub"
-ENABLE_DTI_PAGES = True
+SITE_NAME = "Acme Schemas"
 ENABLE_ACCOUNTS = True
 ```
 
-See [Personal Django settings override](#personal-django-settings-override) for details.
+This file is excluded from source control, so your settings stay local and won't conflict with updates you pull.
+
+## User Accounts
+
+By default, the project runs without user accounts and allows all requests without authentication.
+Set `ENABLE_ACCOUNTS` to `True` to support individual user accounts with required authorization for managing schemas, using the API, and using MCP.
+
+With accounts off, you already have access to the database management portal at http://localhost:8000/admin. With accounts on, create a superuser for yourself with `python3 manage.py createsuperuser` to use it.
+
+Without accounts, every request has full admin access, so the server refuses to start if `ALLOWED_HOSTS` includes anything other than local addresses like `localhost`. To share an instance with other people, turn accounts on and add your server's hostname to `ALLOWED_HOSTS`.
+
+## Site name
+
+Set `SITE_NAME` to change the name shown throughout the site, in emails, and by the MCP server.
+
+## Contributing
+
+For code utilities, linting, formatting, and precommit checks, see [contribute.md](contribute.md).
