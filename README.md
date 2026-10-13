@@ -33,12 +33,8 @@ To create the database tables, run `python3 manage.py migrate`. Run it again whe
 To start the project, run:
 
 ```sh
-uvicorn schemaindex.asgi:application --reload
+python3 manage.py runserver
 ```
-
-The site will be at http://localhost:8000, and the MCP server at http://localhost:8000/mcp.
-
-You can also run `python3 manage.py runserver`, but it only serves the website: the MCP server runs alongside Django in the ASGI app, so it's only available through uvicorn.
 
 During local development, emails will output to the console instead of actually sending.
 
