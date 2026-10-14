@@ -46,10 +46,64 @@ class SchemaAdmin(admin.ModelAdmin):
         obj.delete(is_admin_change=True)
 
 
+# See #373 and #385.
+@admin.action(
+    description="Refresh $id values for selected JSON schema refs (can take a while!)"
+)
+def refresh_id_values(modeladmin, request, queryset):
+    """
+    For a queryset of SchemaRefs selected in the UI,
+    pull them from the database,
+    filter out any that are not JSON or not fetchable,
+    attempt to get the content, and finally (if successful)
+    reparse the id_value ($id)
+    """
+    schema_refs = [
+        schema_ref
+        for schema_ref in queryset
+        if schema_ref.language == "json" and schema_ref.is_content_fetchable
+    ]
+    changed_count = 0
+    failed_ids = []
+
+    for schema_ref in schema_refs:
+        old_id_value = schema_ref.id_value
+        try:
+            # Fetch up front so a failed fetch doesn't
+            # get saved as a missing $id
+            schema_ref.get_content(refresh=True, update_and_notify_on_failure=False)
+            # Content is cached; save will use it
+            # to parse id_value.
+            schema_ref.save(update_fields=["id_value"])
+            if schema_ref.id_value != old_id_value:
+                changed_count += 1
+
+        except Exception:
+            failed_ids.append(schema_ref.id)
+
+    queryset_total = queryset.count()
+    skipped_count = queryset_total - len(schema_refs)
+    failed_count = len(failed_ids)
+    messages.success(
+        request,
+        f"Finished processing {queryset_total} SchemaRefs: "
+        f"{skipped_count} skipped (not JSON or not fetchable), "
+        f"{changed_count} id_values updated, "
+        f"{failed_count} failed.",
+    )
+    if failed_ids:
+        messages.warning(
+            request,
+            f"Failed to refresh id_value for {failed_count} schema refs "
+            f"(IDs: {', '.join(str(id) for id in failed_ids)}).",
+        )
+
+
 @register(SchemaRef)
 class SchemaRefAdmin(admin.ModelAdmin):
-    list_display = ["name", "schema", "url"]
+    list_display = ["id", "name", "schema", "url"]
     search_fields = ["schema__name", "schema__created_by__profile__organization__name"]
+    actions = [refresh_id_values]
 
 
 @register(DocumentationItem)
