@@ -610,9 +610,10 @@ class ReferenceItem(BaseModel):
         content_url_hash = hashlib.sha256(self._get_content_url().encode()).hexdigest()
         return f"content:{content_url_hash}"
 
-    def _fetch_content(self):
-        # Fetch content from the remote URL with retry logic
-        # Failed fetches raise, so the caller (get_content) never caches a failure response
+    def _fetch_content(self, update_and_notify_on_failure=True):
+        """
+        Fetch content from the remote URL with retry logic
+        """
         content_url = self._get_content_url()
 
         # Retry logic with exponential backoff
@@ -637,39 +638,45 @@ class ReferenceItem(BaseModel):
                     time.sleep(backoff_factor * (2**i))  # Exponential backoff
                 else:
                     # All retries exhausted, handle as a failure.
-
-                    # Only notify the user if it's an HTTPError
-                    # and hasn't already been failing
-                    is_http_error = isinstance(e, requests.exceptions.HTTPError)
-                    if is_http_error and self.content_fetch_failing_since is None:
-                        self.content_fetch_failing_since = timezone.now()
-                        self._send_failure_notification_email()
-                        self.save()
+                    if update_and_notify_on_failure:
+                        # Only notify the user if it's an HTTPError
+                        # and hasn't already been failing
+                        is_http_error = isinstance(e, requests.exceptions.HTTPError)
+                        if is_http_error and self.content_fetch_failing_since is None:
+                            self.content_fetch_failing_since = timezone.now()
+                            self._send_failure_notification_email()
+                            self.save()
 
                     raise last_exception  # Re-raise the last exception after all retries and email logic
 
-    def get_content(self):
+    def get_content(self, refresh=False, update_and_notify_on_failure=True):
+        """
+        Fetch remote file content, using cache when available
+        unless refresh=True
+        """
         if not self.is_content_fetchable:
             return ""
 
-        # Fetch remote file content, using cache when available
         cache_key = self._cache_key()
 
-        try:
-            cached = cache.get(cache_key)
-        except Exception as exc:
-            logger.warning(
-                "content_cache_backend_fallback cache_key=%s "
-                "operation=get exception=%s message=%s",
-                cache_key,
-                exc.__class__.__name__,
-                exc,
-            )
-            cached = None
-        if cached is not None:
-            return cached
+        if not refresh:
+            try:
+                cached = cache.get(cache_key)
+            except Exception as exc:
+                logger.warning(
+                    "content_cache_backend_fallback cache_key=%s "
+                    "operation=get exception=%s message=%s",
+                    cache_key,
+                    exc.__class__.__name__,
+                    exc,
+                )
+                cached = None
+            if cached is not None:
+                return cached
 
-        content = self._fetch_content()
+        content = self._fetch_content(
+            update_and_notify_on_failure=update_and_notify_on_failure
+        )
 
         try:
             cache.set(cache_key, content, timeout=settings.CONTENT_CACHE_TTL)
