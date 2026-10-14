@@ -19,6 +19,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from urllib.parse import urlparse
+import hashlib
 import time
 import requests
 import requests.exceptions
@@ -587,13 +588,12 @@ class ReferenceItem(BaseModel):
         return self.url
 
     def save(self, *args, **kwargs):
-        # When the URL changes on an existing row, reset the failure
-        # timestamp AND evict the cached body.
+        # When the URL changes on an existing row,
+        # reset the failure timestamp
         if self.id:
             original = self.__class__.objects.get(id=self.id)
             if original.url != self.url:
                 self.content_fetch_failing_since = None
-                self.delete_cached_content()
 
         super().save(*args, **kwargs)
 
@@ -607,13 +607,8 @@ class ReferenceItem(BaseModel):
         return self.url
 
     def _cache_key(self):
-        # Build a cache key from the model type and primary key.
-        # Includes class name because ReferenceItem is abstract —
-        # SchemaRef pk=1 and DocumentationItem pk=1 can coexist.
-        return f"content:{self.__class__.__name__.lower()}:{self.pk}"
-
-    def delete_cached_content(self):
-        cache.delete(self._cache_key())
+        content_url_hash = hashlib.sha256(self._get_content_url().encode()).hexdigest()
+        return f"content:{content_url_hash}"
 
     def _fetch_content(self):
         # Fetch content from the remote URL with retry logic

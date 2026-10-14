@@ -10,7 +10,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.exceptions import ValidationError
 from django.test import override_settings
 from django.contrib.auth.models import User
-from core.models import Schema, SchemaRef, APIKey, Profile
+from core.models import Schema, SchemaRef, DocumentationItem, APIKey, Profile
 from factories import (
     UserFactory,
     SchemaRefFactory,
@@ -87,14 +87,14 @@ def test_reference_item_github_url_info_converts_raw_url_to_repo(repo_url, raw_u
 
 @pytest.mark.django_db
 def test_reference_item_content_is_fetched_from_raw_url_if_available():
-    schema_ref = SchemaRefFactory(
-        url="https://github.com/userorg/reponame/blob/branch/path/to/file.json"
-    )
+    url = "https://github.com/userorg/reponame/blob/branch/path/to/file.json"
+    raw_url = SchemaRef(url=url).url_provider_info.raw_url
     mock_content = '{"MOCK_CONTENT":true}'
     # Make sure the URL we expect to be fetched isn't the one we provided
-    assert schema_ref.url != schema_ref.url_provider_info.raw_url
+    assert url != raw_url
     with requests_mock.Mocker() as m:
-        m.get(schema_ref.url_provider_info.raw_url, text=mock_content)
+        m.get(raw_url, text=mock_content)
+        schema_ref = SchemaRefFactory.create(url=url)
         assert schema_ref.get_content() == mock_content
 
 
@@ -253,19 +253,33 @@ def test_reference_item_url_change_invalidates_cached_content():
         assert schema_ref.get_content() == "new content"
 
 
+def test_reference_item_cache_key_is_url_based():
+    schema_ref = SchemaRef(url="https://example.com/definition.json")
+    same_url_doc_item = DocumentationItem(url="https://example.com/definition.json")
+    other_schema_ref = SchemaRef(url="https://example.com/other.json")
+
+    assert schema_ref._cache_key() == same_url_doc_item._cache_key()
+    assert schema_ref._cache_key() != other_schema_ref._cache_key()
+
+
+def test_reference_item_cache_key_is_shared_by_github_repo_and_raw_urls():
+    repo_url = "https://github.com/userorg/reponame/blob/branch/path/to/file.json"
+    schema_ref = SchemaRef(url=repo_url)
+    raw_schema_ref = SchemaRef(url=schema_ref.url_provider_info.raw_url)
+
+    assert schema_ref._cache_key() == raw_schema_ref._cache_key()
+
+
 @pytest.mark.django_db
-def test_reference_item_cache_key_is_class_scoped():
-    schema_ref = SchemaRefFactory.create(url="https://example.com/definition")
-    doc_item = DocumentationItemFactory.create(url="https://example.com/readme.md")
+def test_schema_ref_content_fetched_on_save_is_reused():
+    url = "https://example.com/definition.json"
+    with requests_mock.Mocker() as m:
+        m.get(url, text='{"$id": "https://example.com/definition"}')
+        schema_ref = SchemaRefFactory.create(url=url)
+        assert m.call_count == 1
 
-    # Force the same pk to make the collision risk explicit. Even if
-    # both rows share pk=N, the cache keys must differ.
-    schema_ref.pk = 1
-    doc_item.pk = 1
-
-    assert schema_ref._cache_key() != doc_item._cache_key()
-    assert "schemaref" in schema_ref._cache_key()
-    assert "documentationitem" in doc_item._cache_key()
+        schema_ref.get_content()
+        assert m.call_count == 1
 
 
 @pytest.mark.django_db
@@ -370,6 +384,8 @@ def test_schema_ref_reparses_new_id_value_from_content_on_save():
         m.get(mock_url, text='{"$id":"https://example.com/old_id"}')
         schema_ref = SchemaRefFactory.create(url=mock_url)
         m.get(mock_url, text=f'{{"$id": "{new_mock_id_value}"}}')
+        # Content is cached by URL, so simulate the cache entry expiring
+        cache.clear()
         schema_ref.save()
         schema_ref.refresh_from_db()
         assert schema_ref.id_value == new_mock_id_value
@@ -522,3 +538,18 @@ def test_schema_ref_get_content_ignores_untrusted_domain():
         schema_ref = SchemaRefFactory.create(url=mock_url)
         content = schema_ref.get_content()
         assert content == ""
+
+
+@pytest.mark.django_db
+def test_new_json_schema_refs_get_their_own_id_value():
+    # Regression test for #385
+    first_url = "https://example.com/first.json"
+    second_url = "https://example.com/second.json"
+    with requests_mock.Mocker() as m:
+        m.get(first_url, text='{"$id": "https://example.com/first"}')
+        m.get(second_url, text='{"$id": "https://example.com/second"}')
+        first = SchemaRefFactory.create(url=first_url)
+        second = SchemaRefFactory.create(url=second_url)
+
+    assert first.id_value == "https://example.com/first"
+    assert second.id_value == "https://example.com/second"
