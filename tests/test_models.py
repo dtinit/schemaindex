@@ -128,6 +128,22 @@ def test_reference_item_get_content_failure_sends_email_and_sets_timestamp(mock_
 
 @pytest.mark.django_db
 @patch("core.models.time.sleep", return_value=None)
+def test_reference_item_get_content_failure_no_email_or_timestamp_when_update_and_notify_disabled(
+    mock_sleep,
+):
+    schema_ref = SchemaRefFactory.create(url="https://example.com/definition")
+    with requests_mock.Mocker() as m:
+        m.get(schema_ref.url, status_code=500)
+        with pytest.raises(requests.exceptions.HTTPError):
+            schema_ref.get_content(update_and_notify_on_failure=False)
+
+        schema_ref.refresh_from_db()
+        assert schema_ref.content_fetch_failing_since is None
+        assert len(mail.outbox) == 0
+
+
+@pytest.mark.django_db
+@patch("core.models.time.sleep", return_value=None)
 def test_reference_item_get_content_subsequent_failure_no_email_or_timestamp_change(
     mock_sleep,
 ):
@@ -233,6 +249,27 @@ def test_reference_item_get_content_returns_cached_on_second_call():
         second_result = schema_ref.get_content()
         assert second_result == mock_content
         assert m.call_count == 1  # Still 1 - no second request made
+
+
+@pytest.mark.django_db
+def test_reference_item_get_content_refresh_bypasses_cache():
+    schema_ref = SchemaRefFactory.create(url="https://example.com/definition")
+    with requests_mock.Mocker() as m:
+        m.get(schema_ref.url, text="old content")
+        assert schema_ref.get_content() == "old content"
+        assert m.call_count == 1
+
+        m.get(schema_ref.url, text="new content")
+        # Without refresh, the stale cached content is returned
+        assert schema_ref.get_content() == "old content"
+        assert m.call_count == 1
+
+        assert schema_ref.get_content(refresh=True) == "new content"
+        assert m.call_count == 2
+
+        # The refreshed content replaced the cached content
+        assert schema_ref.get_content() == "new content"
+        assert m.call_count == 2
 
 
 @pytest.mark.django_db
