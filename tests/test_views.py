@@ -1,3 +1,4 @@
+import logging
 from urllib.parse import urlparse
 import pytest
 import requests
@@ -474,6 +475,30 @@ def test_homepage_id_value_miss_falls_back_to_search():
     SchemaRefFactory(schema=schema)
     response = Client().get(f"/?search_query={search_query}")
     assert schema.name in str(response.content)
+
+
+@pytest.mark.django_db
+def test_homepage_id_value_miss_is_logged(caplog):
+    search_query = "http://example.com/definition.json"
+    with caplog.at_level(logging.INFO):
+        Client().get(f"/?search_query={search_query}")
+    assert any(
+        "homepage search $id miss" in record.getMessage() for record in caplog.records
+    )
+
+
+@pytest.mark.django_db
+def test_homepage_id_value_match_is_not_logged_as_miss(caplog):
+    mock_definition_url = "http://example.com/definition.json"
+    with requests_mock.Mocker() as m:
+        m.get(mock_definition_url, text=f'{{"$id": "{mock_definition_url}"}}')
+        SchemaRefFactory(url=mock_definition_url)
+
+    with caplog.at_level(logging.INFO):
+        Client().get(f"/?search_query={mock_definition_url}")
+    assert not any(
+        "homepage search $id miss" in record.getMessage() for record in caplog.records
+    )
 
 
 def test_oauth_authorize_sends_anonymous_users_to_the_allauth_login():

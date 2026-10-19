@@ -149,9 +149,9 @@ def index(request):
         else filtered_by_documentation_type.none()
     )
     has_exact_id_value_match = id_value_matches.exists()
-    if id_value_matches and not has_exact_id_value_match:
+    if is_id_value_search and not has_exact_id_value_match:
         logging.info(
-            'homepage search $id miss: no schemas found for "%s.', search_query
+            'homepage search $id miss: no schemas found for "%s".', search_query
         )
 
     # If it was an $id lookup with matching results, use them.
