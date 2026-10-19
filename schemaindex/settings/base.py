@@ -57,6 +57,8 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "oauth2_provider",
+    "hijack",
+    "hijack.contrib.admin",
 ]
 
 MIDDLEWARE = [
@@ -66,6 +68,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "core.middleware.local_user.LocalUserMiddleware",
+    "hijack.middleware.HijackUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
@@ -145,6 +148,8 @@ ACCOUNT_SIGNUP_FIELDS = ["email*"]
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 LOGIN_URL = "/account/login/"
 LOGIN_REDIRECT_URL = "/account/profile/"
+
+HIJACK_PERMISSION_CHECK = "core.permissions.hijack_superusers_with_accounts"
 
 # This is deprecated, but leaving it undefined causes more warnings
 # than the one deprication warning

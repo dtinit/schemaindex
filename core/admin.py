@@ -1,6 +1,8 @@
 from django.contrib import admin, messages
 from django.contrib.admin.decorators import register
 from django.core.cache import cache
+from django.urls import reverse
+from hijack.contrib.admin import HijackUserAdminMixin
 from .models import (
     Schema,
     SchemaRef,
@@ -18,10 +20,17 @@ def format_date_only(obj, date_field):
 
 
 @register(Schema)
-class SchemaAdmin(admin.ModelAdmin):
+class SchemaAdmin(HijackUserAdminMixin, admin.ModelAdmin):
     list_display = ["name", "formatted_is_published", "get_org", "formatted_created_at"]
     list_filter = ("created_at", "published_at")
     readonly_fields = ("is_published", "get_org")
+
+    def get_hijack_user(self, obj):
+        return obj.created_by
+
+    def get_hijack_success_url(self, request, obj):
+        # Take the impersonator to the schema management form
+        return reverse("manage_schema", args=[obj.id])
 
     @admin.display(description="Created At", ordering="created_at")
     def formatted_created_at(self, obj):
@@ -132,9 +141,12 @@ def reset_rate_limit(modeladmin, request, queryset):
 
 
 @register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
+class ProfileAdmin(HijackUserAdminMixin, admin.ModelAdmin):
     list_display = ["user", "organization"]
     actions = [reset_rate_limit]
+
+    def get_hijack_user(self, obj):
+        return obj.user
 
 
 @register(PermanentURL)

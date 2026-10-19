@@ -25,6 +25,7 @@ from oauth2_provider.urls import metadata_urlpatterns
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("hijack/", include("hijack.urls")),
 ]
 
 if settings.ENABLE_ACCOUNTS:
