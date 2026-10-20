@@ -78,7 +78,10 @@ Account
       You haven't added any schemas yet.
     </p>
     {% endif %}
-    <a href="{% url 'manage_schema_new' %}" class="button button--prominent">Add schema</a>
+    <div class="button-group">
+      <a href="{% url 'manage_schema_upload_manifest' %}" class="button">Upload manifest</a>
+      <a href="{% url 'manage_schema_new' %}" class="button button--prominent">Add schema</a>
+    </div>
   </section>
   {% if request.user.profile.organization %}
   <section class="text--secondary">
