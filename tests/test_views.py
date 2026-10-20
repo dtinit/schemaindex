@@ -18,6 +18,7 @@ from core.models import Schema, DocumentationItem, Profile
 from core.forms import PermanentURLForm
 from django.test import Client
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from pytest_django.asserts import assertRedirects
 from unittest.mock import patch
 from utils import assert_schema_matches_manifest
@@ -437,6 +438,165 @@ def test_schema_export_sends_manifest():
     assert response.status_code == 200
     manifest = json.loads(response.content)
     assert_schema_matches_manifest(schema, manifest)
+
+
+def _upload_manifest_file(content):
+    return SimpleUploadedFile("manifest.json", content, content_type="application/json")
+
+
+def test_upload_manifest_requires_login():
+    response = Client().get("/manage/schema/upload-manifest")
+    assert response.status_code == 302
+    assert response["Location"].startswith(settings.LOGIN_URL)
+
+
+@pytest.mark.django_db
+def test_upload_manifest_creates_schema():
+    user = UserFactory()
+    client = Client()
+    client.force_login(user)
+    manifest = {
+        "name": "Mock schema",
+        "description": "A test schema that is definitely real",
+        "documents": {
+            "https://example.com/definition.json": {
+                "type": "definition",
+                "name": "Mock definition",
+            },
+            "https://example.com/readme.md": {
+                "type": "documentation",
+                "name": "README.md",
+                "role": "readme",
+                "format": "markdown",
+            },
+            "https://example.com/implementation": {
+                "type": "implementation",
+                "isOpenSource": True,
+            },
+        },
+    }
+    response = client.post(
+        "/manage/schema/upload-manifest",
+        {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
+    )
+
+    schema = Schema.objects.get(created_by=user)
+    assertRedirects(response, f"/schemas/{schema.id}")
+    assert_schema_matches_manifest(schema, manifest)
+
+
+@pytest.mark.django_db
+def test_upload_manifest_ignores_public_value():
+    user = UserFactory()
+    client = Client()
+    client.force_login(user)
+    manifest = {
+        "name": "Mock schema",
+        "public": True,
+        "documents": {"https://example.com/definition.json": {"type": "definition"}},
+    }
+    client.post(
+        "/manage/schema/upload-manifest",
+        {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
+    )
+
+    schema = Schema.objects.get(created_by=user)
+    assert schema.published_at is None
+    assert_schema_matches_manifest(schema, manifest | {"public": False})
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "content, expected_error",
+    [
+        (b"not json", "Undecodable JSON: Expecting value"),
+        (b'{"name": "\xff"}', "The uploaded file must be UTF-8 encoded JSON"),
+        (
+            b'{"not_a_manifest": true}',
+            "Incorrect manifest format: 'name' is a required property",
+        ),
+        (
+            b'{"name": 123, "documents": {}}',
+            "Incorrect manifest format: 123 is not of type 'string' (at $.name)",
+        ),
+    ],
+)
+def test_upload_manifest_rejects_invalid_files(content, expected_error):
+    client = Client()
+    client.force_login(UserFactory())
+    response = client.post(
+        "/manage/schema/upload-manifest",
+        {"manifest_file": _upload_manifest_file(content)},
+    )
+
+    assert response.status_code == 200
+    assert response.context["form"].errors["manifest_file"] == [expected_error]
+    assert not Schema.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "manifest, expected_ending",
+    [
+        (list(range(10000)), " is not of type 'object'"),
+        (
+            {
+                "name": "Mock schema",
+                "documents": {
+                    f"https://example.com/implementation/{i}": {
+                        "type": "implementation"
+                    }
+                    for i in range(1000)
+                },
+            },
+            " should not be valid under {'description': 'Ensure at least one property value is a definition', 'additionalProperties': {'not': {'$ref': '#/$defs/definition'}}} (at $.documents)",
+        ),
+    ],
+)
+def test_upload_manifest_trims_long_validation_errors(manifest, expected_ending):
+    client = Client()
+    client.force_login(UserFactory())
+    response = client.post(
+        "/manage/schema/upload-manifest",
+        {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
+    )
+
+    [error] = response.context["form"].errors["manifest_file"]
+    assert len(error) < 400
+    assert "..." in error
+    assert error.endswith(expected_ending)
+
+
+@pytest.mark.django_db
+def test_upload_manifest_requires_a_file():
+    client = Client()
+    client.force_login(UserFactory())
+    response = client.post("/manage/schema/upload-manifest", {})
+
+    assert response.status_code == 200
+    assert "manifest_file" in response.context["form"].errors
+    assert not Schema.objects.exists()
+
+
+@pytest.mark.django_db
+def test_upload_manifest_rejects_large_files(settings):
+    settings.DATA_UPLOAD_MAX_MEMORY_SIZE = 100
+    client = Client()
+    client.force_login(UserFactory())
+    manifest = {
+        "name": "A" * 200,
+        "documents": {"https://example.com/definition.json": {"type": "definition"}},
+    }
+    response = client.post(
+        "/manage/schema/upload-manifest",
+        {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
+    )
+
+    assert response.status_code == 200
+    assert response.context["form"].errors["manifest_file"] == [
+        "Manifest files must be 100\xa0bytes or smaller"
+    ]
+    assert not Schema.objects.exists()
 
 
 @pytest.mark.django_db
