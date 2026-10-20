@@ -24,7 +24,7 @@ from .models import (
     Implementation,
     PublishedSchemaConflictError,
 )
-from .forms import SchemaForm, PermanentURLForm
+from .forms import SchemaForm, PermanentURLForm, ManifestUploadForm
 
 MAX_SCHEMA_RESULT_COUNT = 30
 
@@ -385,6 +385,22 @@ def manage_schema(request, schema_id=None):
         "core/manage/schema.html",
         {"schema": schema, "is_new": schema is None, "form": form},
     )
+
+
+@login_required
+def manage_schema_upload_manifest(request):
+    if request.method == "POST":
+        form = ManifestUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            # Override the visibilty to make all new schemas private
+            manifest = form.cleaned_data["manifest_file"] | {"public": False}
+            schema = Schema(created_by=request.user)
+            schema.overwrite_from_manifest(manifest)
+            return redirect("schema_detail", schema_id=schema.id)
+    else:
+        form = ManifestUploadForm()
+
+    return render(request, "core/manage/upload_manifest.html", {"form": form})
 
 
 @login_required

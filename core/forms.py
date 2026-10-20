@@ -3,7 +3,9 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.conf import settings
+from django.template.defaultfilters import filesizeformat
 import requests
+from jsonschema import ValidationError as JSONValidationError
 from .models import DocumentationItem, SchemaRef, Schema, PermanentURL
 from .utils import (
     guess_specification_language_by_extension,
@@ -333,6 +335,38 @@ class SchemaForm(forms.Form):
             and is_schema_refs_formset_valid
             and is_implementation_formset_valid
         )
+
+
+class ManifestUploadForm(forms.Form):
+    manifest_file = forms.FileField(
+        label="Manifest file",
+        widget=forms.FileInput(attrs={"accept": ".json,application/json"}),
+    )
+
+    def clean_manifest_file(self):
+        manifest_file = self.cleaned_data["manifest_file"]
+        # Django doesn't limit the size of uploaded files,
+        # so we apply the same limit the API gets from DATA_UPLOAD_MAX_MEMORY_SIZE
+        if manifest_file.size > settings.DATA_UPLOAD_MAX_MEMORY_SIZE:
+            raise ValidationError(
+                f"Manifest files must be {filesizeformat(settings.DATA_UPLOAD_MAX_MEMORY_SIZE)} or smaller"
+            )
+
+        try:
+            return Schema.validate_manifest(manifest_file.read())
+        except json.JSONDecodeError as e:
+            raise ValidationError(f"Undecodable JSON: {e.msg}")
+        except UnicodeDecodeError:
+            raise ValidationError("The uploaded file must be UTF-8 encoded JSON")
+        except JSONValidationError as e:
+            # jsonschema messages start with the invalid value, which could be
+            # the entire file, so trim the middle while keeping the explanation at the end
+            message = e.message
+            if len(message) > 300:
+                message = f"{message[:50]}...{message[-250:]}"
+            # Point to where the error is unless it's at the top level of the manifest
+            location = f" (at {e.json_path})" if e.absolute_path else ""
+            raise ValidationError(f"Incorrect manifest format: {message}{location}")
 
 
 dot_slash_slug_character_validator = RegexValidator(
