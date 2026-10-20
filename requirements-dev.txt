@@ -73,6 +73,7 @@ django==5.2.5
     #   -c requirements.txt
     #   -r requirements.in
     #   django-allauth
+    #   django-hijack
     #   django-oauth-toolkit
     #   django-redis
     #   django-storages
@@ -81,6 +82,10 @@ django-allauth==65.11.0
     #   -c requirements.txt
     #   -r requirements.in
 django-environ==0.11.2
+    # via
+    #   -c requirements.txt
+    #   -r requirements.in
+django-hijack==3.7.9
     # via
     #   -c requirements.txt
     #   -r requirements.in
