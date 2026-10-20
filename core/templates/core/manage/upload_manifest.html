@@ -7,10 +7,7 @@ Upload Manifest
   <section class="main-content form-container">
     <h1>Upload manifest</h1>
     <p>
-      Upload a <a href="https://id.schemas.pub/o/DTI/manifest.schema.json">Schemas.Pub manifest</a> file to add a new schema.
-    </p>
-    <p>
-      A schema uploaded using this form will be added as a private draft regardless of its <code>public</code> value, so you can check it over before publishing.
+      Upload a <a href="https://id.schemas.pub/o/DTI/manifest.schema.json">Schemas.Pub manifest</a> file to add a new schema. New schemas are always private even if <code>public</code> is <code>true</code>, and you'll be able to publish the schema when you're ready.
     </p>
     <form action="{% url 'manage_schema_upload_manifest' %}" method="POST" enctype="multipart/form-data">
       {% csrf_token %}
