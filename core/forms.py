@@ -1,4 +1,5 @@
 import json
+import reprlib
 from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
@@ -359,11 +360,9 @@ class ManifestUploadForm(forms.Form):
         except UnicodeDecodeError:
             raise ValidationError("The uploaded file must be UTF-8 encoded JSON")
         except JSONValidationError as e:
-            # jsonschema messages start with the invalid value, which could be
-            # the entire file, so trim the middle while keeping the explanation at the end
-            message = e.message
-            if len(message) > 300:
-                message = f"{message[:50]}...{message[-250:]}"
+            # jsonschema messages include the invalid value, which could be
+            # the entire file, so abbreviate it wherever it appears
+            message = e.message.replace(repr(e.instance), reprlib.repr(e.instance))
             # Point to where the error is unless it's at the top level of the manifest
             location = f" (at {e.json_path})" if e.absolute_path else ""
             raise ValidationError(f"Incorrect manifest format: {message}{location}")

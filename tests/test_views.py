@@ -551,6 +551,15 @@ def test_upload_manifest_rejects_invalid_files(content, expected_error):
             },
             " should not be valid under {'description': 'Ensure at least one property value is a definition', 'additionalProperties': {'not': {'$ref': '#/$defs/definition'}}} (at $.documents)",
         ),
+        (
+            {
+                "name": ["y" * 2000],
+                "documents": {
+                    "https://example.com/definition.json": {"type": "definition"}
+                },
+            },
+            "['yyyyyyyyyyyy...yyyyyyyyyyyyy'] is not of type 'string' (at $.name)",
+        ),
     ],
 )
 def test_upload_manifest_trims_long_validation_errors(manifest, expected_ending):
@@ -562,7 +571,7 @@ def test_upload_manifest_trims_long_validation_errors(manifest, expected_ending)
     )
 
     [error] = response.context["form"].errors["manifest_file"]
-    assert len(error) < 400
+    assert len(error) < 500
     assert "..." in error
     assert error.endswith(expected_ending)
 
