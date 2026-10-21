@@ -427,6 +427,33 @@ a.button--primary:hover {
   cursor: pointer;
 }
 
+.field--file input {
+  cursor: pointer;
+  padding: 1rem;
+  border: 1px dashed #666;
+  background: #444;
+  color: var(--text-secondary);
+}
+
+.field--file input::file-selector-button {
+  cursor: pointer;
+  margin-inline-end: 1rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid #666;
+  border-radius: 6px;
+  background: #222;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.field--file input::file-selector-button:hover {
+  background: #333;
+}
+
+.field--file label {
+  cursor: pointer;
+}
+
 .field .input-group {
   display: flex;
   align-items: center;

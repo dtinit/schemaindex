@@ -351,6 +351,27 @@
       });
     });
 
+    // Clear server-rendered errors once the user picks a different file
+    Array.from(
+      document.querySelectorAll('.field--file.field--has-errors')
+    ).forEach((fieldElement) => {
+      fieldElement.addEventListener(
+        'change',
+        (event) => {
+          fieldElement.classList.remove('field--has-errors');
+          const errorListElement = fieldElement.querySelector('.errorlist');
+          if (errorListElement) {
+            errorListElement.remove();
+          }
+          // Django marks inputs with errors as invalid for screen readers
+          if (event.target instanceof HTMLElement) {
+            event.target.removeAttribute('aria-invalid');
+          }
+        },
+        { once: true }
+      );
+    });
+
     setTimeout(() => {
       Array.from(document.querySelectorAll('.messages .message')).forEach(
         (element) => {

@@ -27,6 +27,11 @@ urlpatterns = [
     path("manage/schema/<int:schema_id>", views.manage_schema, name="manage_schema"),
     path("manage/schema/new", views.manage_schema, name="manage_schema_new"),
     path(
+        "manage/schema/upload-manifest",
+        views.manage_schema_upload_manifest,
+        name="manage_schema_upload_manifest",
+    ),
+    path(
         "manage/schema/<int:schema_id>/delete",
         views.manage_schema_delete,
         name="manage_schema_delete",
