@@ -32,6 +32,11 @@ urlpatterns = [
         name="manage_schema_upload_manifest",
     ),
     path(
+        "manage/schema/<int:schema_id>/replace",
+        views.manage_schema_upload_manifest,
+        name="manage_schema_replace",
+    ),
+    path(
         "manage/schema/<int:schema_id>/delete",
         views.manage_schema_delete,
         name="manage_schema_delete",

@@ -609,6 +609,105 @@ def test_upload_manifest_rejects_large_files(settings):
 
 
 @pytest.mark.django_db
+def test_replace_manifest_404s_for_other_users_schemas():
+    schema = SchemaFactory()
+    client = Client()
+    client.force_login(UserFactory())
+    response = client.get(f"/manage/schema/{schema.id}/replace")
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_replace_manifest_keeps_private_schemas_private():
+    schema = SchemaFactory(published_at=None)
+    SchemaRefFactory(schema=schema, url="https://example.com/old.json")
+    client = Client()
+    client.force_login(schema.created_by)
+    manifest = {
+        "name": "Replacement schema",
+        "public": True,
+        "documents": {"https://example.com/definition.json": {"type": "definition"}},
+    }
+    response = client.post(
+        f"/manage/schema/{schema.id}/replace",
+        {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
+    )
+
+    assertRedirects(response, f"/schemas/{schema.id}")
+    schema.refresh_from_db()
+    assert_schema_matches_manifest(schema, manifest | {"public": False})
+
+
+@pytest.mark.django_db
+def test_replace_manifest_updates_public_schemas():
+    schema = SchemaFactory()
+    client = Client()
+    client.force_login(schema.created_by)
+    manifest = {
+        "name": "Replacement schema",
+        "public": True,
+        "documents": {"https://example.com/definition.json": {"type": "definition"}},
+    }
+    response = client.post(
+        f"/manage/schema/{schema.id}/replace",
+        {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
+    )
+
+    assertRedirects(response, f"/schemas/{schema.id}")
+    schema.refresh_from_db()
+    assert_schema_matches_manifest(schema, manifest)
+
+
+@pytest.mark.django_db
+def test_replace_manifest_prevents_unpublishing_schemas():
+    schema = SchemaFactory()
+    client = Client()
+    client.force_login(schema.created_by)
+    manifest = {
+        "name": "Replacement schema",
+        "documents": {"https://example.com/definition.json": {"type": "definition"}},
+    }
+    response = client.post(
+        f"/manage/schema/{schema.id}/replace",
+        {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
+    )
+
+    assert response.status_code == 200
+    [error] = response.context["form"].errors["manifest_file"]
+    assert "Public schemas cannot be made private" in error
+    # The page shouldn't display the rejected manifest's values
+    assert response.context["schema"].name != "Replacement schema"
+    schema.refresh_from_db()
+    assert schema.name != "Replacement schema"
+    assert schema.published_at is not None
+
+
+@pytest.mark.django_db
+def test_replace_manifest_prevents_published_conflicts():
+    schema = SchemaFactory()
+    url = "https://example.com/definition.json"
+    SchemaRefFactory(schema=SchemaFactory(), url=url)
+    client = Client()
+    client.force_login(schema.created_by)
+    manifest = {
+        "name": "Replacement schema",
+        "public": True,
+        "documents": {url: {"type": "definition"}},
+    }
+    response = client.post(
+        f"/manage/schema/{schema.id}/replace",
+        {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
+    )
+
+    assert response.status_code == 200
+    [error] = response.context["form"].errors["manifest_file"]
+    assert "is already using one of the URL values" in error
+    schema.refresh_from_db()
+    assert schema.name != "Replacement schema"
+    assert not schema.schemaref_set.filter(url=url).exists()
+
+
+@pytest.mark.django_db
 def test_homepage_search_is_stemmed():
     schema = SchemaFactory(name="Invoice Schema")
     SchemaRefFactory(schema=schema)
