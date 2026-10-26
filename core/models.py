@@ -381,7 +381,7 @@ class Schema(BaseModel):
                     },
                 )
                 raise ValidationError(
-                    f"`public: true` was set, but a public schema ({conflict_url})"
+                    f"`public: true` was set, but a public schema ({conflict_url}) "
                     + f"is already using one of the {e.reason} values "
                     + f"used in this schema. Please contact a {settings.SITE_NAME} administrator."
                 )

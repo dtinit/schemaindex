@@ -6,7 +6,7 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import Http404, JsonResponse
 from django.conf import settings
 from django.urls import reverse
@@ -388,19 +388,42 @@ def manage_schema(request, schema_id=None):
 
 
 @login_required
-def manage_schema_upload_manifest(request):
+def manage_schema_upload_manifest(request, schema_id=None):
+    schema = (
+        get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
+        if schema_id
+        else None
+    )
+    is_new = schema is None
+
     if request.method == "POST":
         form = ManifestUploadForm(request.POST, request.FILES)
         if form.is_valid():
-            # Override the visibilty to make all new schemas private
-            manifest = form.cleaned_data["manifest_file"] | {"public": False}
-            schema = Schema(created_by=request.user)
-            schema.overwrite_from_manifest(manifest)
-            return redirect("schema_detail", schema_id=schema.id)
+            manifest = form.cleaned_data["manifest_file"]
+            # Prevent users from publishing a schema through
+            # this view by overriding the manifest's public value.
+            if is_new or not schema.published_at:
+                manifest |= {"public": False}
+            schema = schema or Schema(created_by=request.user)
+            try:
+                schema.overwrite_from_manifest(manifest)
+                return redirect("schema_detail", schema_id=schema.id)
+            except ValidationError as e:
+                # overwrite_from_manifest rolls back database changes on failure
+                # (eg a conflict with another public schema, or an attempt to
+                # make a public schema private). Refresh the schema to its
+                # persisted state.
+                if schema.pk:
+                    schema.refresh_from_db()
+                form.add_error("manifest_file", e)
     else:
         form = ManifestUploadForm()
 
-    return render(request, "core/manage/upload_manifest.html", {"form": form})
+    return render(
+        request,
+        "core/manage/upload_manifest.html",
+        {"schema": schema, "is_new": is_new, "form": form},
+    )
 
 
 @login_required
