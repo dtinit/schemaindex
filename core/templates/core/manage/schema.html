@@ -16,7 +16,7 @@ Edit Schema
   </div>
   {% endif %}
   <section class="main-content form-container">
-    <form action="{% if is_new %}{% url 'manage_schema_new' %}{% else %}{% url 'manage_schema' schema_id=schema.pk %}{% endif %}" method="POST">
+    <form class="js-scroll-to-first-error" action="{% if is_new %}{% url 'manage_schema_new' %}{% else %}{% url 'manage_schema' schema_id=schema.pk %}{% endif %}" method="POST">
       {% csrf_token %}
       <h2>Schema details</h2>
       {% include "core/manage/field.html" with field=form.name %}

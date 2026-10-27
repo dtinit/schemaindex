@@ -408,5 +408,19 @@
     if (window.lucide) {
       window.lucide.createIcons();
     }
+
+    // After a failed submission, take the user straight to the first error
+    const firstErrorElement = document.querySelector(
+      '.js-scroll-to-first-error .errorlist'
+    );
+    if (firstErrorElement) {
+      const fieldElement = firstErrorElement.closest('.field');
+      (fieldElement || firstErrorElement).scrollIntoView({ block: 'center' });
+      const inputElement =
+        fieldElement && fieldElement.querySelector('input, select, textarea');
+      if (inputElement instanceof HTMLElement) {
+        inputElement.focus({ preventScroll: true });
+      }
+    }
   });
 })();
