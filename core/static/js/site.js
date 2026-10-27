@@ -21,8 +21,33 @@
     };
   };
 
+  /**
+   * Copies input values into the formset item's header and summary,
+   * so they reflect edits made since the page loaded.
+   *
+   * @param {HTMLElement} formsetElement
+   */
+  const updateFormsetSummary = (formsetElement) => {
+    formsetElement
+      .querySelectorAll('[data-formset-summary-for]')
+      .forEach((summaryElement) => {
+        const inputElement = document.getElementById(
+          summaryElement.getAttribute('data-formset-summary-for') || ''
+        );
+        if (
+          summaryElement instanceof HTMLElement &&
+          inputElement instanceof HTMLInputElement
+        ) {
+          summaryElement.innerText = inputElement.value;
+        }
+      });
+  };
+
   /** @param {HTMLElement} formsetElement */
   const initializeFormsetElement = (formsetElement) => {
+    formsetElement.addEventListener('input', () => {
+      updateFormsetSummary(formsetElement);
+    });
     Array.from(
       formsetElement.querySelectorAll('[data-formset-close-trigger]')
     ).forEach((element) => {
