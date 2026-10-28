@@ -195,23 +195,15 @@ def index(request):
 def schema_detail(request, schema):
     latest_readme = schema.latest_readme()
     latest_readme_content = None
-    if latest_readme and latest_readme.is_content_fetchable:
+    if latest_readme and latest_readme.is_content_renderable:
         try:
             response_text = latest_readme.get_content()
-            if (
-                latest_readme.format
+            latest_readme_content = (
+                render_markdown(response_text)
+                if latest_readme.format
                 == DocumentationItem.DocumentationItemFormat.Markdown
-            ):
-                latest_readme_content = render_markdown(response_text)
-            elif (
-                latest_readme.format
-                == DocumentationItem.DocumentationItemFormat.PlainText
-            ):
-                latest_readme_content = response_text
-            else:
-                logging.error(
-                    f"Unhandled README content format: {latest_readme.format}"
-                )
+                else response_text
+            )
         except requests.exceptions.RequestException:
             logging.error(
                 f"Failed to fetch README content for schema {schema.id} (url={latest_readme.url})",
