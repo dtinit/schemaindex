@@ -16,12 +16,13 @@ Edit Schema
   </div>
   {% endif %}
   <section class="main-content form-container">
-    <form action="{% if is_new %}{% url 'manage_schema_new' %}{% else %}{% url 'manage_schema' schema_id=schema.pk %}{% endif %}" method="POST">
+    <form class="js-scroll-to-first-error" action="{% if is_new %}{% url 'manage_schema_new' %}{% else %}{% url 'manage_schema' schema_id=schema.pk %}{% endif %}" method="POST">
       {% csrf_token %}
       <h2>Schema details</h2>
       {% include "core/manage/field.html" with field=form.name %}
       {% include "core/manage/field.html" with field=form.description %}
       <h2 class="field__label--is-required">Definition URL </h2>
+      {{ form.schema_refs_formset.non_form_errors }}
       <ul class="formsets" data-formset-list-id="schema_refs">
       {{ form.schema_refs_formset.management_form }}
       {% for subform in form.schema_refs_formset %}

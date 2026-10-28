@@ -1,4 +1,4 @@
-<li class="formset form-container{% if form.url.value and not form.errors %} formset--collapsed{% endif %}">
+<li class="formset form-container{% if form.errors %} formset--has-errors{% elif form.url.value %} formset--collapsed{% endif %}">
   <div class="formset__actions">
     <button class="button" type="button" data-formset-close-trigger>
       <i data-lucide="x" class="icon--md"></i>
@@ -7,8 +7,11 @@
       <i data-lucide="chevron-up" class="icon--md"></i>
     </button>
   </div>
-  <div>
+  <div class="formset__header">
     Implementation <span data-formset-count>{{ count }}</span>
+    <span class="formset__summary">
+      <span data-formset-summary-for="{{ form.url.id_for_label }}">{{ form.url.value|default_if_none:"" }}</span>
+    </span>
   </div>
   {{ form.id }}
   <div class="form-container formset-content--collapsible">

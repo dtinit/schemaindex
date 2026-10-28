@@ -1,5 +1,6 @@
 import json
 import reprlib
+from collections import defaultdict
 from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
@@ -126,6 +127,22 @@ class SchemaRefForm(ReferenceItemForm):
         return url
 
 
+class BaseSchemaRefFormset(forms.BaseFormSet):
+    def clean(self):
+        if self.total_form_count() == 0:
+            raise ValidationError("A schema must have at least one definition")
+
+        forms_by_url = defaultdict(list)
+        for form in self.forms:
+            url = form.cleaned_data.get("url")
+            if url:
+                forms_by_url[url].append(form)
+        for duplicate_forms in forms_by_url.values():
+            if len(duplicate_forms) > 1:
+                for form in duplicate_forms:
+                    form.add_error("url", "Another schema definition has the same URL")
+
+
 class DocumentationItemForm(ReferenceItemForm):
     name = forms.CharField(label="Name", max_length=200, required=True)
     role = forms.ChoiceField(
@@ -210,7 +227,9 @@ class SchemaForm(forms.Form):
                     prefix="documentation_items", *args, **kwargs
                 )
             )
-            SchemaRefFormsetFactory = forms.formset_factory(SchemaRefForm, extra=1)
+            SchemaRefFormsetFactory = forms.formset_factory(
+                SchemaRefForm, formset=BaseSchemaRefFormset, extra=1
+            )
             self.schema_refs_formset = SchemaRefFormsetFactory(
                 prefix="schema_refs", *args, **kwargs
             )
@@ -255,7 +274,7 @@ class SchemaForm(forms.Form):
         # If there aren't any schema_refs, render the formset with an extra empty formset item
         extra_formset_item_count = max(1 - len(initial_schema_refs_formset_data), 0)
         SchemaRefFormsetFactory = forms.formset_factory(
-            SchemaRefForm, extra=extra_formset_item_count
+            SchemaRefForm, formset=BaseSchemaRefFormset, extra=extra_formset_item_count
         )
         self.schema_refs_formset = SchemaRefFormsetFactory(
             prefix="schema_refs",
@@ -304,31 +323,12 @@ class SchemaForm(forms.Form):
         clean_url_and_get_body(url)
         return url
 
-    def clean(self):
-        if self.schema_refs_formset.total_form_count() == 0:
-            raise ValidationError("A schema must have at least one definition")
-
-        self.additional_documentation_items_formset.clean()
-        self.schema_refs_formset.clean()
-        self.implementation_formset.clean()
-        cleaned_data = super().clean()
-        # Make sure none of the schema refs have the same URL
-        schema_ref_urls = set()
-        for schema_ref_form in self.schema_refs_formset:
-            schema_ref_urls.add(schema_ref_form.cleaned_data.get("url"))
-        if len(schema_ref_urls) < len(self.schema_refs_formset):
-            raise ValidationError("Each schema definition URL must be unique")
-        return cleaned_data
-
     def is_valid(self):
         is_documentation_items_formset_valid = (
             self.additional_documentation_items_formset.is_valid()
         )
         is_schema_refs_formset_valid = self.schema_refs_formset.is_valid()
         is_implementation_formset_valid = self.implementation_formset.is_valid()
-        # This must be called *after* the formsets,
-        # as the clean method requires access
-        # to formset cleaned_data
         is_form_valid = super().is_valid()
         return (
             is_form_valid

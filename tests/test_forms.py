@@ -174,7 +174,7 @@ def test_schema_management_form_requires_one_schema_ref():
             }
         )
         assert not form.is_valid()
-        error = form.non_field_errors()[0]
+        error = form.schema_refs_formset.non_form_errors()[0]
         assert error == "A schema must have at least one definition"
 
 
@@ -199,8 +199,12 @@ def test_schema_management_form_prevents_duplicate_schema_ref_urls():
             }
         )
         assert not form.is_valid()
-        error = form.non_field_errors()[0]
-        assert error == "Each schema definition URL must be unique"
+        # Both duplicates are flagged, not just one
+        for schema_ref_errors in form.schema_refs_formset.errors:
+            assert (
+                schema_ref_errors["url"][0]
+                == "Another schema definition has the same URL"
+            )
 
 
 @pytest.mark.django_db

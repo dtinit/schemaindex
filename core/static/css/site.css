@@ -622,6 +622,10 @@ a.button--primary:hover {
   position: relative;
 }
 
+.formset--has-errors {
+  outline: 1px solid var(--danger-color-text);
+}
+
 .formset input,
 .formset select {
   background: #333;
@@ -645,6 +649,31 @@ a.button--primary:hover {
   top: 1rem;
   display: flex;
   gap: 1rem;
+}
+
+.formset__header {
+  width: 100%;
+  /* Keep clear of the absolutely positioned .formset__actions */
+  padding-right: 6rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.formset__name {
+  color: var(--text-primary);
+}
+
+.formset__name:not(:empty) + .formset__fallback-name {
+  display: none;
+}
+
+.formset__summary {
+  padding-left: 0.75rem;
+}
+
+.formset:not(.formset--collapsed) .formset__summary {
+  display: none;
 }
 
 .formset-controls {
