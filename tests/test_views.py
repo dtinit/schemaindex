@@ -428,6 +428,26 @@ def test_schema_detail_renders_readme_on_successful_fetch():
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize("readme_format", [None, ""])
+def test_schema_detail_links_to_readme_without_renderable_format(readme_format, caplog):
+    schema = SchemaFactory()
+    url = "https://example.com/README.md"
+    DocumentationItemFactory(
+        schema=schema,
+        role=DocumentationItem.DocumentationItemRole.README,
+        format=readme_format,
+        url=url,
+    )
+    with requests_mock.Mocker() as m, caplog.at_level(logging.ERROR):
+        response = Client().get(f"/schemas/{schema.id}")
+    assert response.status_code == 200
+    assert not m.called
+    assert not caplog.records
+    assert b"content-fetch-error" not in response.content
+    assert url.encode() in response.content
+
+
+@pytest.mark.django_db
 def test_schema_export_sends_manifest():
     schema = SchemaFactory()
     SchemaRefFactory(schema=schema)

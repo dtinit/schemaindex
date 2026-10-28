@@ -811,6 +811,13 @@ class DocumentationItem(ReferenceItem):
     def language(self):
         return guess_language_by_extension(self.url, ["markdown"])
 
+    @property
+    def is_content_renderable(self):
+        return self.is_content_fetchable and self.format in (
+            DocumentationItem.DocumentationItemFormat.Markdown,
+            DocumentationItem.DocumentationItemFormat.PlainText,
+        )
+
     def to_manifest_document_metadata(self):
         metadata = super().to_manifest_document_metadata()
         metadata["type"] = "documentation"
