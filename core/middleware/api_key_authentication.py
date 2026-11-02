@@ -11,6 +11,18 @@ logger = logging.getLogger("schemaindex")
 API_KEY_HEADER = "X-API-Key"
 
 
+def get_api_key(request):
+    """
+    Reads the API key from an "Authorization: Bearer <key>" header if present,
+    otherwise falls back to an "X-API-Key" header.
+    """
+    scheme, _, key = request.headers.get("Authorization", "").partition(" ")
+    api_key = key.strip()
+    if scheme.lower() == "bearer" and api_key:
+        return api_key
+    return request.headers.get(API_KEY_HEADER)
+
+
 class APIKeyAuthenticationMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -24,15 +36,15 @@ class APIKeyAuthenticationMiddleware:
             # request.user to the local user.
             return self.get_response(request)
 
-        api_key_header = request.headers.get(API_KEY_HEADER)
-        if not api_key_header:
+        api_key = get_api_key(request)
+        if not api_key:
             return ApiErrorResponse(
                 status_code=401,
                 message="Missing API Key",
-                details=f"Please include your API key with the {API_KEY_HEADER} header",
+                details="Please include your API key with the header 'Authorization: Bearer <API key>'",
             )
 
-        api_key_obj = APIKey.objects.get_from_key(api_key_header)
+        api_key_obj = APIKey.objects.get_from_key(api_key)
         if not api_key_obj:
             return ApiErrorResponse(
                 status_code=401,

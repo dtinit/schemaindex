@@ -9,13 +9,16 @@
   {% if settings.ENABLE_ACCOUNTS %}
   <h2>Authentication</h2>
   <p>
-    All API methods require an X-API-Key header with an API key.
-    {% if request.user.is_authenticated %}
-    You can create an API key <a href="{% url 'account_api_key' %}">here</a>.
-    {% else %}
-    <a href="{% url 'account_signup' %}">Create an account</a> to get an API key.
-    {% endif %}
+    All API methods require an API key, sent in an Authorization header using the Bearer scheme:
   </p>
+  <code>
+    <pre>Authorization: Bearer &lt;your API key&gt;</pre>
+  </code>
+  <p>
+  {% if request.user.is_authenticated %}
+  You can create an API key <a href="{% url 'account_api_key' %}">here</a>.
+  {% else %}
+  <a href="{% url 'account_signup' %}">Create an account</a> to get an API key.
   {% endif %}
   <h2>Headers</h2>
   <p>
