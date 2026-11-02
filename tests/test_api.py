@@ -24,8 +24,24 @@ def test_api_requires_valid_api_key():
     assert response.status_code == 401
 
 
+def test_api_requires_valid_bearer_token():
+    client = Client()
+    response = client.get("/api/find", headers={"Authorization": "Bearer invalid key"})
+    assert response.status_code == 401
+
+
 @pytest.mark.django_db
-def test_api_key_allows_valid_api_key(api_client):
+@pytest.mark.parametrize(
+    "header_name,header_format",
+    [
+        ("Authorization", "Bearer {}"),
+        ("Authorization", "bearer {}"),
+        ("X-API-Key", "{}"),
+    ],
+)
+def test_api_accepts_supported_auth_headers(header_name, header_format):
+    client = Client()
+    raw_api_key = ProfileFactory.create().set_new_api_key()
     url = "https://example.com/schema.json"
     id_value = "https://example.com/testid"
     content = f'{{"$id":"{id_value}"}}'
@@ -33,7 +49,28 @@ def test_api_key_allows_valid_api_key(api_client):
         m.get(url, text=content)
         schema_ref = SchemaRefFactory.create(url=url)
         schema_ref.refresh_from_db()
-        response = api_client.get(f"/api/find?id={id_value}")
+        response = client.get(
+            f"/api/find?id={id_value}",
+            headers={header_name: header_format.format(raw_api_key)},
+        )
+        assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_api_prefers_bearer_token():
+    client = Client()
+    raw_api_key = ProfileFactory.create().set_new_api_key()
+    url = "https://example.com/schema.json"
+    id_value = "https://example.com/testid"
+    content = f'{{"$id":"{id_value}"}}'
+    with requests_mock.Mocker() as m:
+        m.get(url, text=content)
+        schema_ref = SchemaRefFactory.create(url=url)
+        schema_ref.refresh_from_db()
+        response = client.get(
+            f"/api/find?id={id_value}",
+            headers={"Authorization": f"Bearer {raw_api_key}", "X-API-Key": "Invalid"},
+        )
         assert response.status_code == 200
 
 

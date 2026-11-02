@@ -48,7 +48,7 @@ def api_client(db):
     # Use the @csrf_exempt decorator for API views with "unsafe"
     # HTTP methods.
     client = Client(enforce_csrf_checks=True)
-    client.defaults["HTTP_X_API_KEY"] = api_key
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {api_key}"
     client.user = profile.user
     return client
 
