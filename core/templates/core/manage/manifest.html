@@ -19,7 +19,7 @@ Edit {{ schema.name }} by manifest
       Upload a <a href="https://id.schemas.pub/o/DTI/manifest.schema.json">Schemas.Pub manifest</a> file or edit the manifest below to replace this schema's details. The schema will stay private even if <code>public</code> is <code>true</code>, and you'll be able to publish the schema when you're ready.
       {% endif %}
     </p>
-    <form action="{% if is_new %}{% url 'manage_schema_upload_manifest' %}{% else %}{% url 'manage_schema_replace' schema_id=schema.id %}{% endif %}" method="POST" enctype="multipart/form-data">
+    <form action="{% if is_new %}{% url 'manage_schema_manifest_new' %}{% else %}{% url 'manage_schema_manifest' schema_id=schema.id %}{% endif %}" method="POST" enctype="multipart/form-data">
       {% csrf_token %}
       {% include "core/manage/field.html" with field=form.manifest_file %}
       {% if not is_new %}

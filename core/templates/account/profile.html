@@ -52,7 +52,7 @@ Account
           <a href="{% url 'manage_schema' schema_id=schema.id %}" class="action-button">
             <i data-lucide="square-pen" class="icon--sm"></i> Edit
           </a>
-          <a href="{% url 'manage_schema_replace' schema_id=schema.id %}" class="action-button">
+          <a href="{% url 'manage_schema_manifest' schema_id=schema.id %}" class="action-button">
             <i data-lucide="file-braces" class="icon--sm"></i> Edit manifest
           </a>
           {% if schema.published_at|exists_and_is_in_past %}
@@ -82,7 +82,7 @@ Account
     </p>
     {% endif %}
     <div class="button-group">
-      <a href="{% url 'manage_schema_upload_manifest' %}" class="button">Add from manifest</a>
+      <a href="{% url 'manage_schema_manifest_new' %}" class="button">Add from manifest</a>
       <a href="{% url 'manage_schema_new' %}" class="button button--prominent">Add schema</a>
     </div>
   </section>

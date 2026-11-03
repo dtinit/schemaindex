@@ -380,7 +380,7 @@ def manage_schema(request, schema_id=None):
 
 
 @login_required
-def manage_schema_upload_manifest(request, schema_id=None):
+def manage_schema_manifest(request, schema_id=None):
     schema = (
         get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
         if schema_id
@@ -418,7 +418,7 @@ def manage_schema_upload_manifest(request, schema_id=None):
 
     return render(
         request,
-        "core/manage/upload_manifest.html",
+        "core/manage/manifest.html",
         {"schema": schema, "is_new": is_new, "form": form},
     )
 
