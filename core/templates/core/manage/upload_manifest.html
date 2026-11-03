@@ -3,29 +3,32 @@
 {% if is_new %}
 Add Schema from Manifest
 {% else %}
-Replace {{ schema.name }} from Manifest
+Edit {{ schema.name }} by manifest
 {% endif %}
 {% endblock %}
 {% block page_content %}
 <main>
   <section class="main-content form-container">
-    <h1>{% if is_new %}Upload manifest{% else %}Replace {{ schema.name }}{% endif %}</h1>
+    <h1>{% if is_new %}Upload manifest{% else %}Edit {{ schema.name }} by manifest{% endif %}</h1>
     <p>
       {% if is_new %}
       Upload a <a href="https://id.schemas.pub/o/DTI/manifest.schema.json">Schemas.Pub manifest</a> file to add a new schema. New schemas are always private even if <code>public</code> is <code>true</code>, and you'll be able to publish the schema when you're ready.
       {% elif schema.published_at %}
-      Upload a <a href="https://id.schemas.pub/o/DTI/manifest.schema.json">Schemas.Pub manifest</a> file to replace this schema's details. Public schemas can't be made private, so <code>public</code> must be <code>true</code>.
+      Upload a <a href="https://id.schemas.pub/o/DTI/manifest.schema.json">Schemas.Pub manifest</a> file or edit the manifest below to replace this schema's details. Public schemas can't be made private, so <code>public</code> must be <code>true</code>.
       {% else %}
-      Upload a <a href="https://id.schemas.pub/o/DTI/manifest.schema.json">Schemas.Pub manifest</a> file to replace this schema's details. The schema will stay private even if <code>public</code> is <code>true</code>, and you'll be able to publish the schema when you're ready.
+      Upload a <a href="https://id.schemas.pub/o/DTI/manifest.schema.json">Schemas.Pub manifest</a> file or edit the manifest below to replace this schema's details. The schema will stay private even if <code>public</code> is <code>true</code>, and you'll be able to publish the schema when you're ready.
       {% endif %}
     </p>
     <form action="{% if is_new %}{% url 'manage_schema_upload_manifest' %}{% else %}{% url 'manage_schema_replace' schema_id=schema.id %}{% endif %}" method="POST" enctype="multipart/form-data">
       {% csrf_token %}
       {% include "core/manage/field.html" with field=form.manifest_file %}
+      {% if not is_new %}
+      {% include "core/manage/field.html" with field=form.manifest_text %}
+      {% endif %}
       {{ form.non_field_errors }}
       <div class="button-group">
         <a href="{% url 'account_profile' %}" type="cancel" class="button">Cancel</a>
-        <button type="submit" class="button button--prominent">{% if is_new %}Add schema{% else %}Replace schema{% endif %}</button>
+        <button type="submit" class="button button--prominent">{% if is_new %}Add schema{% else %}Save schema{% endif %}</button>
       </div>
     </form>
   </section>

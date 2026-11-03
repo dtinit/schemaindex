@@ -52,11 +52,8 @@ Account
           <a href="{% url 'manage_schema' schema_id=schema.id %}" class="action-button">
             <i data-lucide="square-pen" class="icon--sm"></i> Edit
           </a>
-          <a href="{% url 'schema_export' schema_id=schema.id %}" class="action-button">
-            <i data-lucide="file-down" class="icon--sm"></i> Export
-          </a>
           <a href="{% url 'manage_schema_replace' schema_id=schema.id %}" class="action-button">
-            <i data-lucide="file-braces" class="icon--sm"></i> Replace
+            <i data-lucide="file-braces" class="icon--sm"></i> Edit manifest
           </a>
           {% if schema.published_at|exists_and_is_in_past %}
           <a href="{% url 'manage_schema_permanent_urls' schema_id=schema.id %}" class="action-button">
@@ -67,6 +64,9 @@ Account
             <i data-lucide="eye" class="icon--sm"></i> Make public
           </a>
           {% endif %}
+          <a href="{% url 'schema_export' schema_id=schema.id %}" class="action-button">
+            <i data-lucide="file-down" class="icon--sm"></i> Export
+          </a>
           {% if not schema.published_at|exists_and_is_in_past %}
           <a href="{% url 'manage_schema_delete' schema_id=schema.id %}" class="action-button action-button--danger">
             <i data-lucide="trash" class="icon--sm"></i> Delete
