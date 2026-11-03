@@ -338,34 +338,110 @@ class SchemaForm(forms.Form):
         )
 
 
+def _parse_manifest(manifest_string):
+    try:
+        return Schema.validate_manifest(manifest_string)
+    except json.JSONDecodeError as e:
+        raise ValidationError(f"Undecodable JSON: {e.msg}")
+    except UnicodeDecodeError:
+        raise ValidationError("The uploaded file must be UTF-8 encoded JSON")
+    except JSONValidationError as e:
+        # jsonschema messages include the invalid value, which could be
+        # the entire file, so abbreviate it wherever it appears
+        message = e.message.replace(repr(e.instance), reprlib.repr(e.instance))
+        # Point to where the error is unless it's at the top level of the manifest
+        location = f" (at {e.json_path})" if e.absolute_path else ""
+        raise ValidationError(f"Incorrect manifest format: {message}{location}")
+
+
 class ManifestUploadForm(forms.Form):
     manifest_file = forms.FileField(
         label="Manifest file",
         widget=forms.FileInput(attrs={"accept": ".json,application/json"}),
     )
+    manifest_text = forms.CharField(
+        label="Or edit the current manifest",
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 30,
+                "style": "font-family: monospace",
+            }
+        ),
+    )
+
+    def __init__(self, *args, schema=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if schema:
+            self.current_manifest = schema.to_manifest()
+            self.fields["manifest_text"].initial = json.dumps(
+                self.current_manifest, indent=4
+            )
+            self.fields["manifest_file"].required = False
+        else:
+            self.current_manifest = None
+            # Get rid of the inline manifest editor
+            # as there's nothing to edit yet.
+            del self.fields["manifest_text"]
+
+    @property
+    def _has_manifest_editor(self):
+        return "manifest_text" in self.fields
+
+    @property
+    def _did_manifest_text_change(self):
+        if not self._has_manifest_editor:
+            return False
+        try:
+            cleaned_manifest = self.cleaned_data["manifest_text"]
+            return json.loads(cleaned_manifest) != self.current_manifest
+        except json.JSONDecodeError:
+            return True
 
     def clean_manifest_file(self):
         manifest_file = self.cleaned_data["manifest_file"]
+        if not manifest_file:
+            return None
         # Django doesn't limit the size of uploaded files,
         # so we apply the same limit the API gets from DATA_UPLOAD_MAX_MEMORY_SIZE
         if manifest_file.size > settings.DATA_UPLOAD_MAX_MEMORY_SIZE:
             raise ValidationError(
                 f"Manifest files must be {filesizeformat(settings.DATA_UPLOAD_MAX_MEMORY_SIZE)} or smaller"
             )
+        return _parse_manifest(manifest_file.read())
 
-        try:
-            return Schema.validate_manifest(manifest_file.read())
-        except json.JSONDecodeError as e:
-            raise ValidationError(f"Undecodable JSON: {e.msg}")
-        except UnicodeDecodeError:
-            raise ValidationError("The uploaded file must be UTF-8 encoded JSON")
-        except JSONValidationError as e:
-            # jsonschema messages include the invalid value, which could be
-            # the entire file, so abbreviate it wherever it appears
-            message = e.message.replace(repr(e.instance), reprlib.repr(e.instance))
-            # Point to where the error is unless it's at the top level of the manifest
-            location = f" (at {e.json_path})" if e.absolute_path else ""
-            raise ValidationError(f"Incorrect manifest format: {message}{location}")
+    def clean(self):
+        """
+        Sets cleaned_data['manifest'] from an uploaded file or the inline editor
+        """
+        cleaned_data = super().clean()
+        if self.errors:
+            return cleaned_data
+        manifest_file = cleaned_data["manifest_file"]
+        if manifest_file:
+            # If there's a manifest file, use it.
+            # *Except* if the text editor was also changed.
+            # In that case, we don't know which source to use.
+            if self._did_manifest_text_change:
+                raise ValidationError(
+                    "Please upload a manifest file or edit the manifest, but not both."
+                )
+            cleaned_data["manifest"] = manifest_file
+        elif self._has_manifest_editor:
+            # Otherwise, use the inline editor if it exists.
+            try:
+                cleaned_data["manifest"] = _parse_manifest(
+                    cleaned_data["manifest_text"]
+                )
+            except ValidationError as e:
+                self.add_error("manifest_text", e)
+        else:
+            # This shouldn't actually be possible
+            # if the manifest file field is required
+            # or the manifest text field exists.
+            raise ValidationError("Please upload a manifest file.")
+
+        return cleaned_data
 
 
 dot_slash_slug_character_validator = RegexValidator(
