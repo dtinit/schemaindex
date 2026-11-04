@@ -27,7 +27,7 @@ EXPLICITLY_SUPPORTED_FILE_EXTENSIONS = [
     ".cddl",
 ]
 
-ADVERTISED_DOMAINS_TEXT = human_readable_list(
+HUMAN_READABLE_ADVERTISED_DOMAINS_LIST = human_readable_list(
     sorted(settings.ADVERTISED_TRUSTED_CONTENT_DOMAINS)
 )
 
@@ -77,8 +77,8 @@ class SchemaRefForm(ReferenceItemForm):
         label="URL",
         help_text=f"Accepted formats: {human_readable_list(sorted(EXPLICITLY_SUPPORTED_FILE_EXTENSIONS))}."
         + (
-            f" {settings.SITE_NAME} displays file content from the following domains: {ADVERTISED_DOMAINS_TEXT}."
-            if ADVERTISED_DOMAINS_TEXT
+            f" {settings.SITE_NAME} displays file content from the following domains: {HUMAN_READABLE_ADVERTISED_DOMAINS_LIST}."
+            if HUMAN_READABLE_ADVERTISED_DOMAINS_LIST
             else ""
         ),
     )
@@ -211,8 +211,8 @@ class SchemaForm(forms.Form):
     readme_url = forms.URLField(
         label="README URL",
         help_text=(
-            f"{settings.SITE_NAME} displays README content from the following domains: {ADVERTISED_DOMAINS_TEXT}"
-            if ADVERTISED_DOMAINS_TEXT
+            f"{settings.SITE_NAME} displays README content from the following domains: {HUMAN_READABLE_ADVERTISED_DOMAINS_LIST}"
+            if HUMAN_READABLE_ADVERTISED_DOMAINS_LIST
             else ""
         ),
         widget=forms.TextInput(attrs={"placeholder": "https://example.com/README.md"}),
