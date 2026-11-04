@@ -26,8 +26,21 @@ ENABLE_DTI_PAGES = False
 ENABLE_ACCOUNTS = False
 # Local-only mode refuses to start if ALLOWED_HOSTS contains a
 # non-local host. Set this to True to allow it anyway
-# (not recommended unless you know what you're doing).
+# Keep this False unless you know what you're doing,
+# since anyone with access would have admin privileges.
 ALLOW_NONLOCAL_HOSTS_WITHOUT_ACCOUNTS = False
+# ADVERTISED_TRUSTED_CONTENT_DOMAINS are where users are told
+# file content can be fetched from.
+ADVERTISED_TRUSTED_CONTENT_DOMAINS = []
+# TRUSTED_CONTENT_DOMAINS are where content can actually be fetched from,
+# including domains users aren't told about.
+# "*" allows any domain.
+TRUSTED_CONTENT_DOMAINS = ADVERTISED_TRUSTED_CONTENT_DOMAINS + ["*"]
+# Content fetching refuses to start when TRUSTED_CONTENT_DOMAINS includes "*"
+# if ALLOWED_HOSTS contains a non-local host. Set this to True to allow it anyway
+# Keep this False unless you know what you're doing,
+# since user could make requests to arbritrary URLs from the server (SSRF).
+ALLOW_NONLOCAL_HOSTS_WITH_ANY_CONTENT_DOMAIN = False
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -207,28 +220,6 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 HOURLY_API_REQUEST_LIMIT = 500
-
-# To reduce SSRF attack vulnerabilities, we only fetch content from domains we trust.
-# Here we maintain two lists of trusted domains:
-# 1. ADVERTISED_TRUSTED_CONTENT_DOMAINS are domains we trust *and* which we advertise to users
-#    (eg "Host your schema at one of these domains to have its contents displayed on the site").
-# 2. TRUSTED_CONTENT_DOMAINS is the actual list of domains we trust. It includes everything in
-#    ADVERTISED_TRUSTED_CONTENT_DOMAINS plus additional domains we trust but don't show to users.
-
-ADVERTISED_TRUSTED_CONTENT_DOMAINS = [
-    "codeberg.org",
-    "github.com",
-    "ietf.org",
-    "rfc-editor.org",
-    "w3.org",
-    "tangled.org",
-]
-
-TRUSTED_CONTENT_DOMAINS = ADVERTISED_TRUSTED_CONTENT_DOMAINS + [
-    "happenstance.ai",
-    "osirisjson.org",
-    "githubusercontent.com",
-]
 
 # SITE_NAME/SITE_URL-derived OAuth settings
 # are added in development.py and production.py

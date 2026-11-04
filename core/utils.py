@@ -90,6 +90,9 @@ def is_url(value):
 
 
 def is_trusted_content_host_url(url):
+    if "*" in settings.TRUSTED_CONTENT_DOMAINS:
+        return True
+
     parsed_url = urlparse(url)
     hostname = parsed_url.hostname
 
