@@ -12,10 +12,7 @@ For Schemas.Pub development, it's recommended to use the following `schemaindex/
 # schemaindex/settings/personal.py
 
 from .development import *
-
-SITE_NAME = "Schemas.Pub"
-ENABLE_DTI_PAGES = True
-ENABLE_ACCOUNTS = True
+from .schemaspub import *
 ```
 
 See [Configuration](README.md#configuration) for details.

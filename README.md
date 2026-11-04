@@ -62,6 +62,10 @@ With accounts off, you already have access to the database management portal at 
 
 Without accounts, every request has full admin access, so the server refuses to start if `ALLOWED_HOSTS` includes anything other than local addresses like `localhost`. To share an instance with other people, turn accounts on and add your server's hostname to `ALLOWED_HOSTS`.
 
+## Trusted content domains
+
+By default, `TRUSTED_CONTENT_DOMAINS = ["*"]` lets the server fetch schema and documentation content from any domain. When `TRUSTED_CONTENT_DOMAINS` includes `"*"`, users can make requests to any URL from your instance, so the server refuses to start if `ALLOWED_HOSTS` includes anything other than local addresses like `localhost`. To allow content requests from your hosted instance, list the specific domains users can safely request content from in `TRUSTED_CONTENT_DOMAINS`.
+
 ## Site name
 
 Set `SITE_NAME` to change the name shown throughout the site, in emails, and by the MCP server.
