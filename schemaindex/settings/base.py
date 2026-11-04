@@ -25,19 +25,18 @@ PLAUSIBLE_DOMAIN = None
 ENABLE_DTI_PAGES = False
 ENABLE_ACCOUNTS = False
 # Local-only mode refuses to start if ALLOWED_HOSTS contains a
-# non-local host. Set this to True to allow it anyway
+# non-local host. Set this to True to allow it anyway.
 # Keep this False unless you know what you're doing,
 # since anyone with access would have admin privileges.
 ALLOW_NONLOCAL_HOSTS_WITHOUT_ACCOUNTS = False
 # ADVERTISED_TRUSTED_CONTENT_DOMAINS are where users are told
 # file content can be fetched from.
 ADVERTISED_TRUSTED_CONTENT_DOMAINS = []
-# TRUSTED_CONTENT_DOMAINS are where content can actually be fetched from,
-# including domains users aren't told about.
+# TRUSTED_CONTENT_DOMAINS are where content can actually be fetched from.
 # "*" allows any domain.
 TRUSTED_CONTENT_DOMAINS = ADVERTISED_TRUSTED_CONTENT_DOMAINS + ["*"]
 # Content fetching refuses to start when TRUSTED_CONTENT_DOMAINS includes "*"
-# if ALLOWED_HOSTS contains a non-local host. Set this to True to allow it anyway
+# if ALLOWED_HOSTS contains a non-local host. Set this to True to allow it anyway.
 # Keep this False unless you know what you're doing,
 # since user could make requests to arbritrary URLs from the server (SSRF).
 ALLOW_NONLOCAL_HOSTS_WITH_ANY_CONTENT_DOMAIN = False
