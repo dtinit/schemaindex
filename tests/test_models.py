@@ -578,6 +578,17 @@ def test_schema_ref_get_content_ignores_untrusted_domain():
 
 
 @pytest.mark.django_db
+@override_settings(TRUSTED_CONTENT_DOMAINS=["*"])
+def test_schema_ref_get_content_fetches_from_any_domain_with_wildcard():
+    mock_url = "https://anything.test/definition"
+    expected_content = "hello from any domain"
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text=expected_content)
+        schema_ref = SchemaRefFactory.create(url=mock_url)
+        assert schema_ref.get_content() == expected_content
+
+
+@pytest.mark.django_db
 def test_new_json_schema_refs_get_their_own_id_value():
     # Regression test for #385
     first_url = "https://example.com/first.json"

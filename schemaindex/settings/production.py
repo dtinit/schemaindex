@@ -3,12 +3,11 @@ import os
 
 from google.oauth2 import service_account
 from .base import *
+from .schemaspub import *
 
 logger = logging.getLogger("schemaindex")
 
 DEBUG = False
-ENABLE_DTI_PAGES = True
-ENABLE_ACCOUNTS = True
 PERMANENT_URL_HOST = "id.schemas.pub"
 ALLOWED_HOSTS = [
     "schemas.pub",
@@ -16,7 +15,6 @@ ALLOWED_HOSTS = [
     "schemaindex-prod-run-768243509223.us-central1.run.app",
     PERMANENT_URL_HOST,
 ]
-SITE_NAME = "Schemas.Pub"
 SITE_URL = "https://schemas.pub"
 CSRF_TRUSTED_ORIGINS = ["https://" + url for url in ALLOWED_HOSTS]
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
