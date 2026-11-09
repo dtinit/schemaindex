@@ -10,6 +10,7 @@ class CoreConfig(AppConfig):
         # e.g. creating a Profile for every new User.
         import core.signals  # noqa: F401
 
-        from core.checks import check_local_only_hosts
+        from core.checks import check_any_content_domain_hosts, check_local_only_hosts
 
         check_local_only_hosts()
+        check_any_content_domain_hosts()

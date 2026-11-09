@@ -8,6 +8,10 @@ logger = logging.getLogger("schemaindex")
 LOCAL_HOSTS = {"localhost", ".localhost", "127.0.0.1", "[::1]", "testserver"}
 
 
+def get_nonlocal_hosts():
+    return [h for h in settings.ALLOWED_HOSTS if h not in LOCAL_HOSTS]
+
+
 def check_local_only_hosts():
     """
     Refuse to start in local-only mode (ENABLE_ACCOUNTS = False) if
@@ -20,7 +24,7 @@ def check_local_only_hosts():
     if settings.ENABLE_ACCOUNTS:
         return
 
-    remote_hosts = [h for h in settings.ALLOWED_HOSTS if h not in LOCAL_HOSTS]
+    remote_hosts = get_nonlocal_hosts()
     if not remote_hosts:
         return
 
@@ -35,5 +39,34 @@ def check_local_only_hosts():
     logger.warning(
         "Running without accounts on non-local hosts (%s); "
         "anyone who can reach this server has full admin access.",
+        ", ".join(remote_hosts),
+    )
+
+
+def check_any_content_domain_hosts():
+    """
+    Refuse to start if content can be fetched from any domain
+    (TRUSTED_CONTENT_DOMAINS contains "*") while the server accepts
+    requests for non-local hosts, since that invites SSRF.
+    """
+    if "*" not in settings.TRUSTED_CONTENT_DOMAINS:
+        return
+
+    remote_hosts = get_nonlocal_hosts()
+    if not remote_hosts:
+        return
+
+    if not settings.ALLOW_NONLOCAL_HOSTS_WITH_ANY_CONTENT_DOMAIN:
+        raise ImproperlyConfigured(
+            'TRUSTED_CONTENT_DOMAINS contains "*", but ALLOWED_HOSTS contains '
+            f"non-local hosts ({', '.join(remote_hosts)}). Anyone who can reach "
+            "this server could make it fetch arbitrary URLs. List specific "
+            "TRUSTED_CONTENT_DOMAINS, restrict ALLOWED_HOSTS, or set "
+            "ALLOW_NONLOCAL_HOSTS_WITH_ANY_CONTENT_DOMAIN = True."
+        )
+
+    logger.warning(
+        "Fetching content from any domain on non-local hosts (%s); "
+        "anyone who can reach this server can make it fetch arbitrary URLs.",
         ", ".join(remote_hosts),
     )

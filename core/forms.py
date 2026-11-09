@@ -27,6 +27,10 @@ EXPLICITLY_SUPPORTED_FILE_EXTENSIONS = [
     ".cddl",
 ]
 
+HUMAN_READABLE_ADVERTISED_DOMAINS_LIST = human_readable_list(
+    sorted(settings.ADVERTISED_TRUSTED_CONTENT_DOMAINS)
+)
+
 MAX_PERMANENT_URL_COUNT_PER_USER = 100
 
 
@@ -71,7 +75,12 @@ class SchemaRefForm(ReferenceItemForm):
     )
     url = forms.URLField(
         label="URL",
-        help_text=f"Accepted formats: {human_readable_list(sorted(EXPLICITLY_SUPPORTED_FILE_EXTENSIONS))}. {settings.SITE_NAME} displays file content from the following domains: {human_readable_list(sorted(settings.ADVERTISED_TRUSTED_CONTENT_DOMAINS))}.",
+        help_text=f"Accepted formats: {human_readable_list(sorted(EXPLICITLY_SUPPORTED_FILE_EXTENSIONS))}."
+        + (
+            f" {settings.SITE_NAME} displays file content from the following domains: {HUMAN_READABLE_ADVERTISED_DOMAINS_LIST}."
+            if HUMAN_READABLE_ADVERTISED_DOMAINS_LIST
+            else ""
+        ),
     )
 
     def clean_url(self):
@@ -201,7 +210,11 @@ class SchemaForm(forms.Form):
     )
     readme_url = forms.URLField(
         label="README URL",
-        help_text=f"{settings.SITE_NAME} displays README content from the following domains: {human_readable_list(sorted(settings.ADVERTISED_TRUSTED_CONTENT_DOMAINS))}",
+        help_text=(
+            f"{settings.SITE_NAME} displays README content from the following domains: {HUMAN_READABLE_ADVERTISED_DOMAINS_LIST}"
+            if HUMAN_READABLE_ADVERTISED_DOMAINS_LIST
+            else ""
+        ),
         widget=forms.TextInput(attrs={"placeholder": "https://example.com/README.md"}),
     )
     readme_format = forms.ChoiceField(
