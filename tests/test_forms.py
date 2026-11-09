@@ -123,6 +123,16 @@ def test_clean_url(spec_url, expect_success):
 
 
 @pytest.mark.django_db
+def test_schema_management_form_allows_published_definitions_that_are_not_json_objects():
+    spec_url = "http://example.com/schema.json"
+    with requests_mock.Mocker() as m:
+        m.get(spec_url, text="[]")
+        m.get("http://example.com/README.md", text="# README")
+        form = SchemaForm(schema=SchemaFactory(), data=_new_schema_form_data(spec_url))
+        assert form.is_valid()
+
+
+@pytest.mark.django_db
 def test_schema_management_form_content_is_reused_when_saving():
     spec_url = "http://example.com/schema.json"
     readme_url = "http://example.com/README.md"
