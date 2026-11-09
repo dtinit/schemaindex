@@ -380,7 +380,7 @@ def manage_schema(request, schema_id=None):
 
 
 @login_required
-def manage_schema_upload_manifest(request, schema_id=None):
+def manage_schema_manifest(request, schema_id=None):
     schema = (
         get_object_or_404(Schema.objects.filter(created_by=request.user), pk=schema_id)
         if schema_id
@@ -389,9 +389,9 @@ def manage_schema_upload_manifest(request, schema_id=None):
     is_new = schema is None
 
     if request.method == "POST":
-        form = ManifestUploadForm(request.POST, request.FILES)
+        form = ManifestUploadForm(request.POST, request.FILES, schema=schema)
         if form.is_valid():
-            manifest = form.cleaned_data["manifest_file"]
+            manifest = form.cleaned_data["manifest"]
             # Prevent users from publishing a schema through
             # this view by overriding the manifest's public value.
             if is_new or not schema.published_at:
@@ -407,13 +407,18 @@ def manage_schema_upload_manifest(request, schema_id=None):
                 # persisted state.
                 if schema.pk:
                     schema.refresh_from_db()
-                form.add_error("manifest_file", e)
+                form.add_error(
+                    "manifest_file"
+                    if form.cleaned_data.get("manifest_file")
+                    else "manifest_text",
+                    e,
+                )
     else:
-        form = ManifestUploadForm()
+        form = ManifestUploadForm(schema=schema)
 
     return render(
         request,
-        "core/manage/upload_manifest.html",
+        "core/manage/manifest.html",
         {"schema": schema, "is_new": is_new, "form": form},
     )
 

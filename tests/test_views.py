@@ -465,7 +465,7 @@ def _upload_manifest_file(content):
 
 
 def test_upload_manifest_requires_login():
-    response = Client().get("/manage/schema/upload-manifest")
+    response = Client().get("/manage/schema/new/manifest")
     assert response.status_code == 302
     assert response["Location"].startswith(settings.LOGIN_URL)
 
@@ -496,7 +496,7 @@ def test_upload_manifest_creates_schema():
         },
     }
     response = client.post(
-        "/manage/schema/upload-manifest",
+        "/manage/schema/new/manifest",
         {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
     )
 
@@ -516,7 +516,7 @@ def test_upload_manifest_ignores_public_value():
         "documents": {"https://example.com/definition.json": {"type": "definition"}},
     }
     client.post(
-        "/manage/schema/upload-manifest",
+        "/manage/schema/new/manifest",
         {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
     )
 
@@ -545,7 +545,7 @@ def test_upload_manifest_rejects_invalid_files(content, expected_error):
     client = Client()
     client.force_login(UserFactory())
     response = client.post(
-        "/manage/schema/upload-manifest",
+        "/manage/schema/new/manifest",
         {"manifest_file": _upload_manifest_file(content)},
     )
 
@@ -586,7 +586,7 @@ def test_upload_manifest_trims_long_validation_errors(manifest, expected_ending)
     client = Client()
     client.force_login(UserFactory())
     response = client.post(
-        "/manage/schema/upload-manifest",
+        "/manage/schema/new/manifest",
         {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
     )
 
@@ -600,7 +600,7 @@ def test_upload_manifest_trims_long_validation_errors(manifest, expected_ending)
 def test_upload_manifest_requires_a_file():
     client = Client()
     client.force_login(UserFactory())
-    response = client.post("/manage/schema/upload-manifest", {})
+    response = client.post("/manage/schema/new/manifest", {})
 
     assert response.status_code == 200
     assert "manifest_file" in response.context["form"].errors
@@ -617,7 +617,7 @@ def test_upload_manifest_rejects_large_files(settings):
         "documents": {"https://example.com/definition.json": {"type": "definition"}},
     }
     response = client.post(
-        "/manage/schema/upload-manifest",
+        "/manage/schema/new/manifest",
         {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
     )
 
@@ -633,7 +633,7 @@ def test_replace_manifest_404s_for_other_users_schemas():
     schema = SchemaFactory()
     client = Client()
     client.force_login(UserFactory())
-    response = client.get(f"/manage/schema/{schema.id}/replace")
+    response = client.get(f"/manage/schema/{schema.id}/manifest")
     assert response.status_code == 404
 
 
@@ -649,8 +649,11 @@ def test_replace_manifest_keeps_private_schemas_private():
         "documents": {"https://example.com/definition.json": {"type": "definition"}},
     }
     response = client.post(
-        f"/manage/schema/{schema.id}/replace",
-        {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
+        f"/manage/schema/{schema.id}/manifest",
+        {
+            "manifest_file": _upload_manifest_file(json.dumps(manifest).encode()),
+            "manifest_text": json.dumps(schema.to_manifest(), indent=4),
+        },
     )
 
     assertRedirects(response, f"/schemas/{schema.id}")
@@ -669,8 +672,11 @@ def test_replace_manifest_updates_public_schemas():
         "documents": {"https://example.com/definition.json": {"type": "definition"}},
     }
     response = client.post(
-        f"/manage/schema/{schema.id}/replace",
-        {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
+        f"/manage/schema/{schema.id}/manifest",
+        {
+            "manifest_file": _upload_manifest_file(json.dumps(manifest).encode()),
+            "manifest_text": json.dumps(schema.to_manifest(), indent=4),
+        },
     )
 
     assertRedirects(response, f"/schemas/{schema.id}")
@@ -688,8 +694,11 @@ def test_replace_manifest_prevents_unpublishing_schemas():
         "documents": {"https://example.com/definition.json": {"type": "definition"}},
     }
     response = client.post(
-        f"/manage/schema/{schema.id}/replace",
-        {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
+        f"/manage/schema/{schema.id}/manifest",
+        {
+            "manifest_file": _upload_manifest_file(json.dumps(manifest).encode()),
+            "manifest_text": json.dumps(schema.to_manifest(), indent=4),
+        },
     )
 
     assert response.status_code == 200
@@ -715,8 +724,11 @@ def test_replace_manifest_prevents_published_conflicts():
         "documents": {url: {"type": "definition"}},
     }
     response = client.post(
-        f"/manage/schema/{schema.id}/replace",
-        {"manifest_file": _upload_manifest_file(json.dumps(manifest).encode())},
+        f"/manage/schema/{schema.id}/manifest",
+        {
+            "manifest_file": _upload_manifest_file(json.dumps(manifest).encode()),
+            "manifest_text": json.dumps(schema.to_manifest(), indent=4),
+        },
     )
 
     assert response.status_code == 200
@@ -725,6 +737,110 @@ def test_replace_manifest_prevents_published_conflicts():
     schema.refresh_from_db()
     assert schema.name != "Replacement schema"
     assert not schema.schemaref_set.filter(url=url).exists()
+
+
+@pytest.mark.django_db
+def test_replace_manifest_shows_formatted_current_manifest():
+    schema = SchemaFactory()
+    SchemaRefFactory(schema=schema)
+    client = Client()
+    client.force_login(schema.created_by)
+    response = client.get(f"/manage/schema/{schema.id}/manifest")
+
+    assert response.context["form"]["manifest_text"].value() == json.dumps(
+        schema.to_manifest(), indent=4
+    )
+
+
+@pytest.mark.django_db
+def test_upload_manifest_has_no_text_editor_for_new_schemas():
+    client = Client()
+    client.force_login(UserFactory())
+    response = client.get("/manage/schema/new/manifest")
+
+    assert "manifest_text" not in response.context["form"].fields
+
+
+@pytest.mark.django_db
+def test_replace_manifest_from_edited_text():
+    schema = SchemaFactory()
+    client = Client()
+    client.force_login(schema.created_by)
+    manifest = {
+        "name": "Edited schema",
+        "public": True,
+        "documents": {"https://example.com/definition.json": {"type": "definition"}},
+    }
+    response = client.post(
+        f"/manage/schema/{schema.id}/manifest",
+        {"manifest_text": json.dumps(manifest)},
+    )
+
+    assertRedirects(response, f"/schemas/{schema.id}")
+    schema.refresh_from_db()
+    assert_schema_matches_manifest(schema, manifest)
+
+
+@pytest.mark.django_db
+def test_replace_manifest_rejects_invalid_edited_text():
+    schema = SchemaFactory()
+    client = Client()
+    client.force_login(schema.created_by)
+    response = client.post(
+        f"/manage/schema/{schema.id}/manifest", {"manifest_text": "{not json"}
+    )
+
+    assert response.status_code == 200
+    [error] = response.context["form"].errors["manifest_text"]
+    assert error.startswith("Undecodable JSON")
+
+
+@pytest.mark.django_db
+def test_replace_manifest_rejects_file_and_edited_text():
+    schema = SchemaFactory()
+    client = Client()
+    client.force_login(schema.created_by)
+    manifest = {
+        "name": "Replacement schema",
+        "public": True,
+        "documents": {"https://example.com/definition.json": {"type": "definition"}},
+    }
+    response = client.post(
+        f"/manage/schema/{schema.id}/manifest",
+        {
+            "manifest_file": _upload_manifest_file(json.dumps(manifest).encode()),
+            "manifest_text": json.dumps(schema.to_manifest() | {"name": "Edited"}),
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.context["form"].non_field_errors()
+    schema.refresh_from_db()
+    assert schema.name not in ("Replacement schema", "Edited")
+
+
+@pytest.mark.django_db
+def test_replace_manifest_ignores_reformatted_unedited_text():
+    schema = SchemaFactory()
+    client = Client()
+    client.force_login(schema.created_by)
+    manifest = {
+        "name": "Replacement schema",
+        "public": True,
+        "documents": {"https://example.com/definition.json": {"type": "definition"}},
+    }
+    response = client.post(
+        f"/manage/schema/{schema.id}/manifest",
+        {
+            "manifest_file": _upload_manifest_file(json.dumps(manifest).encode()),
+            # Same content as the initial value, but compact and with keys reordered
+            "manifest_text": json.dumps(schema.to_manifest(), sort_keys=True),
+        },
+    )
+
+    assertRedirects(response, f"/schemas/{schema.id}")
+    schema.refresh_from_db()
+    assert_schema_matches_manifest(schema, manifest)
 
 
 @pytest.mark.django_db
