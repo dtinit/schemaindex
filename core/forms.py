@@ -11,7 +11,6 @@ from jsonschema import ValidationError as JSONValidationError
 from .models import DocumentationItem, SchemaRef, Schema, PermanentURL
 from .utils import (
     guess_specification_language_by_extension,
-    is_trusted_content_host_url,
     human_readable_list,
 )
 
@@ -46,22 +45,22 @@ class ReferenceItemForm(forms.Form):
         self.empty_permitted = False
 
 
-def clean_url_and_get_body(url):
-    if not is_trusted_content_host_url(url):
+def clean_reference_item_url_and_get_body(reference_item_model_class, url):
+    reference_item = reference_item_model_class(url=url)
+    if not reference_item.is_content_fetchable:
         return ""
 
     try:
-        response = requests.get(url)
+        content = reference_item.get_content(update_and_notify_on_failure=False)
+    except requests.exceptions.HTTPError:
+        raise ValidationError("The provided URL returned an invalid status code")
     except requests.exceptions.RequestException:
         raise ValidationError("The provided URL could not be reached")
 
-    if response.status_code != requests.codes.ok:
-        raise ValidationError("The provided URL returned an invalid status code")
-
-    if not response.text:
+    if not content:
         raise ValidationError("The provided URL has no text content")
 
-    return response.text
+    return content
 
 
 class SchemaRefForm(ReferenceItemForm):
@@ -87,7 +86,7 @@ class SchemaRefForm(ReferenceItemForm):
         if not self.cleaned_data["url"]:
             return None
         url = self.cleaned_data["url"]
-        content = clean_url_and_get_body(url)
+        content = clean_reference_item_url_and_get_body(SchemaRef, url)
         matched_language = guess_specification_language_by_extension(url)
 
         if not matched_language:
@@ -326,14 +325,14 @@ class SchemaForm(forms.Form):
         if not self.cleaned_data["readme_url"]:
             return None
         url = self.cleaned_data["readme_url"]
-        clean_url_and_get_body(url)
+        clean_reference_item_url_and_get_body(DocumentationItem, url)
         return url
 
     def clean_license_url(self):
         if not self.cleaned_data["license_url"]:
             return None
         url = self.cleaned_data["license_url"]
-        clean_url_and_get_body(url)
+        clean_reference_item_url_and_get_body(DocumentationItem, url)
         return url
 
     def is_valid(self):
