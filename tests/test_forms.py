@@ -5,9 +5,24 @@ from core.forms import SchemaForm, PermanentURLForm
 from tests.factories import (
     SchemaFactory,
     SchemaRefFactory,
+    DocumentationItemFactory,
     OrganizationSchemaFactory,
     PermanentURLFactory,
 )
+
+
+def _new_schema_form_data(schema_ref_url, readme_url="http://example.com/README.md"):
+    return {
+        "name": "New schema",
+        "schema_refs-0-url": schema_ref_url,
+        "readme_url": readme_url,
+        "documentation_items-TOTAL_FORMS": 0,
+        "documentation_items-INITIAL_FORMS": 0,
+        "schema_refs-TOTAL_FORMS": 1,
+        "schema_refs-INITIAL_FORMS": 0,
+        "implementations-TOTAL_FORMS": 0,
+        "implementations-INITIAL_FORMS": 0,
+    }
 
 
 @pytest.mark.django_db
@@ -20,16 +35,7 @@ def test_schema_management_form_prevents_duplicate_published_urls():
         m.get("http://example.com", text="{}")
         form = SchemaForm(
             schema=edited_schema,
-            data={
-                "readme_url": "http://example.com",
-                "schema_refs-0-url": https_url,
-                "documentation_items-TOTAL_FORMS": 0,
-                "documentation_items-INITIAL_FORMS": 0,
-                "schema_refs-TOTAL_FORMS": 1,
-                "schema_refs-INITIAL_FORMS": 0,
-                "implementations-TOTAL_FORMS": 0,
-                "implementations-INITIAL_FORMS": 0,
-            },
+            data=_new_schema_form_data(https_url, "http://example.com"),
         )
         assert not form.is_valid()
         error = form.schema_refs_formset.errors[0]["url"][
@@ -48,17 +54,7 @@ def test_schema_management_form_allows_duplicate_private_urls():
         m.get(existing_schema_ref.url, text="{}")
         m.get("http://example.com", text="{}")
         form = SchemaForm(
-            data={
-                "name": "New schema",
-                "schema_refs-0-url": existing_schema_ref.url,
-                "readme_url": "http://example.com",
-                "documentation_items-TOTAL_FORMS": 0,
-                "documentation_items-INITIAL_FORMS": 0,
-                "schema_refs-TOTAL_FORMS": 1,
-                "schema_refs-INITIAL_FORMS": 0,
-                "implementations-TOTAL_FORMS": 0,
-                "implementations-INITIAL_FORMS": 0,
-            }
+            data=_new_schema_form_data(existing_schema_ref.url, "http://example.com")
         )
         assert form.is_valid()
 
@@ -76,16 +72,7 @@ def test_schema_management_form_prevents_duplicate_published_id_values():
         m.get("http://example.com", text="{}")
         form = SchemaForm(
             schema=edited_schema,
-            data={
-                "readme_url": "http://example.com",
-                "schema_refs-0-url": new_schema_ref_url,
-                "documentation_items-TOTAL_FORMS": 0,
-                "documentation_items-INITIAL_FORMS": 0,
-                "schema_refs-TOTAL_FORMS": 1,
-                "schema_refs-INITIAL_FORMS": 0,
-                "implementations-TOTAL_FORMS": 0,
-                "implementations-INITIAL_FORMS": 0,
-            },
+            data=_new_schema_form_data(new_schema_ref_url, "http://example.com"),
         )
         assert not form.is_valid()
         error = form.schema_refs_formset.errors[0]["url"][
@@ -112,17 +99,7 @@ def test_schema_management_form_allows_duplicate_private_id_values():
         m.get(new_schema_ref_url, text=f'{{"$id": "{mock_id_value}"}}')
         m.get("http://example.com", text="{}")
         form = SchemaForm(
-            data={
-                "name": "New schema",
-                "schema_refs-0-url": new_schema_ref_url,
-                "readme_url": "http://example.com",
-                "documentation_items-TOTAL_FORMS": 0,
-                "documentation_items-INITIAL_FORMS": 0,
-                "schema_refs-TOTAL_FORMS": 1,
-                "schema_refs-INITIAL_FORMS": 0,
-                "implementations-TOTAL_FORMS": 0,
-                "implementations-INITIAL_FORMS": 0,
-            }
+            data=_new_schema_form_data(new_schema_ref_url, "http://example.com")
         )
         assert form.is_valid()
 
@@ -141,20 +118,38 @@ def test_clean_url(spec_url, expect_success):
     with requests_mock.Mocker() as m:
         m.get(spec_url, text="{}")
         m.get("http://example.com", text="{}")
-        form = SchemaForm(
-            data={
-                "name": "New schema",
-                "schema_refs-0-url": spec_url,
-                "readme_url": "http://example.com",
-                "documentation_items-TOTAL_FORMS": 0,
-                "documentation_items-INITIAL_FORMS": 0,
-                "schema_refs-TOTAL_FORMS": 1,
-                "schema_refs-INITIAL_FORMS": 0,
-                "implementations-TOTAL_FORMS": 0,
-                "implementations-INITIAL_FORMS": 0,
-            }
-        )
+        form = SchemaForm(data=_new_schema_form_data(spec_url, "http://example.com"))
         assert expect_success == form.is_valid()
+
+
+@pytest.mark.django_db
+def test_schema_management_form_content_is_reused_when_saving():
+    spec_url = "http://example.com/schema.json"
+    readme_url = "http://example.com/README.md"
+    with requests_mock.Mocker() as m:
+        m.get(spec_url, text='{"$id": "http://example.com/id"}')
+        m.get(readme_url, text="# README")
+        form = SchemaForm(data=_new_schema_form_data(spec_url, readme_url))
+        assert form.is_valid()
+        assert m.call_count == 2
+
+        schema_ref = SchemaRefFactory(url=spec_url)
+        assert schema_ref.id_value == "http://example.com/id"
+        readme = DocumentationItemFactory(url=readme_url)
+        assert readme.get_content() == "# README"
+        assert m.call_count == 2
+
+
+@pytest.mark.django_db
+def test_schema_management_form_uses_cached_content():
+    spec_url = "http://example.com/schema.json"
+    readme_url = "http://example.com/README.md"
+    with requests_mock.Mocker() as m:
+        m.get(spec_url, text="{}")
+        m.get(readme_url, text="# README")
+        SchemaForm(data=_new_schema_form_data(spec_url, readme_url)).is_valid()
+        SchemaForm(data=_new_schema_form_data(spec_url, readme_url)).is_valid()
+        assert m.call_count == 2
 
 
 @pytest.mark.django_db
