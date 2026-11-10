@@ -26,6 +26,35 @@
   </p>
   <h2>Methods</h2>
   <section class="method">
+    <h3>GET /api/search?query=[query]</h3>
+    <p>Searches public schemas.</p>
+    <h4>Parameters</h4>
+    <ul>
+      <li><b>query</b>: Search keywords, or the $id value of a JSON schema. Omit to list all public schemas.</li>
+    </ul>
+    <h4>Response</h4>
+    <p>A JSON object containing a "data" array of matching schemas, each with the following properties:</p>
+    <ul>
+      <li><b>url</b>: A URL for the schema on {{ settings.SITE_NAME }}</li>
+      <li><b>id</b>: The schema's ID</li>
+      <li><b>name</b>: The schema's name</li>
+      <li><b>description</b>: The schema's description, or null</li>
+    </ul>
+    <code>
+      <pre>
+{
+  "data": [
+    {
+      "url": "{{ settings.SITE_URL }}/schemas/30",
+      "id": 30,
+      "name": "Example schema",
+      "description": "An example schema"
+    }
+  ]
+}</pre>
+    </code>
+  </section>
+  <section class="method">
     <h3>GET /api/find?id=[$id]</h3>
     <p>Looks up a JSON schema by its $id value.</p>
     <h4>Parameters</h4>
