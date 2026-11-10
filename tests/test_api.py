@@ -3,6 +3,7 @@ import logging
 import pytest
 from unittest.mock import patch
 from django.test import Client, override_settings
+from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
 import requests_mock
@@ -165,6 +166,70 @@ def test_find_ignores_case(api_client):
         data = response_json.get("data")
         url = data.get("url")
         assert url == url
+
+
+@pytest.mark.django_db
+def test_search_by_keyword(api_client):
+    schema = SchemaFactory.create(name="Invoice schema")
+    SchemaFactory.create(name="Unrelated thing")
+
+    response = api_client.get("/api/search?query=invoice")
+
+    assert response.status_code == 200
+    assert [result["id"] for result in response.json()["data"]] == [schema.id]
+
+
+@pytest.mark.django_db
+def test_search_by_id_value_returns_schema_data(api_client):
+    url = "https://example.com/schema.json"
+    id_value = "https://example.com/testid"
+    with requests_mock.Mocker() as m:
+        m.get(url, text=f'{{"$id":"{id_value}"}}')
+        schema = SchemaRefFactory.create(url=url).schema
+    # Would match a keyword search, but an exact $id match takes precedence
+    SchemaFactory.create(description=f"Mentions {id_value}")
+
+    response = api_client.get(f"/api/search?query={id_value.upper()}")
+
+    assert response.status_code == 200
+    schema_path = reverse("schema_detail", kwargs={"schema_id": schema.id})
+    assert response.json()["data"] == [
+        {
+            "url": f"http://testserver{schema_path}",
+            "id": schema.id,
+            "name": schema.name,
+            "description": schema.description,
+        }
+    ]
+
+
+@pytest.mark.django_db
+def test_search_id_value_miss_falls_back_to_keyword_search(api_client, caplog):
+    query = "https://example.com/testid"
+    schema = SchemaFactory.create(description=f"Mentions {query}")
+
+    with caplog.at_level(logging.INFO, logger="schemaindex"):
+        response = api_client.get(f"/api/search?query={query}")
+
+    assert [result["id"] for result in response.json()["data"]] == [schema.id]
+    assert any(
+        "[API] search $id miss" in record.getMessage() for record in caplog.records
+    )
+
+
+@pytest.mark.django_db
+def test_search_excludes_private_schemas(api_client):
+    url = "https://example.com/schema.json"
+    id_value = "https://example.com/testid"
+    private_schema = SchemaFactory.create(name="Invoice schema", published_at=None)
+    with requests_mock.Mocker() as m:
+        m.get(url, text=f'{{"$id":"{id_value}"}}')
+        SchemaRefFactory.create(url=url, schema=private_schema)
+
+    for query in [id_value, "invoice", ""]:
+        response = api_client.get(f"/api/search?query={query}")
+        assert response.status_code == 200
+        assert response.json()["data"] == []
 
 
 @pytest.mark.django_db

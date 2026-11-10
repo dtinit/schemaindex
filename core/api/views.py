@@ -1,4 +1,5 @@
 import json
+import logging
 from functools import wraps
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -10,6 +11,9 @@ from jsonschema import ValidationError as JSONValidationError
 from core.models import SchemaRef, Schema
 from core.api.responses import ApiResponse, ApiErrorResponse
 from core.views import lookup_schema
+from core.utils import is_url
+
+logger = logging.getLogger("schemaindex")
 
 
 def require_manifest(function):
@@ -38,6 +42,36 @@ def find(request):
     published_schema_refs = SchemaRef.objects.filter(schema__in=Schema.objects.public())
     schema_ref = get_object_or_404(published_schema_refs, id_value__iexact=id_value)
     return ApiResponse({"url": schema_ref.url})
+
+
+@require_GET
+def search(request):
+    query = request.GET.get("query", "").strip()
+    public_schemas = Schema.objects.public()
+
+    results = public_schemas.search(query)
+    # If query looks like a URL, treat it as an exact $id lookup
+    if is_url(query):
+        id_value_matches = public_schemas.filter(
+            schemaref__id_value__iexact=query
+        ).distinct()
+        if id_value_matches.exists():
+            results = id_value_matches
+        else:
+            logger.info('[API] search $id miss: no schema found for "%s".', query)
+
+    # Unpaginated; fine while the registry is small.
+    return ApiResponse([
+        {
+            "url": request.build_absolute_uri(
+                reverse("schema_detail", kwargs={"schema_id": schema.id})
+            ),
+            "id": schema.id,
+            "name": schema.name,
+            "description": schema.description,
+        }
+        for schema in results
+    ])
 
 
 @require_POST

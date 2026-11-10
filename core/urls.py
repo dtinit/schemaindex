@@ -6,6 +6,7 @@ from core.api import views as api_views
 
 api_endpoints = [
     path("find", api_views.find, name="api_find"),
+    path("search", api_views.search, name="api_search"),
     path("schemas", api_views.schemas_create, name="api_schemas_create"),
     path(
         "schemas/<int:schema_id>", api_views.schemas_update, name="api_schemas_update"
