@@ -8,12 +8,14 @@ from django.conf import settings
 from django.template.defaultfilters import filesizeformat
 import requests
 from jsonschema import ValidationError as JSONValidationError
-from .models import DocumentationItem, SchemaRef, Schema, PermanentURL
-from .utils import (
-    guess_specification_language_by_extension,
-    is_trusted_content_host_url,
-    human_readable_list,
+from .models import (
+    DocumentationItem,
+    SchemaRef,
+    Schema,
+    PermanentURL,
+    PublishedSchemaConflictError,
 )
+from .utils import human_readable_list
 
 
 # These are just alphabetized and shown as help text
@@ -46,26 +48,28 @@ class ReferenceItemForm(forms.Form):
         self.empty_permitted = False
 
 
-def clean_url_and_get_body(url):
-    if not is_trusted_content_host_url(url):
-        return ""
+def validate_reference_item_content(reference_item):
+    if not reference_item.is_content_fetchable:
+        return
 
     try:
-        response = requests.get(url)
+        content = reference_item.get_content(update_and_notify_on_failure=False)
+    except requests.exceptions.HTTPError:
+        raise ValidationError("The provided URL returned an invalid status code")
     except requests.exceptions.RequestException:
         raise ValidationError("The provided URL could not be reached")
 
-    if response.status_code != requests.codes.ok:
-        raise ValidationError("The provided URL returned an invalid status code")
-
-    if not response.text:
+    if not content:
         raise ValidationError("The provided URL has no text content")
-
-    return response.text
 
 
 class SchemaRefForm(ReferenceItemForm):
     schema_id = None
+
+    PUBLISHED_CONFLICT_ERROR_MESSAGES = {
+        "URL": "The provided URL is already in use by another Schema",
+        "$id": "A JSON schema with this resource's $id is already in use by another Schema",
+    }
 
     name = forms.CharField(
         label="Name",
@@ -84,13 +88,14 @@ class SchemaRefForm(ReferenceItemForm):
     )
 
     def clean_url(self):
-        if not self.cleaned_data["url"]:
-            return None
         url = self.cleaned_data["url"]
-        content = clean_url_and_get_body(url)
-        matched_language = guess_specification_language_by_extension(url)
+        if not url:
+            return None
 
-        if not matched_language:
+        schema_ref = SchemaRef(url=url, schema_id=self.schema_id)
+        validate_reference_item_content(schema_ref)
+
+        if not schema_ref.language:
             raise ValidationError(
                 "The provided URL does not have a supported file extension"
             )
@@ -102,36 +107,13 @@ class SchemaRefForm(ReferenceItemForm):
         ):
             return url
 
-        # But if it's a published schema, we need to make sure the URL and $id aren't already in use
-        schema_refs = SchemaRef.objects.select_related("schema").filter(
-            schema__in=Schema.objects.public().exclude(id=self.schema_id)
+        schema_ref.id_value = schema_ref.get_id_value_from_content(
+            update_and_notify_on_failure=False
         )
-        # First check the URL
-        for schema_ref in schema_refs:
-            if schema_ref.url_provider_info.is_same_resource(url):
-                raise ValidationError(
-                    "The provided URL is already in use by another Schema"
-                )
-
-        if matched_language != "json":
-            return url
-
-        # Then check the $id
         try:
-            parsed_data = json.loads(content)
-            if isinstance(parsed_data, dict):
-                id_value = parsed_data.get("$id")
-        except (json.JSONDecodeError, TypeError):
-            id_value = None
-
-        if id_value is None:
-            return url
-
-        for schema_ref in schema_refs:
-            if schema_ref.id_value == id_value:
-                raise ValidationError(
-                    "A JSON schema with this resource's $id is already in use by another Schema"
-                )
+            schema_ref.check_for_published_conflicts()
+        except PublishedSchemaConflictError as e:
+            raise ValidationError(self.PUBLISHED_CONFLICT_ERROR_MESSAGES[e.reason])
 
         return url
 
@@ -326,14 +308,14 @@ class SchemaForm(forms.Form):
         if not self.cleaned_data["readme_url"]:
             return None
         url = self.cleaned_data["readme_url"]
-        clean_url_and_get_body(url)
+        validate_reference_item_content(DocumentationItem(url=url))
         return url
 
     def clean_license_url(self):
         if not self.cleaned_data["license_url"]:
             return None
         url = self.cleaned_data["license_url"]
-        clean_url_and_get_body(url)
+        validate_reference_item_content(DocumentationItem(url=url))
         return url
 
     def is_valid(self):

@@ -589,6 +589,20 @@ def test_schema_ref_get_content_fetches_from_any_domain_with_wildcard():
 
 
 @pytest.mark.django_db
+def test_schema_ref_clears_id_value_when_content_is_not_a_json_object():
+    mock_url = "https://example.com/schema.json"
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, text='{"$id":"https://example.com/old_id"}')
+        schema_ref = SchemaRefFactory.create(url=mock_url)
+        m.get(mock_url, text="[]")
+        # Content is cached by URL, so simulate the cache entry expiring
+        cache.clear()
+        schema_ref.save()
+        schema_ref.refresh_from_db()
+        assert schema_ref.id_value is None
+
+
+@pytest.mark.django_db
 def test_new_json_schema_refs_get_their_own_id_value():
     # Regression test for #385
     first_url = "https://example.com/first.json"

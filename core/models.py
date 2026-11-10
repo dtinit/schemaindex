@@ -29,7 +29,6 @@ from jsonschema import validate as validate_json_schema
 from django.core.mail import send_mail
 from .utils import (
     guess_specification_language_by_extension,
-    guess_language_by_extension,
     is_trusted_content_host_url,
 )
 
@@ -290,24 +289,8 @@ class Schema(BaseModel):
         Raises:
             PublishedSchemaConflictError: If a conflict is found.
         """
-        published_schema_refs = SchemaRef.objects.filter(
-            schema__in=Schema.objects.public()
-        ).exclude(
-            # We don't want to check against this Schema's own SchemaRefs
-            schema=self
-        )
-        # Check for existing published SchemaRefs with the same URL or $id
         for schema_ref in self.schemaref_set.all():
-            for published_schema_ref in published_schema_refs:
-                if published_schema_ref.url_provider_info.is_same_resource(
-                    schema_ref.url
-                ):
-                    raise PublishedSchemaConflictError(published_schema_ref, "URL")
-                if (
-                    schema_ref.id_value
-                    and schema_ref.id_value == published_schema_ref.id_value
-                ):
-                    raise PublishedSchemaConflictError(published_schema_ref, "$id")
+            schema_ref.check_for_published_conflicts()
 
     def to_manifest(self):
         manifest = {
@@ -391,28 +374,6 @@ class Schema(BaseModel):
             self.published_at = timezone.now()
 
         self.save()
-
-
-class ReferenceItemManager(models.Manager):
-    def get_published_by_domain_and_path(self, url):
-        published_schema_refs = (
-            super()
-            .get_queryset()
-            .select_related("schema")
-            .exclude(schema__published_at__isnull=True)
-        )
-        matching_published_schema_ref_ids = [
-            schema_ref.id
-            for schema_ref in published_schema_refs
-            if schema_ref.url_provider_info.is_same_resource(url)
-        ]
-        # Custom manager methods like this typically return a QuerySet.
-        # In this case, we already retrieved these items from the db,
-        # so we *could* break convention and just return the actual objects.
-        # Instead, we're making an extra db request just to return a QuerySet
-        # of the matching objects, prefering developer ergonomics
-        # over max performance. For now, the performance hit should be negligible.
-        return super().get_queryset().filter(id__in=matching_published_schema_ref_ids)
 
 
 class URLProviderInfo:
@@ -553,7 +514,6 @@ class ReferenceItem(BaseModel):
     class Meta:
         abstract = True
 
-    objects = ReferenceItemManager()
     url = models.URLField()
     name = models.CharField(max_length=300, blank=True, null=True)
     content_fetch_failing_since = models.DateTimeField(null=True, blank=True)
@@ -746,21 +706,37 @@ class SchemaRef(ReferenceItem):
     def language(self):
         return guess_specification_language_by_extension(self.url)
 
-    def save(self, *args, **kwargs):
+    def check_for_published_conflicts(self):
+        """
+        Checks SchemaRefs of other public schemas for a matching URL or $id.
+
+        Raises:
+            PublishedSchemaConflictError: If a conflict is found.
+        """
+        published_schema_refs = SchemaRef.objects.filter(
+            schema__in=Schema.objects.public()
+        ).exclude(schema_id=self.schema_id)
+        for published_schema_ref in published_schema_refs:
+            if published_schema_ref.url_provider_info.is_same_resource(self.url):
+                raise PublishedSchemaConflictError(published_schema_ref, "URL")
+            if self.id_value and self.id_value == published_schema_ref.id_value:
+                raise PublishedSchemaConflictError(published_schema_ref, "$id")
+
+    def get_id_value_from_content(self, update_and_notify_on_failure=True):
         if self.language != "json":
-            self.id_value = None
-            super().save(*args, **kwargs)
-            return
-
-        # Try to parse out an $id for the id_value field
+            return None
         try:
-            content = self.get_content()
-            parsed_data = json.loads(content)
-            if isinstance(parsed_data, dict):
-                self.id_value = parsed_data.get("$id")
+            parsed_data = json.loads(
+                self.get_content(
+                    update_and_notify_on_failure=update_and_notify_on_failure
+                )
+            )
         except (json.JSONDecodeError, TypeError, requests.exceptions.RequestException):
-            self.id_value = None
+            return None
+        return parsed_data.get("$id") if isinstance(parsed_data, dict) else None
 
+    def save(self, *args, **kwargs):
+        self.id_value = self.get_id_value_from_content()
         super().save(*args, **kwargs)
 
     def to_manifest_document_metadata(self):
@@ -806,10 +782,6 @@ class DocumentationItem(ReferenceItem):
 
     def __str__(self):
         return self.name
-
-    @property
-    def language(self):
-        return guess_language_by_extension(self.url, ["markdown"])
 
     @property
     def is_content_renderable(self):
