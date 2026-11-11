@@ -23,6 +23,7 @@ from core.mcp.sync_to_async_with_db_cleanup import (
     sync_to_async_with_db_cleanup as sync_to_async,
 )
 from core.models import Schema
+from core.upstream import UPSTREAM_SEARCH_URL
 from factories import SchemaFactory, UserFactory, SchemaRefFactory
 from schemaindex.asgi import create_application as create_asgi_application
 from utils import assert_schema_matches_manifest
@@ -644,6 +645,88 @@ async def test_search_schemas_url_query_without_id_value_match_falls_back_to_sea
     assert "with an $id exactly matching your query" not in text
     assert unmatched_url in text
     assert "Beta" not in text
+
+
+UPSTREAM_RESULT = {
+    "url": "https://schemas.pub/schemas/30",
+    "id": 30,
+    "name": "Upstream Schema",
+    "description": None,
+}
+
+
+@pytest.mark.anyio
+@override_settings(UPSTREAM_API_KEY="key", UPSTREAM_SEARCH_FALLBACK="all")
+async def test_search_schemas_falls_back_to_upstream_for_all(
+    client_session, authenticate_as
+):
+    authenticate_as(await sync_to_async(UserFactory.create)())
+
+    with requests_mock.Mocker() as m:
+        m.get(UPSTREAM_SEARCH_URL, json={"data": [UPSTREAM_RESULT]})
+        result = await client_session.call_tool(
+            "search_schemas", arguments={"query": "nonexistent"}
+        )
+
+    text = result.content[0].text
+    assert "Found 1 schema on Schemas.Pub matching your query:" in text
+    assert "Upstream Schema" in text
+    assert m.last_request.qs == {"query": ["nonexistent"]}
+    assert m.last_request.headers["Authorization"] == "Bearer key"
+
+
+@pytest.mark.anyio
+@override_settings(UPSTREAM_API_KEY="key", UPSTREAM_SEARCH_FALLBACK="$id")
+async def test_search_schemas_id_fallback_only_for_url_queries(
+    client_session, authenticate_as
+):
+    authenticate_as(await sync_to_async(UserFactory.create)())
+
+    with requests_mock.Mocker() as m:
+        m.get(UPSTREAM_SEARCH_URL, json={"data": [UPSTREAM_RESULT]})
+        keyword_result = await client_session.call_tool(
+            "search_schemas", arguments={"query": "nonexistent"}
+        )
+        assert not m.called
+        id_result = await client_session.call_tool(
+            "search_schemas", arguments={"query": "https://example.com/missing"}
+        )
+
+    assert keyword_result.content[0].text == "No results matched your query."
+    assert "on Schemas.Pub" in id_result.content[0].text
+
+
+@pytest.mark.anyio
+@override_settings(UPSTREAM_API_KEY="key", UPSTREAM_SEARCH_FALLBACK="all")
+async def test_search_schemas_skips_upstream_with_local_results(
+    client_session, authenticate_as
+):
+    user = await sync_to_async(UserFactory.create)()
+    authenticate_as(user)
+    await sync_to_async(SchemaFactory.create)(created_by=user, name="Alpha")
+
+    with requests_mock.Mocker() as m:
+        m.get(UPSTREAM_SEARCH_URL, json={"data": [UPSTREAM_RESULT]})
+        result = await client_session.call_tool(
+            "search_schemas", arguments={"query": "alpha"}
+        )
+
+    assert not m.called
+    assert "Alpha" in result.content[0].text
+
+
+@pytest.mark.anyio
+@override_settings(UPSTREAM_API_KEY="key", UPSTREAM_SEARCH_FALLBACK="all")
+async def test_search_schemas_upstream_failure_returns_no_results(
+    client_session, authenticate_as
+):
+    authenticate_as(await sync_to_async(UserFactory.create)())
+
+    with requests_mock.Mocker() as m:
+        m.get(UPSTREAM_SEARCH_URL, status_code=500)
+        result = await client_session.call_tool("search_schemas", arguments={})
+
+    assert result.content[0].text == "No results matched your query."
 
 
 @pytest.mark.anyio

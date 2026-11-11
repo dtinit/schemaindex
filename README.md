@@ -70,6 +70,24 @@ By default, `TRUSTED_CONTENT_DOMAINS = ["*"]` lets the server fetch schema and d
 
 Set `SITE_NAME` to change the name shown throughout the site, in emails, and by the MCP server.
 
+## Schemas.Pub fallback search
+
+To search [Schemas.Pub](https://schemas.pub) when a local MCP search has no results,
+set the `UPSTREAM_SEARCH_FALLBACK` setting:
+
+```python
+UPSTREAM_SEARCH_FALLBACK = "$id"  # or "all"
+```
+
+- `"$id"` falls back only for exact `$id` lookups with no local results.
+- `"all"` falls back for any search without local results.
+
+This feature requires an Schemas.Pub API key:
+
+```python
+UPSTREAM_API_KEY = "<your Schemas.Pub API key>"
+```
+
 ## Contributing
 
 For code utilities, linting, formatting, and precommit checks, see [contribute.md](contribute.md).

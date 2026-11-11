@@ -12,6 +12,7 @@ from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver.exceptions import ResourceNotFoundError
 from core.local_user import get_local_user
 from core.models import Schema
+from core.upstream import search_upstream, should_search_upstream
 from core.utils import is_url
 from core.mcp.sync_to_async_with_db_cleanup import sync_to_async_with_db_cleanup
 from core.mcp.token_verifier import DjangoOAuthToolkitTokenVerifier
@@ -54,6 +55,14 @@ Description: {schema.description if schema.description else "(none)"}
 """
 
     return formatted_schema
+
+
+def _format_upstream_schema(schema):
+    return f"""
+Name: {schema["name"]}
+Schemas.Pub URL: {schema["url"]}
+Description: {schema["description"] or "(none)"}
+"""
 
 
 def _get_authenticated_user():
@@ -117,6 +126,16 @@ def search_schemas(
     )
 
     total_count = results.count()
+    is_upstream = False
+    if (
+        total_count == 0
+        and scope == "all"
+        and should_search_upstream(is_id_value_query)
+    ):
+        results = search_upstream(query)
+        total_count = len(results)
+        is_upstream = True
+
     if total_count == 0:
         logger.info("[MCP] search_schemas query returned no results")
         return "No results matched your query."
@@ -131,7 +150,8 @@ def search_schemas(
     end = start + MAX_PAGE_SIZE
     paginated_results = results[start:end]
 
-    formatted_results = [_format_schema(schema) for schema in paginated_results]
+    format_result = _format_upstream_schema if is_upstream else _format_schema
+    formatted_results = [format_result(schema) for schema in paginated_results]
     formatted_page = "\n---\n".join(formatted_results)
 
     match_description = (
@@ -139,7 +159,8 @@ def search_schemas(
         if has_exact_id_value_match
         else "matching your query"
     )
-    response = f"Found {total_count} schema{'s' if total_count > 1 else ''} {match_description}{':' if total_pages == 1 else '.'}"
+    source_description = " on Schemas.Pub" if is_upstream else ""
+    response = f"Found {total_count} schema{'s' if total_count > 1 else ''}{source_description} {match_description}{':' if total_pages == 1 else '.'}"
 
     if total_pages == 1:
         response += f"\n\n{formatted_page}"

@@ -220,6 +220,15 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 HOURLY_API_REQUEST_LIMIT = 500
 
+# Schemas.Pub fallback search: when an MCP search finds no local results,
+# search Schemas.Pub instead.
+# "all" falls back for every search
+# "$id" falls back only for exact $id lookups (queries that are just a URL).
+# Leave unset to never fall back.
+# UPSTREAM_SEARCH_FALLBACK = "$id"
+# Fallback search requires a Schemas.Pub API key.
+# UPSTREAM_API_KEY = "<your Schemas.Pub API key>"
+
 # SITE_NAME/SITE_URL-derived OAuth settings
 # are added in development.py and production.py
 OAUTH2_PROVIDER = {
