@@ -447,18 +447,18 @@ def manage_schema_publish(request, schema_id):
         ),
         id=schema_id,
     )
-    conflicting_published_schema_ref = None
+    conflicting_schema = None
     conflict_reason = None
     try:
         schema.check_for_published_conflicts()
     except PublishedSchemaConflictError as e:
-        conflicting_published_schema_ref = e.conflicting_schema_ref
+        conflicting_schema = e.conflicting_schema
         conflict_reason = e.reason
 
     if request.method == "POST":
-        if conflicting_published_schema_ref:
+        if conflicting_schema:
             raise PermissionDenied(
-                f"Another public schema has claimed this definition's {conflict_reason}"
+                f"Another public schema has claimed this schema's {conflict_reason}"
             )
 
         if schema.schemaref_set.count() == 0:
@@ -473,9 +473,7 @@ def manage_schema_publish(request, schema_id):
         "core/manage/publish_schema.html",
         {
             "schema": schema,
-            "conflicting_schema": conflicting_published_schema_ref.schema
-            if conflicting_published_schema_ref
-            else None,
+            "conflicting_schema": conflicting_schema,
             "conflict_reason": conflict_reason,
         },
     )
