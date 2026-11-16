@@ -145,11 +145,11 @@ class PublishedSchemaConflictError(Exception):
     would create a conflict with another published schema.
     """
 
-    def __init__(self, conflicting_schema_ref, reason):
-        self.conflicting_schema_ref = conflicting_schema_ref
+    def __init__(self, conflicting_schema, reason):
+        self.conflicting_schema = conflicting_schema
         self.reason = reason
         super().__init__(
-            f"{reason} already in use by published SchemaRef {conflicting_schema_ref.id}"
+            f"{reason} already in use by published Schema {conflicting_schema.id}"
         )
 
 
@@ -282,13 +282,31 @@ class Schema(BaseModel):
             ]
         )
 
-    def check_for_published_conflicts(self):
+    def check_for_published_name_conflict(self):
         """
-        Checks public schemas for matching SchemaRef URLs or $id values.
+        Checks other public schemas for a case-insensitive name match.
 
         Raises:
             PublishedSchemaConflictError: If a conflict is found.
         """
+        conflicting_schema = (
+            Schema.objects
+            .public()
+            .exclude(id=self.id)
+            .filter(name__iexact=self.name)
+            .first()
+        )
+        if conflicting_schema:
+            raise PublishedSchemaConflictError(conflicting_schema, "name")
+
+    def check_for_published_conflicts(self):
+        """
+        Checks public schemas for a matching name, SchemaRef URLs, or $id values.
+
+        Raises:
+            PublishedSchemaConflictError: If a conflict is found.
+        """
+        self.check_for_published_name_conflict()
         for schema_ref in self.schemaref_set.all():
             schema_ref.check_for_published_conflicts()
 
@@ -357,16 +375,13 @@ class Schema(BaseModel):
                 self.check_for_published_conflicts()
             except PublishedSchemaConflictError as e:
                 conflict_url = reverse(
-                    "schema_ref_detail",
-                    kwargs={
-                        "schema_id": e.conflicting_schema_ref.schema.id,
-                        "schema_ref_id": e.conflicting_schema_ref.id,
-                    },
+                    "schema_detail",
+                    kwargs={"schema_id": e.conflicting_schema.id},
                 )
                 raise ValidationError(
                     f"`public: true` was set, but a public schema ({conflict_url}) "
-                    + f"is already using one of the {e.reason} values "
-                    + f"used in this schema. Please contact a {settings.SITE_NAME} administrator."
+                    + f"is already using this schema's {e.reason}. "
+                    + f"Please contact a {settings.SITE_NAME} administrator."
                 )
 
         # We only update published_at when we initially publish
@@ -718,9 +733,9 @@ class SchemaRef(ReferenceItem):
         ).exclude(schema_id=self.schema_id)
         for published_schema_ref in published_schema_refs:
             if published_schema_ref.url_provider_info.is_same_resource(self.url):
-                raise PublishedSchemaConflictError(published_schema_ref, "URL")
+                raise PublishedSchemaConflictError(published_schema_ref.schema, "URL")
             if self.id_value and self.id_value == published_schema_ref.id_value:
-                raise PublishedSchemaConflictError(published_schema_ref, "$id")
+                raise PublishedSchemaConflictError(published_schema_ref.schema, "$id")
 
     def get_id_value_from_content(self, update_and_notify_on_failure=True):
         if self.language != "json":

@@ -152,6 +152,22 @@ def test_private_schemas_with_published_urls_cannot_be_published():
 
 
 @pytest.mark.django_db
+def test_private_schemas_with_published_names_cannot_be_published():
+    SchemaFactory(name="Taken Name")
+    private_schema = SchemaFactory(name="taken name", published_at=None)
+    SchemaRefFactory(schema=private_schema)
+    client = Client()
+    client.force_login(private_schema.created_by)
+    get_response = client.get(f"/manage/schema/{private_schema.id}/publish")
+    assert get_response.status_code == 200
+    assert "Schema name already in use" in str(get_response.content)
+    post_response = client.post(f"/manage/schema/{private_schema.id}/publish")
+    assert post_response.status_code == 403
+    private_schema.refresh_from_db()
+    assert private_schema.published_at is None
+
+
+@pytest.mark.django_db
 def test_private_schemas_with_published_id_values_cannot_be_published():
     public_schema = SchemaFactory()
     private_schema = SchemaFactory(published_at=None)
@@ -733,7 +749,7 @@ def test_replace_manifest_prevents_published_conflicts():
 
     assert response.status_code == 200
     [error] = response.context["form"].errors["manifest_file"]
-    assert "is already using one of the URL values" in error
+    assert "is already using this schema's URL" in error
     schema.refresh_from_db()
     assert schema.name != "Replacement schema"
     assert not schema.schemaref_set.filter(url=url).exists()
