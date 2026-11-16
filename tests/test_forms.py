@@ -26,6 +26,25 @@ def _new_schema_form_data(schema_ref_url, readme_url="http://example.com/README.
 
 
 @pytest.mark.django_db
+def test_schema_management_form_prevents_duplicate_published_names():
+    SchemaFactory(name="Taken Name")
+    edited_schema = SchemaFactory()
+    url = "http://example.com/definition.json"
+    with requests_mock.Mocker() as m:
+        m.get(url, text="{}")
+        m.get("http://example.com", text="{}")
+        form = SchemaForm(
+            schema=edited_schema,
+            data=_new_schema_form_data(url, "http://example.com")
+            | {"name": "taken name"},
+        )
+        assert not form.is_valid()
+        assert form.errors["name"] == [
+            "This name is already in use by another public schema"
+        ]
+
+
+@pytest.mark.django_db
 def test_schema_management_form_prevents_duplicate_published_urls():
     existing_schema_ref = SchemaRefFactory(url="http://example.com/definition.json")
     https_url = urlunparse(urlparse(existing_schema_ref.url)._replace(scheme="https"))

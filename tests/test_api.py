@@ -430,10 +430,22 @@ def test_create_prevents_publishing_schemas_with_existing_definition_urls(api_cl
     )
     assert response.status_code == 400
     assert response.json()["error"]["message"] == "Validation Error"
-    assert (
-        "is already using one of the URL values used in this schema"
-        in response.json()["error"]["details"]
+    assert "is already using this schema's URL" in response.json()["error"]["details"]
+
+
+@pytest.mark.django_db
+def test_create_prevents_publishing_schemas_with_existing_names(api_client):
+    SchemaFactory.create(name="Taken Name", created_by=UserFactory.create())
+    manifest = {
+        "name": "taken name",
+        "public": True,
+        "documents": {"https://example.com/definition.json": {"type": "definition"}},
+    }
+    response = api_client.post(
+        "/api/schemas", data=json.dumps(manifest), content_type="application/json"
     )
+    assert response.status_code == 400
+    assert "is already using this schema's name" in response.json()["error"]["details"]
 
 
 @pytest.mark.django_db
@@ -461,8 +473,7 @@ def test_create_prevents_publishing_schemas_with_existing_id_values(api_client):
         assert response.status_code == 400
         assert response.json()["error"]["message"] == "Validation Error"
         assert (
-            "is already using one of the URL values used in this schema"
-            in response.json()["error"]["details"]
+            "is already using this schema's URL" in response.json()["error"]["details"]
         )
 
 
@@ -630,10 +641,7 @@ def test_update_prevents_publishing_schemas_with_existing_definition_urls(api_cl
     )
     assert response.status_code == 400
     assert response.json()["error"]["message"] == "Validation Error"
-    assert (
-        "is already using one of the URL values used in this schema"
-        in response.json()["error"]["details"]
-    )
+    assert "is already using this schema's URL" in response.json()["error"]["details"]
 
 
 @pytest.mark.django_db
@@ -664,8 +672,7 @@ def test_update_prevents_publishing_schemas_with_existing_id_values(api_client):
         assert response.status_code == 400
         assert response.json()["error"]["message"] == "Validation Error"
         assert (
-            "is already using one of the URL values used in this schema"
-            in response.json()["error"]["details"]
+            "is already using this schema's URL" in response.json()["error"]["details"]
         )
 
 
