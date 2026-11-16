@@ -304,6 +304,18 @@ class SchemaForm(forms.Form):
         }
         self.id = schema.id
 
+    def clean_name(self):
+        name = self.cleaned_data["name"]
+        if self.id is None or not Schema.objects.public().filter(id=self.id).exists():
+            return name
+        try:
+            Schema(id=self.id, name=name).check_for_published_name_conflict()
+        except PublishedSchemaConflictError:
+            raise ValidationError(
+                "This name is already in use by another public schema"
+            )
+        return name
+
     def clean_readme_url(self):
         if not self.cleaned_data["readme_url"]:
             return None
