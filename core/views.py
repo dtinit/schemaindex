@@ -27,7 +27,7 @@ from .models import (
 from .forms import SchemaForm, PermanentURLForm, ManifestUploadForm
 
 MAX_SCHEMA_RESULT_COUNT = 30
-MAX_HIGHLIGHTED_CONTENT_LENGTH = 512 * 1024
+MAX_HIGHLIGHTED_CONTENT_LENGTH = 50_000  # About 2,000 lines of formatted JSON
 
 # Pulled these from https://github.com/yourcelf/bleach-allowlist.
 # These are the only tags/attributes we'll allow to be rendered from Markdown sources.

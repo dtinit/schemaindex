@@ -36,7 +36,7 @@
       </div>
       {% else %}
       <!-- Please don't add whitespace to this line!-->
-      <pre class="schema-definition"><code {% if schema_ref.is_too_large_to_highlight %}class="nohighlight"{% endif %}>{{ schema_ref.content|escape }}</code></pre>
+      <pre class="schema-definition"><code class="{% if schema_ref.is_too_large_to_highlight %}nohighlight{% elif schema_ref.language %}language-{{ schema_ref.language }}{% endif %}">{{ schema_ref.content|escape }}</code></pre>
       {% endif %}
     </div>
     {% endif %}
