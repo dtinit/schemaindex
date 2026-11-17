@@ -1061,12 +1061,14 @@ a.badge--w3c {
   margin: 0;
 }
 
-.schema-definition .hljs {
+.schema-definition code {
   background: #000;
   border-radius: 6px;
   border: 1px solid #444;
   overflow: hidden;
   white-space: pre-wrap;
+  display: block;
+  padding: 1em;
 }
 
 .badges {
