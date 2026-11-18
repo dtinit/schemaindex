@@ -10,7 +10,7 @@
     {% if not latest_readme_content %}
     {% include "core/partials/content_fetch_error.html" with message="We're having trouble fetching the README content from the source. You can try viewing it directly:" item=latest_readme only %}
     {% else %}
-    <div class="{{ latest_readme.format }}">
+    <div class="schema-readme {{ latest_readme.format }}">
       {{ latest_readme_content }}
     </div>
     <hr />

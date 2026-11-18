@@ -27,6 +27,7 @@ from .models import (
 from .forms import SchemaForm, PermanentURLForm, ManifestUploadForm
 
 MAX_SCHEMA_RESULT_COUNT = 30
+MAX_HIGHLIGHTED_CONTENT_LENGTH = 50_000  # About 2,000 lines of formatted JSON
 
 # Pulled these from https://github.com/yourcelf/bleach-allowlist.
 # These are the only tags/attributes we'll allow to be rendered from Markdown sources.
@@ -228,6 +229,9 @@ def schema_ref_detail(request, schema, schema_ref_id):
     if schema_ref.is_content_fetchable:
         try:
             text_content = schema_ref.get_content()
+            schema_ref.is_too_large_to_highlight = (
+                len(text_content) > MAX_HIGHLIGHTED_CONTENT_LENGTH
+            )
             if schema_ref.language == "markdown":
                 schema_ref.markdown = render_markdown(text_content)
             else:

@@ -21,18 +21,25 @@
   {% if schema_ref.is_content_fetchable %}
     {% if not schema_ref.markdown and not schema_ref.content %}
     {% include "core/partials/content_fetch_error.html" with message="We're having trouble fetching this definition from the source. You can try viewing it directly:" item=schema_ref only %}
-    {% elif schema_ref.markdown %}
-    <div class="markdown">
-      {{ schema_ref.markdown }}
-    </div>
-    {% else %}
-    <!-- Please don't add whitespace to this line!-->
-    <pre class="schema-definition"><code>{{ schema_ref.content|escape }}</code></pre>
-    {% endif %}
     <hr />
     <p>
       <a href="{{ schema_ref|try_github_repo_url }}" class="text-with-icon">View source{{ schema_ref|branded_external_link_icon_for_reference_item }}</a>
     </p>
+    {% else %}
+    <div>
+      <div class="schema-definition-content-bar">
+        <a href="{{ schema_ref|try_github_repo_url }}" class="text-with-icon"><span class="ellipsize">{{schema_ref|try_github_repo_url}}</span>{{ schema_ref|branded_external_link_icon_for_reference_item }}</a>
+      </div>
+      {% if schema_ref.markdown %}
+      <div class="schema-definition markdown">
+        {{ schema_ref.markdown }}
+      </div>
+      {% else %}
+      <!-- Please don't add whitespace to this line!-->
+      <pre class="schema-definition"><code class="{% if schema_ref.is_too_large_to_highlight %}nohighlight{% elif schema_ref.language %}language-{{ schema_ref.language }}{% endif %}">{{ schema_ref.content|escape }}</code></pre>
+      {% endif %}
+    </div>
+    {% endif %}
   {% else %}
   {# The file is hosted somewhere we can't safely fetch from #}
   <p>

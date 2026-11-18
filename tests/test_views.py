@@ -16,6 +16,7 @@ from tests.factories import (
 )
 from core.models import Schema, DocumentationItem, Profile
 from core.forms import PermanentURLForm
+from core.views import MAX_HIGHLIGHTED_CONTENT_LENGTH
 from django.test import Client
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -406,6 +407,24 @@ def test_schema_ref_detail_renders_content_on_successful_fetch():
             follow=True,
         )
     assert response.status_code == 200
+    assert b"content-fetch-error" not in response.content
+    assert b"nohighlight" not in response.content
+    assert b'<code class="language-json">' in response.content
+
+
+@pytest.mark.django_db
+def test_schema_ref_detail_skips_highlighting_when_content_too_large():
+    client = Client()
+    url = "https://example.com/huge.json"
+    with requests_mock.Mocker() as m:
+        m.get(url, text="x" * (MAX_HIGHLIGHTED_CONTENT_LENGTH + 1))
+        schema_ref = SchemaRefFactory(url=url)
+        response = client.get(
+            f"/schemas/{schema_ref.schema.id}/definition/{schema_ref.id}",
+            follow=True,
+        )
+    assert response.status_code == 200
+    assert b'<code class="nohighlight">xxx' in response.content
     assert b"content-fetch-error" not in response.content
 
 

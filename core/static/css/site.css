@@ -534,7 +534,6 @@ a.button--primary:hover {
 
 .markdown {
   overflow: auto;
-  padding: 0 1rem;
 }
 
 .markdown p,
@@ -1041,6 +1040,10 @@ a.badge--w3c {
   color: #fff;
 }
 
+.schema-readme {
+  padding: 0 1rem;
+}
+
 .schema-definition {
   overflow: auto;
 }
@@ -1061,12 +1064,36 @@ a.badge--w3c {
   margin: 0;
 }
 
-.schema-definition .hljs {
-  background: #000;
-  border-radius: 6px;
+.schema-definition-content-bar {
+  padding: 0.5rem;
+  background: #191919;
+  border-radius: 8px 8px 0 0;
   border: 1px solid #444;
+  font-size: 0.9rem;
+}
+
+.schema-definition-content-bar svg {
+  flex-shrink: 0;
+}
+
+.schema-definition .hljs,
+.schema-definition.markdown {
+  background: #000;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  border: 1px solid #444;
+  border-top: none;
+  display: block;
+}
+
+.schema-definition .hljs {
   overflow: hidden;
   white-space: pre-wrap;
+  padding: 1rem;
+}
+
+.schema-definition.markdown {
+  padding: 0 1rem;
 }
 
 .badges {
