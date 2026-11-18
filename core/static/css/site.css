@@ -1076,7 +1076,7 @@ a.badge--w3c {
   flex-shrink: 0;
 }
 
-.schema-definition .hljs,
+.schema-definition > code,
 .schema-definition.markdown {
   background: #000;
   border-bottom-left-radius: 6px;
@@ -1086,7 +1086,7 @@ a.badge--w3c {
   display: block;
 }
 
-.schema-definition .hljs {
+.schema-definition > code {
   overflow: hidden;
   white-space: pre-wrap;
   padding: 1rem;
