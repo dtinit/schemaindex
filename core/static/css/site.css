@@ -1112,6 +1112,7 @@ a.badge--w3c {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
   border-bottom: 1px solid #444;
 }
 
@@ -1153,6 +1154,7 @@ a.badge--w3c {
   align-items: center;
   justify-content: center;
   gap: 0.25rem;
+  white-space: nowrap;
 }
 
 .account .schema-list .schema .schema__action-group .action-button:hover {
