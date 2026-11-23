@@ -92,7 +92,7 @@
         <span>{{ schema.schemaref_set.count }}</span>
       </div>
       <ul class="nav-group">
-        {% for schema_ref in schema.schemaref_set.all %}
+        {% for schema_ref in schema.sorted_schema_refs %}
           <li>
             {% url 'schema_ref_detail' schema_id=schema.id schema_ref_id=schema_ref.id as schema_ref_url %}
             <a href="{{ schema_ref_url }}"

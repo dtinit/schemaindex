@@ -24,9 +24,9 @@
   {% elif latest_readme %}
   {# The README is hosted somewhere we can't safely fetch from, or isn't in a format we render #}
   <div class="external-readme-link">
-    <h2>README</h2>
-    <a href="{{ latest_readme|try_github_repo_url }}" class="text-with-icon">
+    View external README at <a href="{{ latest_readme|try_github_repo_url }}" class="text-with-icon">
       {{ latest_readme|try_github_repo_url }}
+      {{ latest_readme|branded_external_link_icon_for_reference_item }}
     </a>
   </div>
   {% endif %}
