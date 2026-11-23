@@ -2,6 +2,7 @@ import logging
 from itertools import chain
 from django.db import models, transaction
 from django.db.models import Q
+from django.db.models.functions import Lower
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
@@ -229,6 +230,10 @@ class Schema(BaseModel):
             for reference_item in chain(documentation_items, schema_refs)
         }
         return provider_names
+
+    @property
+    def sorted_schema_refs(self):
+        return self.schemaref_set.order_by(Lower("name").asc(nulls_last=True))
 
     @property
     def organization(self):
