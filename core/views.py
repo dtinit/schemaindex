@@ -23,6 +23,7 @@ from .models import (
     PermanentURL,
     Implementation,
     PublishedSchemaConflictError,
+    APIKey,
 )
 from .forms import SchemaForm, PermanentURLForm, ManifestUploadForm
 
@@ -262,6 +263,27 @@ def account_api_key(request):
         return render(request, "account/api_key.html", {"new_api_key": new_api_key})
 
     return render(request, "account/api_key.html")
+
+
+@login_required
+def account_api_key_delete(request):
+    api_key = get_object_or_404(APIKey, profile__user=request.user)
+
+    if request.method == "POST":
+        api_key.delete()
+        return redirect("account_api_key")
+
+    return render(request, "account/delete_api_key.html", {"api_key": api_key})
+
+
+@login_required
+def account_api_key_replace(request):
+    api_key = get_object_or_404(APIKey, profile__user=request.user)
+    return render(
+        request,
+        "account/delete_api_key.html",
+        {"api_key": api_key, "is_replacing": True},
+    )
 
 
 # TODO: Refactor to use update_or_create

@@ -13,8 +13,9 @@ from tests.factories import (
     OrganizationSchemaRefFactory,
     PermanentURLFactory,
     ImplementationFactory,
+    APIKeyFactory,
 )
-from core.models import Schema, DocumentationItem, Profile
+from core.models import Schema, DocumentationItem, Profile, APIKey
 from core.forms import PermanentURLForm
 from django.test import Client
 from django.conf import settings
@@ -377,6 +378,54 @@ def test_api_key_shown_to_user():
         response = client.post("/account/api-key/", follow=True)
         assert response.status_code == 200
         assert mock_api_key in str(response.content)
+
+
+@pytest.mark.django_db
+def test_api_key_can_be_deleted():
+    user = UserFactory.create()
+    api_key = APIKeyFactory.create(profile=user.profile)
+    client = Client()
+    client.force_login(user)
+    get_response = client.get("/account/api-key/delete/")
+    assert get_response.status_code == 200
+    assert APIKey.objects.filter(pk=api_key.pk).exists()
+    post_response = client.post("/account/api-key/delete/")
+    assertRedirects(post_response, "/account/api-key/")
+    assert not APIKey.objects.filter(pk=api_key.pk).exists()
+
+
+@pytest.mark.django_db
+def test_api_key_delete_404s_without_key():
+    user = UserFactory.create()
+    client = Client()
+    client.force_login(user)
+    assert client.get("/account/api-key/delete/").status_code == 404
+    assert client.post("/account/api-key/delete/").status_code == 404
+
+
+@pytest.mark.django_db
+def test_api_key_can_be_replaced():
+    user = UserFactory.create()
+    api_key = APIKeyFactory.create(profile=user.profile)
+    client = Client()
+    client.force_login(user)
+    get_response = client.get("/account/api-key/replace/")
+    assert get_response.status_code == 200
+    assert APIKey.objects.filter(pk=api_key.pk).exists()
+    post_response = client.post("/account/api-key/")
+    assert post_response.status_code == 200
+    assert not APIKey.objects.filter(pk=api_key.pk).exists()
+    new_api_key = post_response.context["new_api_key"]
+    assert new_api_key in post_response.content.decode()
+
+
+@pytest.mark.django_db
+def test_api_key_replace_404s_without_key():
+    user = UserFactory.create()
+    client = Client()
+    client.force_login(user)
+    assert client.get("/account/api-key/replace/").status_code == 404
+    assert client.post("/account/api-key/replace/").status_code == 404
 
 
 @pytest.mark.django_db

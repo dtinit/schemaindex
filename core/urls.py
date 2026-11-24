@@ -76,9 +76,19 @@ urlpatterns = [
 ]
 
 if settings.ENABLE_ACCOUNTS:
-    urlpatterns.append(
+    urlpatterns.extend([
         path("account/api-key/", views.account_api_key, name="account_api_key"),
-    )
+        path(
+            "account/api-key/delete/",
+            views.account_api_key_delete,
+            name="account_api_key_delete",
+        ),
+        path(
+            "account/api-key/replace/",
+            views.account_api_key_replace,
+            name="account_api_key_replace",
+        ),
+    ])
 
 if settings.ENABLE_DTI_PAGES:
     urlpatterns.extend([

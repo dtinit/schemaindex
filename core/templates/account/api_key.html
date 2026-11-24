@@ -9,28 +9,25 @@ API Key
   <section>
     <h1>Manage API Key</h1>
     {% if new_api_key %}
-    <p>Your API key is:</p>
+    <p>Your new API key is:</p>
     <input readonly value="{{ new_api_key }}" />
-    This API key will not be shown again, but you can replace it with a new key later. Please treat it as you would a password.
+    <p>This API key will not be shown again, but you can replace it with a new key later. Please treat it as you would a password.</p>
+    {% elif request.user.profile.api_key %}
+    <p>Your account has an active API key created on {{ request.user.profile.api_key.created_at|date }}.</p>
+    <p>If you replace or delete your API key, {{ settings.SITE_NAME }} will no longer recognize it and any requests using it will fail.</p>
+    <div class="button-group">
+      <a href="{% url 'account_api_key_replace' %}" class="button button--warning">Replace API key</a>
+      <a href="{% url 'account_api_key_delete' %}" class="button button--danger">Delete API key</a>
+    </div>
     {% else %}
     <p>Create an API key to use with the <a href="{% url 'docs_api' %}">{{ settings.SITE_NAME }} API</a>.</p>
-    {% if request.user.profile.api_key %}
-    <p>Warning: Creating a new API key will invalidate your previous key created on {{ request.user.profile.api_key.created_at|date }}.</p>
-    {% endif %}
     <form action="{% url 'account_api_key' %}" method="POST">
       {% csrf_token %}
       <div class="button-group">
-        <button type="submit" class="button
-        {% if request.user.profile.api_key %}
-        button--warning
-        {% else %}
-        button--prominent 
-        {% endif %}"
-        >
-        {% if request.user.profile.api_key %}Replace{% else %}Create{% endif %} API key</button>
+        <button type="submit" class="button button--prominent">Create API key</button>
       </div>
     </form>
     {% endif %}
   </section>
-  </main>
+</main>
 {% endblock %}

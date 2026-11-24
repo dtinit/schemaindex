@@ -1204,6 +1204,10 @@ a.badge--w3c {
   width: 100%;
 }
 
+.api-key .button-group {
+  align-self: flex-start;
+}
+
 /* Schema management form */
 .manage-schema {
   margin: 1rem;

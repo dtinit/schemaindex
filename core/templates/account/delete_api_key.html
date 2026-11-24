@@ -1,0 +1,19 @@
+{% extends "core/layouts/noauth_base.html" %}
+{% block head_title %}
+{{ is_replacing|yesno:"Replace,Delete" }} API Key
+{% endblock %}
+{% block page_content %}
+<main>
+  <section class="main-content form-container dangerous-form">
+    <h1>{{ is_replacing|yesno:"Replace,Delete" }} API key?</h1>
+    <p>Are you sure you want to {{ is_replacing|yesno:"replace,delete" }} your API key created on {{ api_key.created_at|date }}? Anything using it will stop working. This cannot be undone.</p>
+    <form action="{% if is_replacing %}{% url 'account_api_key' %}{% else %}{% url 'account_api_key_delete' %}{% endif %}" method="POST">
+      {% csrf_token %}
+      <div class="button-group">
+        <a href="{% url 'account_api_key' %}" type="cancel" class="button">Cancel</a>
+        <button type="submit" class="button button--danger">{{ is_replacing|yesno:"Replace,Delete" }} API key</button>
+      </div>
+    </form>
+  </section>
+</main>
+{% endblock %}
